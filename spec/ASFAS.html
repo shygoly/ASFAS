@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ASFAS — Agent Native Software Factory Architecture Specification v1.0</title>
+<title>ASFAS — Agent Native Software Factory Architecture Specification v1.1</title>
 <meta name="description" content="Level 2 Engineering Specification. Knowledge Driven Software Factory.">
 <style>
 /* ============================================================
@@ -202,6 +202,16 @@ svg .lbl{font-size:13px; font-weight:600}
 svg .sub{font-size:10.5px; fill:var(--fg-mute)}
 svg .arw{stroke:var(--fg-mute); stroke-width:1.5; fill:none}
 svg .dim{fill:var(--fg-faint); font-size:10px}
+/* sequence diagrams */
+svg .life{stroke:var(--line); stroke-width:1; stroke-dasharray:3,4}
+svg .msg{stroke:var(--fg-mute); stroke-width:1.3; fill:none}
+svg .msg-alt{stroke:var(--must); stroke-width:1.2; fill:none; stroke-dasharray:4,3}
+svg .msg-gate{stroke:var(--may); stroke-width:1.4; fill:none}
+svg .mlbl{font-size:9.5px; fill:var(--fg)}
+svg .mlbl-alt{font-size:9.5px; fill:var(--must)}
+svg .mlbl-gate{font-size:9.5px; fill:var(--may)}
+svg .actor{font-size:10.5px; font-weight:600}
+svg .phase{fill:var(--bg-sunk); stroke:none}
 
 /* ---------- misc ---------- */
 hr{border:none; border-top:1px solid var(--line); margin:2.5rem 0}
@@ -246,7 +256,7 @@ h3.ch:hover .anchor,h4:hover .anchor{opacity:1}
   <div class="brand">
     <div class="mark">ASFAS</div>
     <div class="sub">Agent Native Software Factory<br>Architecture Specification</div>
-    <span class="ver">v1.0 · Level 2 · Engineering Spec</span>
+    <span class="ver">v1.1 · Level 2 · Engineering Spec</span>
   </div>
   <div class="searchbox">
     <input type="search" id="tocfilter" placeholder="筛选章节…" autocomplete="off" aria-label="筛选章节">
@@ -347,8 +357,8 @@ h3.ch:hover .anchor,h4:hover .anchor{opacity:1}
     <p class="zh">智能体原生软件工厂架构规范 · <strong>Knowledge Driven Software Factory</strong></p>
     <dl>
       <dt>Document</dt><dd>ASFAS — Level 2 Engineering Specification</dd>
-      <dt>Version</dt><dd>1.0.0-draft</dd>
-      <dt>Status</dt><dd>Draft · Part I–III normative · Part IV–VIII scoped</dd>
+      <dt>Version</dt><dd>1.1.1-draft</dd>
+      <dt>Status</dt><dd>Draft · Part I–III + VI normative · Part IV/V/VII scoped</dd>
       <dt>Date</dt><dd>2026-07-30</dd>
       <dt>Repository</dt><dd><code>~/Sync/project/ai-factory/spec/ASFAS.html</code></dd>
       <dt>Supersedes</dt><dd><code>AI_Software_Factory_Claude_Agent_SDK_方案.html</code>（2026-07，总体方案稿）</dd>
@@ -402,9 +412,10 @@ h3.ch:hover .anchor,h4:hover .anchor{opacity:1}
 <p><span class="rid">FR-1</span>本文件<kbd class="k must">MUST</kbd>是机器可解析的。所有规范性陈述<kbd class="k must">MUST</kbd>包裹在 <code>&lt;div class="rule"&gt;</code> 内并携带唯一 <code>&lt;span class="rid"&gt;</code> 标识；所有章节<kbd class="k must">MUST</kbd>携带 <code>id="chN"</code> 锚点且编号连续；所有 <code>ASFAS §N</code> 形式的内部引用<kbd class="k must">MUST</kbd>能解析到存在的锚点。校验器见 <a href="#apxD">附录 D</a>。</p>
 </div>
 
-<div class="note warn">
-<span class="lbl">诚实标注</span>
-<p><code>check-asfas-doc.mjs</code> <strong>当前尚未实现</strong>。在它落地前，<code>FR-1</code> 仅是文档约束，与本规范批评的"君子协定"同性质。此项登记在 <a href="#apxI">附录 I</a> 的未决清单，不假装它已被守住——理由见 <a href="#ch25">§25.6</a>。</p>
+<div class="note evidence">
+<span class="lbl">状态 · v1.1 起已守护</span>
+<p><code>spec/check-asfas-doc.mjs</code> <strong>已实现</strong>，8 条检查维度（章节连续性与导航双向一致 · rid 唯一与命名空间连续 · 内部引用可解析 · <strong>附录 B 数量与实际相等</strong> · CP 连续 · <strong>SVG 内无非法元素</strong> · 标签平衡 · Part 结构齐备），全部通过负向验证（<code>VC-8</code>），并挂进默认测试命令 <code>npm test</code>（<code>VC-9</code>）。</p>
+<p>其中<strong>维度 F</strong> 来自一次真实事故：本文件的时序图曾在 SVG <code>&lt;text&gt;</code> 内使用 <code>&lt;strong&gt;</code>——按 HTML5 foreign-content 规则该标签会<strong>中断 SVG 解析</strong>，其后内容全部掉出图外成为正文。标签平衡检查完全看不到它。这是 <code>PS-3</code> 覆盖假绿的又一实例，也是 <code>VC-6</code>（扫描面显式）要求的来由。</p>
 </div>
 
 <h4>0.4 参考体系</h4>
@@ -825,7 +836,7 @@ h3.ch:hover .anchor,h4:hover .anchor{opacity:1}
 <tbody>
 <tr><td><code>GMPGCPwork</code></td><td><strong>C2</strong></td><td>6 元语 + 13 校验器挂进 <code>pnpm test</code> + 动作分级 <code>L0–L3</code> + <code>.agent-runs/</code> append-only</td><td>护栏无运行时强制点（已在项目豁免表登记）→ 距 <code>C3</code> 缺编排面</td></tr>
 <tr><td><code>diabetes</code></td><td><strong>C1</strong></td><td>6 元语 + <code>AI.md</code> + 4 校验器挂进测试</td><td>无动作分级 / 无血缘 → 未达 <code>C2</code></td></tr>
-<tr><td>本规范自身</td><td><strong>C0</strong></td><td>结构与编号体系齐备</td><td><code>check-asfas-doc.mjs</code> 未实现（<code>FR-1</code>，见 §0.3 诚实标注）</td></tr>
+<tr><td>本规范自身</td><td><strong>C1</strong></td><td>结构与编号体系齐备；<code>check-asfas-doc.mjs</code> 8 维度全部通过负向验证并挂进 <code>npm test</code>（<code>VC-7</code> <code>VC-9</code>）</td><td>无元语层（本规范是规范本身，不是被规范的项目），故 <code>C2</code> 及以上不适用</td></tr>
 </tbody>
 </table></div>
 
@@ -1340,6 +1351,9 @@ dec://&lt;project&gt;/&lt;decision-id&gt;</code></pre>
 <tr><td><code>FINV-5</code></td><td>运行时最小化：替换运行时后 L1/L2 零改动</td><td><a href="#ch10">§10.1</a></td><td>替换协议的 diff 证明（<a href="#ch40">§40</a>）</td></tr>
 <tr><td><code>FINV-6</code></td><td>闸门必须检查"即将提交的内容"，不是"已提交的历史"</td><td>§14.2</td><td>负向验证：在工作区注入违规，闸门须红</td></tr>
 <tr><td><code>FINV-7</code></td><td>血缘 append-only：已写入记录不得修改或删除</td><td><a href="#ch27">§27</a></td><td>存储层 append-only + diff 过滤器守护</td></tr>
+<tr><td><code>FINV-8</code></td><td>承载闸门的命令不得长期失败</td><td><a href="#ch25">§25.5</a></td><td>干净基线上执行须全绿</td></tr>
+<tr><td><code>FINV-9</code></td><td>非确定性隔离在活动内；阶段推进条件必须确定性</td><td><a href="#ch41">§41.1</a></td><td>工作流可重放性验证</td></tr>
+<tr><td><code>FINV-10</code></td><td>重构 = 行为不变：验收条件含<strong>断言集合零变更</strong></td><td><a href="#ch46">§46.1</a></td><td>断言差分闸门（<code>WF-22</code>）</td></tr>
 </tbody>
 </table></div>
 
@@ -1363,8 +1377,9 @@ dec://&lt;project&gt;/&lt;decision-id&gt;</code></pre>
 <tr><td><code>FINV-1</code> <code>FINV-2</code> <code>FINV-4</code></td><td><code>C0</code></td><td>结构性约束，与是否有校验器无关</td></tr>
 <tr><td><code>FINV-3</code></td><td><code>C0</code></td><td>等级声明本身的规则</td></tr>
 <tr><td><code>FINV-6</code></td><td><code>C1</code></td><td><code>C0</code> 尚无闸门</td></tr>
-<tr><td><code>FINV-5</code></td><td><code>C3</code></td><td><code>C2</code> 及以下可能尚无运行时层</td></tr>
+<tr><td><code>FINV-5</code> <code>FINV-9</code></td><td><code>C3</code></td><td><code>C2</code> 及以下可能尚无运行时层与编排面</td></tr>
 <tr><td><code>FINV-7</code></td><td><code>C2</code></td><td>血缘从 <code>C2</code> 起要求</td></tr>
+<tr><td><code>FINV-8</code> <code>FINV-10</code></td><td><code>C1</code></td><td>二者都以闸门存在为前提</td></tr>
 </tbody>
 </table></div>
 
@@ -2831,7 +2846,7 @@ initial: &lt;插入时的初值&gt;
 <div class="part-head" id="partVI">
   <div class="kicker">Part VI</div>
   <h2>Workflow · 工作流</h2>
-  <p>工作流模型与六类工作流的阶段序列。<a href="#ch41">§41</a> 为规范性内容；<a href="#ch42">§42</a>–<a href="#ch47">§47</a> 已定阶段序列与闸门位置，时序细节与异常分支待补。</p>
+  <p>工作流模型与六类工作流的完整契约。<strong>本部分规范性定稿</strong>：<a href="#ch41">§41</a> 事件模型 · 活动契约 · 闸门分类学 · 失败路由；<a href="#ch42">§42</a>–<a href="#ch47">§47</a> 每类工作流含时序图、阶段契约、失败路由表与终止条件。</p>
 </div>
 
 <h3 class="ch" id="ch41"><span class="num">Chapter 41</span>工作流模型<a class="anchor" href="#ch41">#</a></h3>
@@ -2869,6 +2884,86 @@ initial: &lt;插入时的初值&gt;
 <p><span class="rid">WF-3</span>同一阶段存在多个闸门时，顺序<kbd class="k must">MUST</kbd>为：<strong>确定性闸门 → Reviewer 闸门 → 人工放行</strong>。确定性闸门<kbd class="k must NOT">MUST NOT</kbd>排在模型判断之后——让模型去审查一个连类型检查都没过的改动是纯粹的浪费，且会产生关于"它本来就不该存在的代码"的意见。</p>
 </div>
 
+<h4>41.5 事件模型</h4>
+
+<div class="rule">
+<p><span class="rid">WF-6</span>工作流事件<kbd class="k must">MUST</kbd>是 typed 且可持久化的，至少含：<code>event_id</code> · <code>workflow_id</code> · <code>seq</code>（单调递增）· <code>type</code> · <code>emitted_at</code> · <code>payload</code>（typed）· <code>run_id</code>（若由活动产生）。事件<kbd class="k must">MUST</kbd>append-only；状态由事件序列<strong>推导</strong>，<kbd class="k must NOT">MUST NOT</kbd>另存一份可被直接改写的"当前状态"作为权威。</p>
+</div>
+
+<p>"状态由事件推导"是可重放的前提。另存权威当前状态会立刻产生两个事实来源（<code>FP-1</code>），且当二者分叉时无法判断哪个对——这与元语层要治的病完全同构。缓存派生状态是允许的，但它<kbd class="k must">MUST</kbd>可从事件序列重建。</p>
+
+<div class="tw"><table>
+<thead><tr><th>事件类型</th><th>何时发出</th><th>payload 要点</th></tr></thead>
+<tbody>
+<tr><td><code>workflow.started</code></td><td>触发条件满足</td><td>工作流类型 · 触发源 · 初始输入</td></tr>
+<tr><td><code>stage.entered</code> / <code>stage.exited</code></td><td>阶段边界</td><td>阶段 id · 角色 · 动作等级</td></tr>
+<tr><td><code>activity.completed</code></td><td>活动产出 typed 结果</td><td><code>run_id</code> · typed 输出 · 计量</td></tr>
+<tr><td><code>gate.evaluated</code></td><td>每个闸门<strong>逐个</strong>发出</td><td>闸门 id · 结果 · <strong>失败位置</strong></td></tr>
+<tr><td><code>review.decided</code></td><td>Reviewer 出结论</td><td>通过 / 打回 + 打回项</td></tr>
+<tr><td><code>release.granted</code></td><td>人工放行</td><td>放行人身份 · 平台时间戳 · 引用</td></tr>
+<tr><td><code>workflow.terminated</code></td><td>完成 / 放弃 / 升级</td><td>终止原因</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">WF-7</span><code>gate.evaluated</code> <kbd class="k must">MUST</kbd>逐闸门发出，<kbd class="k must NOT">MUST NOT</kbd>合并为一个"全部闸门"事件。理由：合并后无法从事件序列回答"哪个闸门拦住了多少"，而这正是 <a href="#ch25">§25.7</a> 闸门拦截分布指标的数据来源——某级闸门长期零拦截意味着它形同虚设或位置错了。</p>
+</div>
+
+<h4>41.6 活动契约</h4>
+
+<div class="rule">
+<p><span class="rid">WF-8</span>活动<kbd class="k must">MUST</kbd>声明四项：<strong>①</strong> 输入的 typed schema；<strong>②</strong> 需要的知识切片（以语义引用表达，<code>FR-17</code>）；<strong>③</strong> 输出的 typed schema；<strong>④</strong> 动作等级上限。运行时<kbd class="k must NOT">MUST NOT</kbd>在活动执行期间扩展 ②③④ 中的任一项。</p>
+</div>
+
+<div class="rule">
+<p><span class="rid">WF-9</span>活动输出 parse 失败<kbd class="k must">MUST</kbd>计为一次<strong>失败迭代</strong>并计入护栏，<kbd class="k must NOT">MUST NOT</kbd>做容错解析（正则抽取、宽松 JSON、"尽力理解"）。容错解析会把一个明确的失败信号转成一个可能错误的成功信号。</p>
+</div>
+
+<h4>41.7 闸门分类学</h4>
+
+<div class="tw"><table>
+<thead><tr><th>类</th><th>执行者</th><th>可否裁剪</th><th>失败处置</th><th>典型</th></tr></thead>
+<tbody>
+<tr><td><strong>结构闸门</strong></td><td>确定性程序</td><td><kbd class="k must NOT">MUST NOT</kbd></td><td>回上一阶段</td><td>元语校验器 · 类型检查 · 格式契约</td></tr>
+<tr><td><strong>行为闸门</strong></td><td>确定性程序</td><td><kbd class="k must NOT">MUST NOT</kbd></td><td>回上一阶段</td><td>不变量测试 · 契约测试 · 回归</td></tr>
+<tr><td><strong>权限闸门</strong></td><td>确定性程序</td><td><kbd class="k must NOT">MUST NOT</kbd></td><td><strong>升级给人</strong></td><td>动作等级归级 · 路径面匹配 · <code>L3</code> 拦截</td></tr>
+<tr><td><strong>质量闸门</strong></td><td>Reviewer Agent</td><td><kbd class="k may">MAY</kbd>（须登记）</td><td>回 Impl</td><td>独立 diff 审查</td></tr>
+<tr><td><strong>放行闸门</strong></td><td><strong>自然人</strong></td><td><kbd class="k must NOT">MUST NOT</kbd></td><td>终止或返工</td><td>人工放行（<code>IN-1</code>）</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">WF-10</span>结构 / 行为 / 权限 / 放行四类闸门构成<strong>不可裁剪子集</strong>：任何工作流（含热修复）<kbd class="k must NOT">MUST NOT</kbd>跳过它们。可裁剪的只有质量闸门与<strong>非闸门阶段</strong>，且裁剪<kbd class="k must">MUST</kbd>作为事件登记，使其可被事后统计。</p>
+</div>
+
+<p>把"紧急时能跳过什么"提前定死，是为了让紧急时刻<strong>没有需要临场判断的空间</strong>。绝大多数流程崩坏发生在有人在压力下即兴决定"这次先跳过 X"——而 <code>WF-10</code> 让这个决定不存在。</p>
+
+<h4>41.8 失败路由</h4>
+
+<div class="rule">
+<p><span class="rid">WF-11</span>每条失败路由<kbd class="k must">MUST</kbd>声明<strong>回退目标阶段</strong>与<strong>重试上限</strong>。达到上限<kbd class="k must">MUST</kbd>升级给人，<kbd class="k must NOT">MUST NOT</kbd>静默重试或自动降低验收标准（如放宽断言、缩小改动范围直到闸门通过）。</p>
+</div>
+
+<div class="note warn">
+<span class="lbl">最危险的一种"成功"</span>
+<p>智能体在反复失败后<strong>修改验收条件</strong>使闸门通过，是一种会被记为成功的失败。它在指标上表现为高成功率，在代码上表现为断言被削弱、测试被收窄、契约段被"顺手对齐"。</p>
+<p>对策有三层：<code>WF-11</code> 的重试上限；<a href="#ch27">§27.3</a> 把"给不变量测试加跳过标记"列为 <code>L3</code>；以及 <a href="#ch46">§46</a> 的重构判据——<strong>修改了断言的改动不是重构</strong>。三者共同把"改验收条件"从一条捷径变成一条会报红的路。</p>
+</div>
+
+<h4>41.9 工作流目录</h4>
+
+<div class="tw"><table>
+<thead><tr><th>工作流</th><th>触发</th><th>特征差异</th><th>章</th></tr></thead>
+<tbody>
+<tr><td>需求开发</td><td>需求受理</td><td>基准形态；Test 先于 Impl</td><td><a href="#ch42">§42</a></td></tr>
+<tr><td>缺陷修复</td><td>缺陷报告</td><td>增 <strong>Attribute</strong> 与 <strong>Root Cause</strong>；复现测试是验收条件</td><td><a href="#ch43">§43</a></td></tr>
+<tr><td>热修复</td><td>线上事故</td><td>可裁剪非闸门阶段；<strong>强制补做</strong></td><td><a href="#ch44">§44</a></td></tr>
+<tr><td>发布</td><td>发布决定</td><td>无实现阶段；产出<strong>变更清单</strong></td><td><a href="#ch45">§45</a></td></tr>
+<tr><td>重构</td><td>重构决定</td><td>验收条件是<strong>行为不变</strong></td><td><a href="#ch46">§46</a></td></tr>
+<tr><td>研究</td><td>未决项</td><td>产出是<strong>决策候选</strong>，不是代码</td><td><a href="#ch47">§47</a></td></tr>
+</tbody>
+</table></div>
+
 <h3 class="ch" id="ch42"><span class="num">Chapter 42</span>需求开发工作流<a class="anchor" href="#ch42">#</a></h3>
 
 <figure><div class="svgbox">
@@ -2898,9 +2993,102 @@ initial: &lt;插入时的初值&gt;
 </svg>
 </div><figcaption>图 42-1 · 需求开发工作流</figcaption></figure>
 
+<h4>42.1 时序</h4>
+
+<figure><div class="svgbox">
+<svg viewBox="0 0 710 486" role="img" aria-label="需求开发工作流时序图">
+  <defs><marker id="sq" markerWidth="7" markerHeight="7" refX="6.2" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="var(--fg-mute)"/></marker>
+  <marker id="sqa" markerWidth="7" markerHeight="7" refX="6.2" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="var(--must)"/></marker>
+  <marker id="sqg" markerWidth="7" markerHeight="7" refX="6.2" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="var(--may)"/></marker></defs>
+
+  <rect x="10" y="8" width="70" height="26" rx="4" class="box"/><text x="45" y="25" class="actor" text-anchor="middle">人</text>
+  <rect x="108" y="8" width="88" height="26" rx="4" class="box-a"/><text x="152" y="25" class="actor" text-anchor="middle">Supervisor</text>
+  <rect x="220" y="8" width="64" height="26" rx="4" class="box"/><text x="252" y="25" class="actor" text-anchor="middle">Spec</text>
+  <rect x="312" y="8" width="64" height="26" rx="4" class="box"/><text x="344" y="25" class="actor" text-anchor="middle">Test</text>
+  <rect x="404" y="8" width="64" height="26" rx="4" class="box"/><text x="436" y="25" class="actor" text-anchor="middle">Impl</text>
+  <rect x="496" y="8" width="76" height="26" rx="4" class="box"/><text x="534" y="25" class="actor" text-anchor="middle">Gates</text>
+  <rect x="600" y="8" width="100" height="26" rx="4" class="box"/><text x="650" y="25" class="actor" text-anchor="middle">Reviewer</text>
+
+  <line x1="45" y1="34" x2="45" y2="470" class="life"/><line x1="152" y1="34" x2="152" y2="470" class="life"/>
+  <line x1="252" y1="34" x2="252" y2="470" class="life"/><line x1="344" y1="34" x2="344" y2="470" class="life"/>
+  <line x1="436" y1="34" x2="436" y2="470" class="life"/><line x1="534" y1="34" x2="534" y2="470" class="life"/>
+  <line x1="650" y1="34" x2="650" y2="470" class="life"/>
+
+  <path d="M 45 58 L 150 58" class="msg" marker-end="url(#sq)"/><text x="98" y="53" class="mlbl" text-anchor="middle">需求受理　L0</text>
+  <path d="M 152 84 L 250 84" class="msg" marker-end="url(#sq)"/><text x="201" y="79" class="mlbl" text-anchor="middle">派工 + 切片引用</text>
+  <path d="M 252 110 L 154 110" class="msg" marker-end="url(#sq)"/><text x="203" y="105" class="mlbl" text-anchor="middle">任务卡（typed · 声明 INV）</text>
+  <path d="M 152 136 L 342 136" class="msg" marker-end="url(#sq)"/><text x="247" y="131" class="mlbl" text-anchor="middle">派工（任务卡）</text>
+  <path d="M 344 162 L 154 162" class="msg" marker-end="url(#sq)"/><text x="249" y="157" class="mlbl" text-anchor="middle">失败测试（红 = 验收条件）　L1</text>
+  <path d="M 152 188 L 434 188" class="msg" marker-end="url(#sq)"/><text x="293" y="183" class="mlbl" text-anchor="middle">派工（任务卡 + 失败测试）</text>
+  <path d="M 436 214 L 532 214" class="msg" marker-end="url(#sq)"/><text x="484" y="209" class="mlbl" text-anchor="middle">提交改动　L2</text>
+
+  <rect x="466" y="228" width="140" height="46" rx="3" class="phase"/>
+  <text x="536" y="243" class="dim" text-anchor="middle">结构 → 行为 → 权限</text>
+  <text x="536" y="256" class="dim" text-anchor="middle">逐闸门发 gate.evaluated</text>
+  <text x="536" y="269" class="dim" text-anchor="middle">（WF-7 不合并）</text>
+
+  <path d="M 534 292 L 438 292" class="msg-alt" marker-end="url(#sqa)"/><text x="486" y="287" class="mlbl-alt" text-anchor="middle">闸门失败 → 回 Impl（计入护栏 WF-11）</text>
+  <path d="M 534 318 L 154 318" class="msg-gate" marker-end="url(#sqg)"/><text x="344" y="313" class="mlbl-gate" text-anchor="middle">全绿</text>
+  <path d="M 152 344 L 648 344" class="msg" marker-end="url(#sq)"/><text x="400" y="339" class="mlbl" text-anchor="middle">送审 diff（Reviewer 不持有 Impl 会话上下文）</text>
+  <path d="M 650 370 L 438 370" class="msg-alt" marker-end="url(#sqa)"/><text x="544" y="365" class="mlbl-alt" text-anchor="middle">打回项 → 回 Impl</text>
+  <path d="M 650 396 L 154 396" class="msg-gate" marker-end="url(#sqg)"/><text x="402" y="391" class="mlbl-gate" text-anchor="middle">通过</text>
+  <path d="M 152 422 L 47 422" class="msg" marker-end="url(#sq)"/><text x="100" y="417" class="mlbl" text-anchor="middle">请求放行</text>
+  <path d="M 45 448 L 150 448" class="msg" marker-end="url(#sq)"/><text x="98" y="443" class="mlbl" text-anchor="middle">放行（署名 + 平台时间戳）</text>
+  <path d="M 152 466 L 190 466 L 190 476 L 152 476" class="msg" marker-end="url(#sq)"/>
+  <text x="200" y="475" class="mlbl">Record 血缘（无条件，含失败 · AG-2）</text>
+</svg>
+</div><figcaption>图 42-2 · 需求开发工作流时序。红色虚线为失败路由，绿色为闸门通过。</figcaption></figure>
+
+<h4>42.2 阶段契约</h4>
+
+<div class="tw"><table>
+<thead><tr><th>阶段</th><th>角色</th><th>等级</th><th>输入</th><th>输出（typed）</th><th>推进条件</th></tr></thead>
+<tbody>
+<tr><td>受理</td><td>人</td><td>—</td><td>需求描述</td><td>工作流实例</td><td>触发条件满足</td></tr>
+<tr><td>Spec</td><td>Spec Agent</td><td><code>L0</code></td><td>需求 + 元语切片引用</td><td>任务卡：目标 · 触及路径面 · <strong>声明的不变量</strong> · 语义引用</td><td>任务卡 parse 成功</td></tr>
+<tr><td>Test</td><td>Test Agent</td><td><code>L1</code></td><td>任务卡</td><td><strong>失败的测试</strong> + 覆盖的不变量清单</td><td>测试确实为红</td></tr>
+<tr><td>Impl</td><td>Impl Agent</td><td><code>L2</code></td><td>任务卡 + 失败测试</td><td>改动集</td><td>—</td></tr>
+<tr><td>Gates</td><td>确定性程序</td><td>—</td><td>改动集</td><td>逐闸门结果</td><td>结构 + 行为 + 权限全绿</td></tr>
+<tr><td>Review</td><td>Reviewer Agent</td><td><code>L0</code></td><td>diff + 任务卡</td><td>通过 / 打回项</td><td>无阻断项</td></tr>
+<tr><td>Release</td><td><strong>人</strong></td><td>—</td><td>diff + 闸门结果 + 审查结论</td><td>放行记录</td><td>自然人确认（<code>IN-1</code>）</td></tr>
+</tbody>
+</table></div>
+
+<h4>42.3 Test 先于 Impl 的交接判据</h4>
+
+<div class="rule">
+<p><span class="rid">WF-12</span>Test 阶段的产出<kbd class="k must">MUST</kbd>满足三条才可交给 Impl：<strong>①</strong> 测试<strong>确实运行且为红</strong>（未运行的测试不构成验收条件）；<strong>②</strong> 失败原因是<strong>断言失败</strong>而非编译/导入错误——后者说明测试还没真正表达行为期望；<strong>③</strong> 覆盖了任务卡 <code>declares</code> 中的每一条不变量。</p>
+</div>
+
+<p>判据 ② 值得强调：一个因为函数不存在而报错的测试看起来也是红的，但它<strong>没有表达任何行为期望</strong>。Impl 只要把函数建出来（哪怕返回空）就能让它变绿。这会让"测试先行"退化成"先写签名"。</p>
+
+<h4>42.4 需求歧义的升级路径</h4>
+
+<div class="rule">
+<p><span class="rid">WF-13</span>Spec 阶段发现需求歧义时<kbd class="k must">MUST</kbd>升级给人，<kbd class="k must NOT">MUST NOT</kbd>自行选定一种解释继续。判据：<strong>不同解释会导致不同的元语改动</strong>时即为阻断性歧义。不影响元语的表述歧义<kbd class="k may">MAY</kbd>由 Spec 自行判断并在任务卡中记录所选解释。</p>
+</div>
+
+<p>这条判据把"何时该问人"从主观判断变成可操作的检查：如果两种理解会让 <code>DOMAIN</code> 或 <code>FLOWS</code> 产生不同内容，那就是必须问的；如果只是措辞不同而契约相同，就自己定并留痕。</p>
+
+<h4>42.5 失败路由与终止</h4>
+
+<div class="tw"><table>
+<thead><tr><th>失败</th><th>回退到</th><th>重试上限</th><th>超限</th></tr></thead>
+<tbody>
+<tr><td>任务卡 parse 失败</td><td>Spec</td><td>2</td><td>升级给人</td></tr>
+<tr><td>Test 未满足 <code>WF-12</code></td><td>Test</td><td>2</td><td>升级给人</td></tr>
+<tr><td>结构 / 行为闸门失败</td><td>Impl</td><td>护栏上限</td><td>升级给人</td></tr>
+<tr><td><strong>权限闸门失败</strong></td><td>—</td><td><strong>0</strong></td><td><strong>立即升级</strong>（触及超出授权的路径面，重试无意义）</td></tr>
+<tr><td>Reviewer 打回</td><td>Impl</td><td>3</td><td>升级给人</td></tr>
+<tr><td>放行被拒</td><td>Impl 或终止</td><td>—</td><td>由人裁决</td></tr>
+</tbody>
+</table></div>
+
+<p><strong>终止条件</strong>：放行完成并部署（正常）· 人工放弃（需求撤销）· 任一护栏超限后人工裁决终止。三种情形<kbd class="k must">MUST</kbd>都发出 <code>workflow.terminated</code> 并落血缘。</p>
+
 <div class="stub">
 <span class="lbl">Scope · 待补</span>
-<p>各阶段的 typed 输入输出 schema · Spec 阶段的需求歧义升级路径 · Test 先行的交接判据（"测试写到什么程度才算可以交给 Impl"）· 迭代计数与护栏交互 · 放弃路径（需求被撤销时的清理）。<strong>已定</strong>：阶段序列 · 闸门位置（<code>WF-3</code>）· 各阶段动作等级。</p>
+<p>任务卡的完整 JSON Schema · 改动集的表示（补丁 vs 分支引用）· 需求撤销时的清理动作（分支 / 沙箱 / 已写入的事件）。</p>
 </div>
 
 <h3 class="ch" id="ch43"><span class="num">Chapter 43</span>缺陷修复工作流<a class="anchor" href="#ch43">#</a></h3>
@@ -2934,33 +3122,371 @@ initial: &lt;插入时的初值&gt;
 <p><span class="rid">WF-5</span>Reproduce 阶段<kbd class="k must">MUST</kbd>产出一个<strong>失败的测试</strong>，该测试<kbd class="k must">MUST</kbd>成为 Fix 的验收条件。<kbd class="k must NOT">MUST NOT</kbd>在无失败测试的情况下进入 Fix——否则无法区分"修好了"与"症状暂时不出现了"。</p>
 </div>
 
+<h4>43.1 时序</h4>
+
+<figure><div class="svgbox">
+<svg viewBox="0 0 710 462" role="img" aria-label="缺陷修复工作流时序图">
+  <rect x="10" y="8" width="70" height="26" rx="4" class="box"/><text x="45" y="25" class="actor" text-anchor="middle">人</text>
+  <rect x="108" y="8" width="88" height="26" rx="4" class="box-a"/><text x="152" y="25" class="actor" text-anchor="middle">Supervisor</text>
+  <rect x="214" y="8" width="76" height="26" rx="4" class="box"/><text x="252" y="25" class="actor" text-anchor="middle">Triage</text>
+  <rect x="312" y="8" width="64" height="26" rx="4" class="box"/><text x="344" y="25" class="actor" text-anchor="middle">Test</text>
+  <rect x="404" y="8" width="64" height="26" rx="4" class="box"/><text x="436" y="25" class="actor" text-anchor="middle">Impl</text>
+  <rect x="496" y="8" width="76" height="26" rx="4" class="box"/><text x="534" y="25" class="actor" text-anchor="middle">Gates</text>
+  <rect x="600" y="8" width="100" height="26" rx="4" class="box"/><text x="650" y="25" class="actor" text-anchor="middle">Reviewer</text>
+
+  <line x1="45" y1="34" x2="45" y2="450" class="life"/><line x1="152" y1="34" x2="152" y2="450" class="life"/>
+  <line x1="252" y1="34" x2="252" y2="450" class="life"/><line x1="344" y1="34" x2="344" y2="450" class="life"/>
+  <line x1="436" y1="34" x2="436" y2="450" class="life"/><line x1="534" y1="34" x2="534" y2="450" class="life"/>
+  <line x1="650" y1="34" x2="650" y2="450" class="life"/>
+
+  <path d="M 45 58 L 150 58" class="msg" marker-end="url(#sq)"/><text x="98" y="53" class="mlbl" text-anchor="middle">缺陷报告</text>
+  <path d="M 152 84 L 250 84" class="msg" marker-end="url(#sq)"/><text x="201" y="79" class="mlbl" text-anchor="middle">派工　L0</text>
+  <path d="M 252 104 L 292 104 L 292 116 L 254 116" class="msg" marker-end="url(#sq)"/>
+  <text x="302" y="114" class="mlbl">在<tspan style="font-weight:700">干净基线</tspan>复跑（WF-4）—— 不假设自己是唯一变量</text>
+  <path d="M 252 142 L 154 142" class="msg" marker-end="url(#sq)"/><text x="203" y="137" class="mlbl" text-anchor="middle">归属结论</text>
+  <path d="M 152 168 L 47 168" class="msg-alt" marker-end="url(#sqa)"/><text x="100" y="163" class="mlbl-alt" text-anchor="middle">先于当前工作存在 → 登记已知失败清单，另立</text>
+
+  <path d="M 152 196 L 342 196" class="msg" marker-end="url(#sq)"/><text x="247" y="191" class="mlbl" text-anchor="middle">复现　L1</text>
+  <path d="M 344 222 L 154 222" class="msg-gate" marker-end="url(#sqg)"/><text x="249" y="217" class="mlbl-gate" text-anchor="middle">失败测试（红）= Fix 的验收条件（WF-5）</text>
+  <path d="M 152 248 L 250 248" class="msg" marker-end="url(#sq)"/><text x="201" y="243" class="mlbl" text-anchor="middle">定位根因</text>
+  <path d="M 252 274 L 154 274" class="msg" marker-end="url(#sq)"/><text x="203" y="269" class="mlbl" text-anchor="middle">根因 + 受影响面 + 是否需新增不变量</text>
+
+  <path d="M 152 302 L 434 302" class="msg" marker-end="url(#sq)"/><text x="293" y="297" class="mlbl" text-anchor="middle">修根因（非症状）　L1/L2</text>
+  <path d="M 436 328 L 532 328" class="msg" marker-end="url(#sq)"/><text x="484" y="323" class="mlbl" text-anchor="middle">提交</text>
+  <path d="M 534 354 L 438 354" class="msg-alt" marker-end="url(#sqa)"/><text x="486" y="349" class="mlbl-alt" text-anchor="middle">失败 → 回 Impl</text>
+  <path d="M 534 380 L 154 380" class="msg-gate" marker-end="url(#sqg)"/><text x="344" y="375" class="mlbl-gate" text-anchor="middle">复现测试转绿 + <tspan style="font-weight:700">全量回归</tspan>全绿</text>
+  <path d="M 152 406 L 648 406" class="msg" marker-end="url(#sq)"/><text x="400" y="401" class="mlbl" text-anchor="middle">送审</text>
+  <path d="M 650 432 L 154 432" class="msg-gate" marker-end="url(#sqg)"/><text x="402" y="427" class="mlbl-gate" text-anchor="middle">通过 → 请求人工放行</text>
+</svg>
+</div><figcaption>图 43-2 · 缺陷修复工作流时序。与需求开发的差异集中在前四步（Triage）。</figcaption></figure>
+
+<h4>43.2 根因判据</h4>
+
+<div class="rule">
+<p><span class="rid">WF-14</span>一个解释要构成<strong>根因</strong>，<kbd class="k must">MUST</kbd>同时满足三条：<strong>①</strong> 能解释复现测试为何失败；<strong>②</strong> 能解释<strong>为何此前没有失败</strong>（何时引入 / 什么条件下才暴露）；<strong>③</strong> 能预测一个<strong>此前未观察到</strong>的相关失败，且该预测可被验证。不满足 ②③ 的解释<kbd class="k must">MUST</kbd>视为症状描述，<kbd class="k must NOT">MUST NOT</kbd>进入 Fix。</p>
+</div>
+
+<p>判据 ③ 是最有区分力的一条。"这里应该判空"能解释失败，但它对任何空指针错误都成立——它是模式匹配不是根因。真正的根因会带来可证伪的预言，例如"同一个守卫的另外两个调用点也会 fail-open"。</p>
+
+<div class="note evidence">
+<span class="lbl">Evidence · 差点被误判为顺序问题的一个缺陷</span>
+<p>参考实现中一处权限校验失败，初判是"校验顺序被改了"。按判据 ② 追问"为何此前没有失败"时才发现顺序<strong>一直没动</strong>，真因是判据本身从 <code>!perm ||</code> 变成了 <code>perm &amp;&amp;</code>——fail-closed 翻成 fail-open。按判据 ③ 的预言"任何将来漏映射的动作都会静默跳过鉴权"也随即被确认。</p>
+<p>如果停在"顺序问题"这个症状描述上，修复方向会完全错误。</p>
+</div>
+
+<h4>43.3 与已知失败清单的交互</h4>
+
+<div class="rule">
+<p><span class="rid">WF-15</span>Attribute 阶段判定失败<strong>先于当前工作存在</strong>时，<kbd class="k must">MUST</kbd>将其登记进已知失败清单（<code>FINV-8</code>）并<kbd class="k must">MUST</kbd>另立工作流，<kbd class="k must NOT">MUST NOT</kbd>在当前工作流内顺手修。理由：顺手修会让当前改动集混入无关改动，使 Reviewer 与放行人无法判断改动范围，也污染血缘的 <code>declares</code>。</p>
+</div>
+
+<h4>43.4 缺陷是否需要新增不变量</h4>
+
+<div class="tw"><table>
+<thead><tr><th>判据</th><th>结论</th></tr></thead>
+<tbody>
+<tr><td>该缺陷违反了一条<strong>已在册</strong>的不变量</td><td>不新增；补的是<strong>守护落点</strong>——不变量在册却没挡住，说明守护缺失或位置错</td></tr>
+<tr><td>该缺陷违反了一条<strong>未成文但确实存在</strong>的约束</td><td><kbd class="k must">MUST</kbd>新增不变量入册 + 落守护（<code>L2</code>，须放行）</td></tr>
+<tr><td>该缺陷是纯实现错误，无跨模块约束</td><td>不新增；复现测试本身即回归守护</td></tr>
+<tr><td>该缺陷源于元语与代码的<strong>漂移</strong></td><td>不新增；<kbd class="k must">MUST</kbd>补校验器覆盖面（<a href="#ch25">§25.4</a>）——漂移能发生说明对拍有缺口</td></tr>
+</tbody>
+</table></div>
+
+<p>第四行是最容易被漏掉的一类。一个由"文档说 A、代码做 B"引起的缺陷，修代码只解决了这一次；<strong>真正的修复是让这类漂移下次会报红</strong>。</p>
+
+<h4>43.5 失败路由与终止</h4>
+
+<div class="tw"><table>
+<thead><tr><th>失败</th><th>回退到</th><th>上限</th><th>超限</th></tr></thead>
+<tbody>
+<tr><td><strong>无法复现</strong></td><td>—</td><td>2</td><td><strong>升级给人</strong>并终止；<kbd class="k must NOT">MUST NOT</kbd>凭猜测进入 Fix</td></tr>
+<tr><td>根因不满足 <code>WF-14</code></td><td>Triage</td><td>3</td><td>升级给人</td></tr>
+<tr><td>复现测试转绿但回归失败</td><td>Impl</td><td>护栏上限</td><td>升级给人</td></tr>
+<tr><td>Reviewer 打回</td><td>Impl</td><td>3</td><td>升级给人</td></tr>
+</tbody>
+</table></div>
+
+<p><strong>终止条件</strong>：放行并部署 · 判定为先于存在并另立（<code>WF-15</code>）· 无法复现且人工裁决关闭 · 判定为预期行为（此时<kbd class="k should">SHOULD</kbd>检查是否需澄清元语）。</p>
+
 <div class="stub">
 <span class="lbl">Scope · 待补</span>
-<p>根因判据（什么算"找到了根因"）· 无法复现时的路径 · 与既有已知失败清单（<code>FINV-8</code>）的交互 · 缺陷是否需要新增不变量的判断规则。</p>
+<p>已知失败清单的存放位置与格式 · 间歇性失败（flaky）的判定与处置 · 缺陷严重度分级与热修复工作流的切换判据（<a href="#ch44">§44</a>）。</p>
 </div>
 
 <h3 class="ch" id="ch44"><span class="num">Chapter 44</span>热修复工作流<a class="anchor" href="#ch44">#</a></h3>
+<h4>44.1 时序</h4>
+
+<figure><div class="svgbox">
+<svg viewBox="0 0 710 336" role="img" aria-label="热修复工作流时序图">
+  <rect x="10" y="8" width="92" height="26" rx="4" class="box"/><text x="56" y="25" class="actor" text-anchor="middle">值班人</text>
+  <rect x="150" y="8" width="88" height="26" rx="4" class="box-a"/><text x="194" y="25" class="actor" text-anchor="middle">Supervisor</text>
+  <rect x="290" y="8" width="64" height="26" rx="4" class="box"/><text x="322" y="25" class="actor" text-anchor="middle">Impl</text>
+  <rect x="410" y="8" width="130" height="26" rx="4" class="box"/><text x="475" y="25" class="actor" text-anchor="middle">Gates（不可裁剪子集）</text>
+  <rect x="596" y="8" width="104" height="26" rx="4" class="box"/><text x="648" y="25" class="actor" text-anchor="middle">放行人</text>
+
+  <line x1="56" y1="34" x2="56" y2="324" class="life"/><line x1="194" y1="34" x2="194" y2="324" class="life"/>
+  <line x1="322" y1="34" x2="322" y2="324" class="life"/><line x1="475" y1="34" x2="475" y2="324" class="life"/>
+  <line x1="648" y1="34" x2="648" y2="324" class="life"/>
+
+  <path d="M 56 58 L 192 58" class="msg" marker-end="url(#sq)"/><text x="124" y="53" class="mlbl" text-anchor="middle">事故 + 严重度</text>
+  <path d="M 194 84 L 320 84" class="msg" marker-end="url(#sq)"/><text x="257" y="79" class="mlbl" text-anchor="middle">Contain（止血优先，可为回滚）</text>
+  <path d="M 194 110 L 320 110" class="msg" marker-end="url(#sq)"/><text x="257" y="105" class="mlbl" text-anchor="middle">Minimal Fix —— 范围最小化，不顺带改进</text>
+  <path d="M 322 136 L 473 136" class="msg" marker-end="url(#sq)"/><text x="398" y="131" class="mlbl" text-anchor="middle">提交</text>
+
+  <rect x="404" y="150" width="142" height="52" rx="3" class="phase"/>
+  <text x="475" y="165" class="dim" text-anchor="middle">结构 · 行为 · 权限 · 放行</text>
+  <text x="475" y="178" class="dim" text-anchor="middle">四类一个不少（WF-10）</text>
+  <text x="475" y="192" class="dim" text-anchor="middle" style="fill:var(--must)">L3 禁令不放宽</text>
+
+  <path d="M 475 220 L 196 220" class="msg-gate" marker-end="url(#sqg)"/><text x="336" y="215" class="mlbl-gate" text-anchor="middle">全绿</text>
+  <path d="M 194 246 L 646 246" class="msg" marker-end="url(#sq)"/><text x="420" y="241" class="mlbl" text-anchor="middle">请求放行（<tspan style="font-weight:700">不可省略</tspan>，IN-1）</text>
+  <path d="M 648 272 L 196 272" class="msg-gate" marker-end="url(#sqg)"/><text x="422" y="267" class="mlbl-gate" text-anchor="middle">放行 → Deploy → 验证</text>
+  <path d="M 194 298 L 58 298" class="msg-alt" marker-end="url(#sqa)"/><text x="126" y="293" class="mlbl-alt" text-anchor="middle">开<tspan style="font-weight:700">补做</tspan>工单（WF-17）</text>
+  <text x="210" y="320" class="dim">补做 = 回填复现测试 + 根因分析（WF-14）+ 判定是否需新增不变量</text>
+</svg>
+</div><figcaption>图 44-1 · 热修复工作流。裁剪的是阶段，不是闸门。</figcaption></figure>
+
+<h4>44.2 可裁剪与不可裁剪</h4>
+
+<div class="rule">
+<p><span class="rid">WF-16</span>热修复<kbd class="k may">MAY</kbd>裁剪 <strong>Spec · Test 先行 · Triage 的根因阶段 · Reviewer 质量闸门</strong> 四项。<kbd class="k must NOT">MUST NOT</kbd>裁剪：结构闸门 · 行为闸门 · 权限闸门 · 人工放行 · 血缘记录 · <code>L3</code> 禁令。每一次裁剪<kbd class="k must">MUST</kbd>作为事件登记，含裁剪项与授权人。</p>
+</div>
+
+<div class="tw"><table>
+<thead><tr><th>裁剪项</th><th>为什么可裁</th><th>代价由谁补</th></tr></thead>
+<tbody>
+<tr><td>Spec 阶段</td><td>事故的需求已由现象定义</td><td>补做阶段回填任务卡</td></tr>
+<tr><td>Test 先行</td><td>先写测试会延长止血时间</td><td>补做阶段回填复现测试</td></tr>
+<tr><td>根因阶段</td><td>止血不必须先懂根因（回滚即可）</td><td>补做阶段做 <code>WF-14</code> 根因分析</td></tr>
+<tr><td>Reviewer</td><td>模型审查耗时且此刻价值低于速度</td><td>放行人承担审查责任</td></tr>
+</tbody>
+</table></div>
+
+<p>这张表的结构是：<strong>每一项裁剪都指定了偿还人</strong>。没有偿还人的裁剪不是加速，是丢失。</p>
+
+<h4>44.3 补做的强制机制</h4>
+
+<div class="rule">
+<p><span class="rid">WF-17</span>每次热修复<kbd class="k must">MUST</kbd>产生一条<strong>补做工单</strong>，含裁剪清单与到期时间。补做未完成时，同一模块<kbd class="k should NOT">SHOULD NOT</kbd>发起新的热修复裁剪——<strong>裁剪额度<kbd class="k must NOT">MUST NOT</kbd>可无限透支</strong>。未完成补做的数量<kbd class="k should">SHOULD</kbd>作为度量暴露。</p>
+</div>
+
+<p>没有这条，热修复会成为绕过流程的常规路径：只要把事情叫作"紧急"，就可以跳过测试与审查。<code>WF-17</code> 让裁剪变成<strong>借贷</strong>而非豁免——可以借，但账要记，且欠账会限制下次借款。</p>
+
+<h4>44.4 与缺陷修复的切换判据</h4>
+
+<div class="rule">
+<p><span class="rid">WF-18</span>走热修复而非缺陷修复<kbd class="k must">MUST</kbd>由<strong>人</strong>基于严重度判定，<kbd class="k must NOT">MUST NOT</kbd>由智能体自行选择工作流类型。理由：工作流选择决定了能裁剪什么，把它交给被裁剪方判断是明显的利益冲突。</p>
+</div>
+
 <div class="stub">
-<span class="lbl">Scope</span>
-<p><strong>阶段</strong>：Incident → Contain → Minimal Fix → Gates（不可裁剪的子集）→ 人工放行 → Deploy → <strong>补做</strong>（回填测试与根因分析）。<strong>已定的硬约束</strong>：<code>L3</code> 禁令在热修复中<kbd class="k must NOT">MUST NOT</kbd>放宽；人工放行<kbd class="k must NOT">MUST NOT</kbd>省略；可裁剪的只有<strong>非闸门</strong>阶段。<strong>待补</strong>：哪些闸门属不可裁剪子集 · 补做阶段的时限与强制机制 · 与变更控制流程的对接。</p>
+<span class="lbl">Scope · 待补</span>
+<p>严重度分级的具体标准（属项目 <code>DECISIONS.md</code>）· 补做到期时间的默认值 · 与受监管场景变更控制流程的对接（紧急变更的事后审批路径）· 回滚作为 Contain 手段时的血缘表示。</p>
 </div>
 
 <h3 class="ch" id="ch45"><span class="num">Chapter 45</span>发布工作流<a class="anchor" href="#ch45">#</a></h3>
+<h4>45.1 时序</h4>
+
+<figure><div class="svgbox">
+<svg viewBox="0 0 710 336" role="img" aria-label="发布工作流时序图">
+  <rect x="10" y="8" width="80" height="26" rx="4" class="box"/><text x="50" y="25" class="actor" text-anchor="middle">发布人</text>
+  <rect x="140" y="8" width="88" height="26" rx="4" class="box-a"/><text x="184" y="25" class="actor" text-anchor="middle">Supervisor</text>
+  <rect x="278" y="8" width="90" height="26" rx="4" class="box"/><text x="323" y="25" class="actor" text-anchor="middle">Lineage 库</text>
+  <rect x="416" y="8" width="86" height="26" rx="4" class="box"/><text x="459" y="25" class="actor" text-anchor="middle">Gates</text>
+  <rect x="574" y="8" width="126" height="26" rx="4" class="box"/><text x="637" y="25" class="actor" text-anchor="middle">Deploy / 验证</text>
+
+  <line x1="50" y1="34" x2="50" y2="324" class="life"/><line x1="184" y1="34" x2="184" y2="324" class="life"/>
+  <line x1="323" y1="34" x2="323" y2="324" class="life"/><line x1="459" y1="34" x2="459" y2="324" class="life"/>
+  <line x1="637" y1="34" x2="637" y2="324" class="life"/>
+
+  <path d="M 50 58 L 182 58" class="msg" marker-end="url(#sq)"/><text x="116" y="53" class="mlbl" text-anchor="middle">Freeze（冻结基线提交）</text>
+  <path d="M 184 84 L 457 84" class="msg" marker-end="url(#sq)"/><text x="320" y="79" class="mlbl" text-anchor="middle">全量闸门（含全部集成测试）</text>
+  <path d="M 459 110 L 186 110" class="msg-gate" marker-end="url(#sqg)"/><text x="322" y="105" class="mlbl-gate" text-anchor="middle">全绿</text>
+  <path d="M 184 136 L 321 136" class="msg" marker-end="url(#sq)"/><text x="252" y="131" class="mlbl" text-anchor="middle">查询区间内全部 run 记录</text>
+  <path d="M 323 162 L 186 162" class="msg" marker-end="url(#sq)"/><text x="254" y="157" class="mlbl" text-anchor="middle">血缘集合（含失败与中止会话）</text>
+
+  <rect x="112" y="176" width="290" height="46" rx="3" class="phase"/>
+  <text x="257" y="192" class="dim" text-anchor="middle">生成<tspan style="font-weight:700">变更清单</tspan>：改了什么 · 依据哪条决策</text>
+  <text x="257" y="205" class="dim" text-anchor="middle">谁放行的 · 跑过哪些闸门 · 裁剪过什么</text>
+  <text x="257" y="218" class="dim" text-anchor="middle" style="fill:var(--may)">WF-19：清单由血缘派生，不手写</text>
+
+  <path d="M 184 240 L 52 240" class="msg" marker-end="url(#sq)"/><text x="118" y="235" class="mlbl" text-anchor="middle">变更清单 → 请求放行</text>
+  <path d="M 50 266 L 182 266" class="msg-gate" marker-end="url(#sqg)"/><text x="116" y="261" class="mlbl-gate" text-anchor="middle">放行（署名 + 平台时间戳）</text>
+  <path d="M 184 292 L 635 292" class="msg" marker-end="url(#sq)"/><text x="410" y="287" class="mlbl" text-anchor="middle">Deploy → 验证</text>
+  <path d="M 637 318 L 186 318" class="msg-alt" marker-end="url(#sqa)"/><text x="412" y="313" class="mlbl-alt" text-anchor="middle">验证失败 → 回滚（WF-20）</text>
+</svg>
+</div><figcaption>图 45-1 · 发布工作流。本工作流没有实现阶段；它的产出是变更清单与一次受控部署。</figcaption></figure>
+
+<h4>45.2 变更清单：把血缘变成交付物</h4>
+
+<div class="rule">
+<p><span class="rid">WF-19</span>变更清单<kbd class="k must">MUST</kbd>由区间内的血缘记录<strong>派生生成</strong>，<kbd class="k must NOT">MUST NOT</kbd>手写或由模型撰写。清单<kbd class="k must">MUST</kbd>覆盖区间内<strong>全部</strong> run 记录，包括失败与中止的会话（<code>AG-2</code>）——只列成功会话的清单是有偏的，无法回答"这个版本里有没有试过什么但放弃了"。</p>
+</div>
+
+<div class="tw"><table>
+<thead><tr><th>清单字段</th><th>来源</th><th>用途</th></tr></thead>
+<tbody>
+<tr><td>改动集合</td><td>血缘 <code>files</code> 并集</td><td>影响面</td></tr>
+<tr><td>依据的决策</td><td>血缘 <code>declares</code> 并集</td><td>可追溯性：从版本反查依据</td></tr>
+<tr><td>放行记录</td><td>血缘 <code>human_release</code></td><td>可归属性（<code>PS-4</code>）</td></tr>
+<tr><td>闸门历史</td><td>血缘 <code>gates</code> + <code>gate.evaluated</code> 事件</td><td>证明闸门确实跑过</td></tr>
+<tr><td><strong>裁剪清单</strong></td><td>热修复的裁剪事件（<code>WF-16</code>）</td><td>本版本欠了哪些账</td></tr>
+<tr><td>未完成补做</td><td>补做工单（<code>WF-17</code>）</td><td>发布风险</td></tr>
+<tr><td>成本</td><td>血缘 <code>cost</code> 聚合（空值不计入）</td><td>—</td></tr>
+</tbody>
+</table></div>
+
+<p>这张表是本规范中血缘<strong>产生直接业务价值</strong>的地方。此前血缘的作用是事后审计（被动），在这里它成为发布交付物的数据源（主动）。这也回答了"为什么要求失败会话也落血缘"——因为发布清单需要完整区间。</p>
+
+<h4>45.3 版本标识</h4>
+
+<div class="rule">
+<p><span class="rid">WF-20</span>发布版本<kbd class="k must">MUST</kbd>可解析为唯一提交标识（<code>MS-11</code>）。语义化版本号<kbd class="k may">MAY</kbd>存在，但<kbd class="k must">MUST</kbd>是提交标识的<strong>别名</strong>而非独立事实。回滚<kbd class="k must">MUST</kbd>回到一个曾经<strong>通过完整闸门</strong>的提交，<kbd class="k must NOT">MUST NOT</kbd>回到任意历史点。</p>
+</div>
+
+<h4>45.4 失败路由与终止</h4>
+
+<div class="tw"><table>
+<thead><tr><th>失败</th><th>处置</th><th>上限</th></tr></thead>
+<tbody>
+<tr><td>全量闸门失败</td><td>解冻，转缺陷修复工作流</td><td>0（不重试，闸门失败必有原因）</td></tr>
+<tr><td>变更清单生成失败（血缘缺口）</td><td><strong>阻断发布</strong>并升级——血缘不完整意味着不可追溯</td><td>0</td></tr>
+<tr><td>放行被拒</td><td>解冻，由人裁决</td><td>—</td></tr>
+<tr><td>部署后验证失败</td><td>回滚到上一通过完整闸门的版本（<code>WF-20</code>）</td><td>1</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">WF-21</span>血缘缺口（区间内存在无 run 记录的提交）<kbd class="k must">MUST</kbd>阻断发布，<kbd class="k must NOT">MUST NOT</kbd>以"补录一条"的方式绕过。事后补录的记录<kbd class="k must">MUST</kbd>显式标记为补录并说明原因，且补录记录<kbd class="k must NOT">MUST NOT</kbd>使发布重新通过——<strong>缺口本身是事实，标记它不等于消除它</strong>。</p>
+</div>
+
 <div class="stub">
-<span class="lbl">Scope</span>
-<p><strong>阶段</strong>：Freeze → 全量闸门 → 变更清单生成 → 人工放行 → Deploy → 验证 → 血缘归档。<strong>待补</strong>：变更清单从血缘记录生成的规则（<strong>这是把血缘变成交付物的关键环节</strong>）· 回滚判据与路径 · 版本号与提交标识的对应（<code>MS-11</code>）· 受监管场景下与验证包的对接。</p>
+<span class="lbl">Scope · 待补</span>
+<p>变更清单的输出格式与存放位置 · 发布区间的界定（上一发布标识 → 本次冻结点）· 受监管场景下变更清单与验证包的字段映射 · 灰度/分批发布的事件建模。</p>
 </div>
 
 <h3 class="ch" id="ch46"><span class="num">Chapter 46</span>重构工作流<a class="anchor" href="#ch46">#</a></h3>
+<h4>46.1 判据先于流程</h4>
+
+<div class="rule inv">
+<p><span class="rid">FINV-10</span>重构的定义是<strong>行为不变</strong>。因此重构的验收条件<kbd class="k must">MUST</kbd>是：全部闸门通过，<strong>且测试断言集合零变更</strong>。修改、删除或放宽了任一断言的改动<kbd class="k must NOT">MUST NOT</kbd>被称为重构，<kbd class="k must">MUST</kbd>转入需求开发或缺陷修复工作流。</p>
+</div>
+
+<p>把它定为不变量而非规则，是因为它同时封堵了 <a href="#ch41">§41.8</a> 指出的最危险失败模式：<strong>智能体在反复失败后修改验收条件使闸门通过</strong>。"这是重构，测试要跟着调整"是这类改动最常见的说辞。断言零变更这一条把说辞变成可机器判定的事实。</p>
+
+<div class="tw"><table>
+<thead><tr><th>改动</th><th>是重构吗</th><th>该走哪条流程</th></tr></thead>
+<tbody>
+<tr><td>提取函数、改名、移动文件；断言不变</td><td>✓</td><td>重构</td></tr>
+<tr><td>新增测试覆盖既有行为；既有断言不变</td><td>✓</td><td>重构（<kbd class="k may">MAY</kbd>新增，不得改既有）</td></tr>
+<tr><td>改了断言的期望值</td><td>✗ 行为变了</td><td>需求开发 或 缺陷修复</td></tr>
+<tr><td>删了一条断言</td><td>✗</td><td>须单独论证；触及不变量测试则属 <code>L3</code></td></tr>
+<tr><td>改了元语契约段</td><td>✗ 契约是行为的一部分</td><td>需求开发</td></tr>
+<tr><td>性能优化，行为与断言不变</td><td>✓ 但<kbd class="k should">SHOULD</kbd>补基准</td><td>重构 + 性能基准闸门</td></tr>
+</tbody>
+</table></div>
+
+<h4>46.2 时序</h4>
+
+<figure><div class="svgbox">
+<svg viewBox="0 0 710 246" role="img" aria-label="重构工作流时序图">
+  <rect x="10" y="8" width="88" height="26" rx="4" class="box-a"/><text x="54" y="25" class="actor" text-anchor="middle">Supervisor</text>
+  <rect x="180" y="8" width="118" height="26" rx="4" class="box"/><text x="239" y="25" class="actor" text-anchor="middle">Baseline 快照</text>
+  <rect x="380" y="8" width="64" height="26" rx="4" class="box"/><text x="412" y="25" class="actor" text-anchor="middle">Impl</text>
+  <rect x="540" y="8" width="160" height="26" rx="4" class="box"/><text x="620" y="25" class="actor" text-anchor="middle">Gates + 断言差分</text>
+
+  <line x1="54" y1="34" x2="54" y2="234" class="life"/><line x1="239" y1="34" x2="239" y2="234" class="life"/>
+  <line x1="412" y1="34" x2="412" y2="234" class="life"/><line x1="620" y1="34" x2="620" y2="234" class="life"/>
+
+  <path d="M 54 58 L 237 58" class="msg" marker-end="url(#sq)"/><text x="146" y="53" class="mlbl" text-anchor="middle">采集断言集合 + 闸门结果</text>
+  <path d="M 239 84 L 56 84" class="msg" marker-end="url(#sq)"/><text x="148" y="79" class="mlbl" text-anchor="middle">基线（须全绿，FINV-8）</text>
+  <path d="M 54 110 L 410 110" class="msg" marker-end="url(#sq)"/><text x="232" y="105" class="mlbl" text-anchor="middle">重构（范围 + 检查点间隔）　L1/L2</text>
+  <path d="M 412 136 L 618 136" class="msg" marker-end="url(#sq)"/><text x="515" y="131" class="mlbl" text-anchor="middle">提交（分批，每批一个检查点）</text>
+  <path d="M 620 162 L 414 162" class="msg-alt" marker-end="url(#sqa)"/><text x="517" y="157" class="mlbl-alt" text-anchor="middle">断言集合有差异 → <tspan style="font-weight:700">判定非重构</tspan>，转流程</text>
+  <path d="M 620 188 L 414 188" class="msg-alt" marker-end="url(#sqa)"/><text x="517" y="183" class="mlbl-alt" text-anchor="middle">闸门失败 → 回退到上一检查点</text>
+  <path d="M 620 214 L 56 214" class="msg-gate" marker-end="url(#sqg)"/><text x="338" y="209" class="mlbl-gate" text-anchor="middle">全绿 + 断言零差异 → 送审 → 人工放行</text>
+</svg>
+</div><figcaption>图 46-1 · 重构工作流。断言差分是本工作流特有的闸门。</figcaption></figure>
+
+<div class="rule">
+<p><span class="rid">WF-22</span>重构工作流<kbd class="k must">MUST</kbd>增设<strong>断言差分闸门</strong>：比较改动前后的测试断言集合，非空差异即判定该改动不是重构。此闸门属结构闸门，<kbd class="k must NOT">MUST NOT</kbd>裁剪。</p>
+</div>
+
+<h4>46.3 分批与检查点</h4>
+
+<div class="rule">
+<p><span class="rid">WF-23</span>预期触及多个模块的重构<kbd class="k must">MUST</kbd>分批，每批<kbd class="k must">MUST</kbd>独立通过全部闸门并形成检查点。<kbd class="k must NOT">MUST NOT</kbd>在中间态提交"暂时红"的批次——中间态一旦入库，后续智能体读到的就是一个自相矛盾的仓库（<code>FINV-8</code>）。</p>
+</div>
+
+<p>分批的另一个作用是限制失败回退的代价：无检查点时一次闸门失败要回退整个重构，而这会诱导"再改一点让它过去"，进而滑向修改断言。</p>
+
 <div class="stub">
-<span class="lbl">Scope</span>
-<p><strong>特有约束</strong>：重构的定义是"行为不变"，因此本工作流<kbd class="k must">MUST</kbd>以<strong>闸门全绿且无新增/修改断言</strong>为验收条件——修改了断言的改动不是重构。<strong>待补</strong>：元语契约段在重构中的处理（重构<kbd class="k should">SHOULD NOT</kbd>触及契约段；触及即说明它不是重构）· 大规模重构的分批与检查点策略 · 与性能变更的区分。</p>
+<span class="lbl">Scope · 待补</span>
+<p>断言集合的提取方法（跨测试框架的通用表示）· 批次边界的划分判据 · 性能基准闸门的阈值与波动容忍 · 重构与元语切片结构调整（<code>MS-9</code>）的关系。</p>
 </div>
 
 <h3 class="ch" id="ch47"><span class="num">Chapter 47</span>研究工作流<a class="anchor" href="#ch47">#</a></h3>
+<h4>47.1 产出定义</h4>
+
+<div class="rule">
+<p><span class="rid">WF-24</span>研究工作流的产出<kbd class="k must">MUST</kbd>是<strong>决策候选与依据</strong>，<kbd class="k must NOT">MUST NOT</kbd>是可合并的实现代码。结论<kbd class="k must">MUST</kbd>写入 <code>DECISIONS.md</code>：决出则入册 + 在出处补论证；未决出则更新未决段的倾向与"决出前禁止什么"（<code>MS-29</code>）。动作等级上限 <code>L0</code>。</p>
+</div>
+
+<p>把研究的产出限定为决策而非代码，防的是一个具体的滑坡：原型跑通后被直接合并。原型的成立条件通常比生产窄得多（没有并发、没有失败路径、没有权限），而它"能跑"这一事实会掩盖这些缺口。</p>
+
+<h4>47.2 时序</h4>
+
+<figure><div class="svgbox">
+<svg viewBox="0 0 710 246" role="img" aria-label="研究工作流时序图">
+  <rect x="10" y="8" width="80" height="26" rx="4" class="box"/><text x="50" y="25" class="actor" text-anchor="middle">人</text>
+  <rect x="146" y="8" width="88" height="26" rx="4" class="box-a"/><text x="190" y="25" class="actor" text-anchor="middle">Supervisor</text>
+  <rect x="292" y="8" width="112" height="26" rx="4" class="box"/><text x="348" y="25" class="actor" text-anchor="middle">Research Agent</text>
+  <rect x="452" y="8" width="120" height="26" rx="4" class="box"/><text x="512" y="25" class="actor" text-anchor="middle">隔离沙箱</text>
+  <rect x="616" y="8" width="84" height="26" rx="4" class="box-a"/><text x="658" y="25" class="actor" text-anchor="middle">DECISIONS</text>
+
+  <line x1="50" y1="34" x2="50" y2="234" class="life"/><line x1="190" y1="34" x2="190" y2="234" class="life"/>
+  <line x1="348" y1="34" x2="348" y2="234" class="life"/><line x1="512" y1="34" x2="512" y2="234" class="life"/>
+  <line x1="658" y1="34" x2="658" y2="234" class="life"/>
+
+  <path d="M 50 58 L 188 58" class="msg" marker-end="url(#sq)"/><text x="120" y="53" class="mlbl" text-anchor="middle">未决项 + 判据（怎样算答完）</text>
+  <path d="M 190 84 L 346 84" class="msg" marker-end="url(#sq)"/><text x="268" y="79" class="mlbl" text-anchor="middle">派工　L0</text>
+  <path d="M 348 110 L 510 110" class="msg" marker-end="url(#sq)"/><text x="430" y="105" class="mlbl" text-anchor="middle">原型验证（<tspan style="font-weight:700">不进主干</tspan>，WF-25）</text>
+  <path d="M 512 136 L 350 136" class="msg" marker-end="url(#sq)"/><text x="432" y="131" class="mlbl" text-anchor="middle">观测结果</text>
+  <path d="M 348 162 L 192 162" class="msg" marker-end="url(#sq)"/><text x="270" y="157" class="mlbl" text-anchor="middle">候选方案 + 各自的<tspan style="font-weight:700">否决理由</tspan></text>
+  <path d="M 190 188 L 52 188" class="msg" marker-end="url(#sq)"/><text x="122" y="183" class="mlbl" text-anchor="middle">请求拍板（决策权不下放）</text>
+  <path d="M 50 214 L 656 214" class="msg-gate" marker-end="url(#sqg)"/><text x="352" y="209" class="mlbl-gate" text-anchor="middle">入册 + 在出处补论证 + 销未决项　<tspan style="font-weight:700">同一提交</tspan>（MS-12 ②③）</text>
+</svg>
+</div><figcaption>图 47-1 · 研究工作流。人是唯一的拍板者；智能体只产出候选与依据。</figcaption></figure>
+
+<h4>47.3 原型隔离</h4>
+
+<div class="rule">
+<p><span class="rid">WF-25</span>原型代码<kbd class="k must NOT">MUST NOT</kbd>进入主干，<kbd class="k must">MUST</kbd>在隔离沙箱或一次性分支中存在，并在结论入册后销毁或显式归档为"非生产代码"。原型<kbd class="k must NOT">MUST NOT</kbd>被后续工作流引用为实现参照——<strong>参照物<kbd class="k must">MUST</kbd>是已通过完整闸门的代码</strong>。</p>
+</div>
+
+<h4>47.4 结论的证据标准</h4>
+
+<div class="rule">
+<p><span class="rid">WF-26</span>研究结论<kbd class="k must">MUST</kbd>包含三项：<strong>①</strong> 至少两个候选方案；<strong>②</strong> 每个被否决方案的<strong>具体否决理由</strong>（不是"更差"，而是它在哪条判据上不成立）；<strong>③</strong> 推荐方案的<strong>已知代价</strong>。只给出单一方案的结论<kbd class="k must NOT">MUST NOT</kbd>被接受——它无法与"没做研究直接选了第一个想到的"区分。</p>
+</div>
+
+<p>③ 尤其重要：一个没有代价的推荐方案说明研究不充分。所有真实的工程选择都有代价，写不出代价意味着还没理解这个选择。本规范自身的 <code>FADR-1</code>（<a href="#ch10">§10.2</a>）与四处更正（<a href="#apxI">附录 I.2</a>）都按此标准给出了被否决方案与理由。</p>
+
+<h4>47.5 与探索期的衔接</h4>
+
+<p><a href="#ch5">§5.5</a> 指出需求高频剧变的探索期不适用完整元语体系。研究工作流是这两种状态之间的桥：</p>
+
+<div class="tw"><table>
+<thead><tr><th>阶段</th><th>元语要求</th><th>研究工作流的角色</th></tr></thead>
+<tbody>
+<tr><td>探索期</td><td>只立 <code>DECISIONS.md</code></td><td>主要工作形态；每轮探索的结论入未决段</td></tr>
+<tr><td>结构稳定后</td><td>补齐六本，走 <code>EX-1</code> 落地顺序</td><td>退为辅助；只处理具名未决项</td></tr>
+<tr><td>生产期</td><td>完整体系 <code>C1</code>+</td><td>仅由未决项触发</td></tr>
+</tbody>
+</table></div>
+
 <div class="stub">
-<span class="lbl">Scope</span>
-<p><strong>特有约束</strong>：研究工作流的产出<kbd class="k must">MUST</kbd>是<strong>决策候选与依据</strong>，<kbd class="k must NOT">MUST NOT</kbd>直接是代码。结论<kbd class="k must">MUST</kbd>进 <code>DECISIONS.md</code> 的未决段或在册（<code>MS-29</code>）。动作等级上限 <code>L0</code>。<strong>待补</strong>：原型代码的隔离要求（<kbd class="k must NOT">MUST NOT</kbd>进主干）· 研究结论的证据标准 · 与 <a href="#ch5">§5.5</a>（探索期不适用元语）的衔接。</p>
+<span class="lbl">Scope · 待补</span>
+<p>研究任务的时间盒与终止判据（"研究到什么程度就该停下来拍板"）· 文献/外部资料的引用与可信度标注 · 研究结论的复审时机（外部条件变化后原结论是否仍成立）。</p>
 </div>
 
 <!-- ═══════════════════════ PART VII ═══════════════════════ -->
@@ -3118,6 +3644,7 @@ initial: &lt;插入时的初值&gt;
 <tr><td><code>CP-23</code></td><td>env 键位三方相等</td><td>负向验证：任一方增删一键 → 红</td><td><code>MS-32</code></td></tr>
 <tr><td><code>CP-24</code></td><td>状态机 <code>impl</code> 为状态级语义且检测矛盾</td><td>负向验证：同目标态声明 yes+no → 红</td><td><code>MS-25</code></td></tr>
 <tr><td><code>CP-25</code></td><td>代码中的 ID 必须在册（词边界匹配）</td><td>负向验证：引用未在册 ID → 红</td><td><code>MS-27</code></td></tr>
+<tr><td><code>CP-47</code></td><td>重构的断言差分闸门存在且不可裁剪</td><td>负向验证：重构中改一条断言 → 判定非重构</td><td><code>FINV-10</code> <code>WF-22</code></td></tr>
 </tbody>
 </table></div>
 
@@ -3152,7 +3679,14 @@ initial: &lt;插入时的初值&gt;
 <tr><td><code>CP-43</code></td><td><code>C3</code></td><td>替换运行时后 <code>factory/</code> 与元语零改动</td><td><code>FINV-5</code> <code>RT-4</code></td></tr>
 <tr><td><code>CP-44</code></td><td><code>C4</code></td><td>护栏有运行时强制点，超限中止而非静默重试</td><td><code>AG-10</code></td></tr>
 <tr><td><code>CP-45</code></td><td><code>C4</code></td><td>工作流事件可重放，重启不重做已完成活动</td><td><code>WF-1</code></td></tr>
+<tr><td><code>CP-48</code></td><td><code>C3</code></td><td>不可裁剪闸门子集在任何工作流（含热修复）都未被跳过</td><td><code>WF-10</code></td></tr>
+<tr><td><code>CP-49</code></td><td><code>C3</code></td><td><code>gate.evaluated</code> 逐闸门发出，未合并</td><td><code>WF-7</code></td></tr>
+<tr><td><code>CP-50</code></td><td><code>C3</code></td><td>每条失败路由有回退目标与重试上限；超限升级而非静默重试</td><td><code>WF-11</code></td></tr>
+<tr><td><code>CP-51</code></td><td><code>C3</code></td><td>活动输出 parse 失败计为失败迭代，无容错解析</td><td><code>WF-9</code></td></tr>
+<tr><td><code>CP-52</code></td><td><code>C3</code></td><td>原型代码未进主干，未被引作实现参照</td><td><code>WF-25</code></td></tr>
 <tr><td><code>CP-46</code></td><td><code>C4</code></td><td>度量闭环，且未被设为优化目标</td><td><code>VC-10</code></td></tr>
+<tr><td><code>CP-53</code></td><td><code>C4</code></td><td>变更清单由血缘派生，覆盖全部 run（含失败）；血缘缺口阻断发布</td><td><code>WF-19</code> <code>WF-21</code></td></tr>
+<tr><td><code>CP-54</code></td><td><code>C4</code></td><td>热修复裁剪产生补做工单；未完成补做数量被暴露为度量</td><td><code>WF-17</code></td></tr>
 </tbody>
 </table></div>
 
@@ -3164,7 +3698,7 @@ initial: &lt;插入时的初值&gt;
 <tbody>
 <tr><td><code>FG-n</code></td><td>Factory Goal　设计目标</td><td><a href="#ch3">§3</a></td><td>6</td></tr>
 <tr><td><code>FP-n</code></td><td>Factory Principle　设计原则</td><td><a href="#ch4">§4</a></td><td>7</td></tr>
-<tr><td><code>FINV-n</code></td><td>Factory Invariant　不变量（无偏离路径）</td><td><a href="#ch14">§14</a> · <a href="#ch41">§41</a></td><td>9</td></tr>
+<tr><td><code>FINV-n</code></td><td>Factory Invariant　不变量（无偏离路径）</td><td><a href="#ch14">§14</a> · <a href="#ch41">§41</a> · <a href="#ch46">§46</a></td><td>10</td></tr>
 <tr><td><code>FR-n</code></td><td>Factory Requirement　规范性要求</td><td>Part I–II</td><td>18（<code>FR-0</code> 起）</td></tr>
 <tr><td><code>FADR-n</code></td><td>Factory ADR　工厂级架构决策</td><td><a href="#ch10">§10.2</a></td><td>1</td></tr>
 <tr><td><code>MS-n</code></td><td>Meta-Schema Rule　元语规范</td><td>Part III · <a href="#apxB">附录 B</a></td><td>42</td></tr>
@@ -3172,11 +3706,11 @@ initial: &lt;插入时的初值&gt;
 <tr><td><code>VC-n</code></td><td>Verifier Contract　校验器契约</td><td><a href="#ch25">§25</a></td><td>10</td></tr>
 <tr><td><code>AG-n</code></td><td>Agent Rule　智能体规范</td><td>Part IV</td><td>13</td></tr>
 <tr><td><code>RT-n</code></td><td>Runtime Rule　运行时规范</td><td>Part V</td><td>4</td></tr>
-<tr><td><code>WF-n</code></td><td>Workflow Rule　工作流规范</td><td>Part VI</td><td>5</td></tr>
+<tr><td><code>WF-n</code></td><td>Workflow Rule　工作流规范</td><td>Part VI</td><td>26</td></tr>
 <tr><td><code>IN-n</code></td><td>Infrastructure Rule　基础设施规范</td><td>Part VII</td><td>1</td></tr>
 <tr><td><code>EX-n</code></td><td>Extension Rule　扩展规范</td><td>Part VIII</td><td>3</td></tr>
 <tr><td><code>PS-n</code></td><td>Problem Statement　故障模式</td><td><a href="#ch2">§2</a></td><td>6</td></tr>
-<tr><td><code>CP-n</code></td><td>Conformance Point　一致性检查点</td><td><a href="#apxA">附录 A</a></td><td>46</td></tr>
+<tr><td><code>CP-n</code></td><td>Conformance Point　一致性检查点</td><td><a href="#apxA">附录 A</a></td><td>54</td></tr>
 </tbody>
 </table></div>
 
@@ -3223,7 +3757,30 @@ initial: &lt;插入时的初值&gt;
 <div class="stub">
 <span class="lbl">Scope</span>
 <p>共享解析层（markdown 表格 / 代码块 / ID 提取）· 八本元语各自的校验器骨架 · 负向验证的执行脚本 · 聚合入口与退出码约定。<strong>契约已在 <a href="#ch25">§25</a> 定稿（<code>VC-1</code>–<code>VC-10</code>），本附录只做参考代码。</strong></p>
-<p><strong>含本规范自身的校验器 <code>check-asfas-doc.mjs</code></strong>（<code>FR-1</code>）：章节 <code>id</code> 连续 · 规范性陈述有唯一 <code>rid</code> · 内部引用可解析 · <a href="#apxB">附录 B</a> 的数量与实际出现次数相等。<strong>当前未实现</strong>，见 <a href="#apxI">附录 I</a> 未决清单。</p>
+<h4>D.1 本规范自身的校验器（已实现）</h4>
+<p><code>spec/check-asfas-doc.mjs</code> 是 <code>FR-1</code> 的守护，也是本规范全部校验器契约的<strong>参考实现</strong>——它自己遵守 <code>VC-1</code>–<code>VC-9</code>。配套 <code>spec/negative-verify.mjs</code> 逐维度做负向验证。</p>
+
+<div class="tw"><table>
+<thead><tr><th>维度</th><th>检查</th><th>守护的规则</th></tr></thead>
+<tbody>
+<tr><td><code>A</code></td><td>章节 <code>id</code> 连续（1–55），与侧栏导航<strong>双向</strong>一致</td><td><code>FR-1</code> · <code>VC-4</code></td></tr>
+<tr><td><code>B</code></td><td>规范性陈述 <code>rid</code> 唯一，各命名空间编号连续</td><td><code>FR-1</code> · <code>MS-42</code></td></tr>
+<tr><td><code>C</code></td><td>全部片段标识形式的内部引用可解析（锚点存在）</td><td><code>MS-5</code></td></tr>
+<tr><td><code>D</code></td><td><a href="#apxB">附录 B</a> 声明的数量 == 实际出现次数</td><td><strong><code>MA-1</code> 数字漂移守护</strong></td></tr>
+<tr><td><code>E</code></td><td><code>CP-n</code> 连续，且与附录 B 计数一致</td><td><code>FR-1</code></td></tr>
+<tr><td><code>F</code></td><td><strong>SVG 内不含非 SVG 元素</strong></td><td>见 <a href="#status">§0.3</a>——中断解析类缺陷，标签平衡查不到</td></tr>
+<tr><td><code>G</code></td><td>23 类块级标签平衡</td><td><code>VC-3</code></td></tr>
+<tr><td><code>H</code></td><td>9 个 Part / Appendix 结构齐备</td><td><code>FR-1</code></td></tr>
+</tbody>
+</table></div>
+
+<div class="note evidence">
+<span class="lbl">Evidence · 校验器自己也需要负向验证</span>
+<p><code>check-asfas-doc.mjs</code> 的维度 <code>D</code> 初版用一条跨行正则解析附录 B 的表格，<strong>匹配越过了 <code>&lt;tr&gt;</code> 边界</strong>，读到了下一行的数字，于是报出一个不存在的漂移。这是又一次<strong>扫描面/边界错误</strong>（<code>PS-3</code>），与参考实现踩过的三次同源。</p>
+<p>它被负向验证的前置步骤（"基线必须绿"）当场抓住。<strong>如果没有负向验证脚本，这个假报会被当成文档的问题去改文档</strong>——即用改数据来消除检查器的 bug，一种反向的假绿。</p>
+</div>
+
+<h4>D.2 项目侧校验器（待补）</h4>
 </div>
 
 <h3 class="ch" id="apxE"><span class="num">Appendix E</span>Prompt 规范<a class="anchor" href="#apxE">#</a></h3>
@@ -3302,7 +3859,9 @@ initial: &lt;插入时的初值&gt;
 <div class="tw"><table>
 <thead><tr><th>版本</th><th>日期</th><th>内容</th></tr></thead>
 <tbody>
-<tr><td><code>1.0.0-draft</code></td><td>2026-07-30</td><td>首版。Part I–III 规范性定稿（<a href="#ch1">§1</a>–<a href="#ch25">§25</a>）；Part IV 的 <a href="#ch26">§26</a>–<a href="#ch27">§27</a>、<a href="#ch34">§34</a>，Part V 的 <a href="#ch35">§35</a>、<a href="#ch39">§39</a>–<a href="#ch40">§40</a>，Part VI 的 <a href="#ch41">§41</a>–<a href="#ch43">§43</a>，Part VIII 定稿；其余章节定范围。取代 2026-07 的总体方案稿</td></tr>
+<tr><td><code>1.0.0-draft</code></td><td>2026-07-30</td><td>首版。Part I–III 规范性定稿（<a href="#ch1">§1</a>–<a href="#ch25">§25</a>）；Part IV 的 <a href="#ch26">§26</a>–<a href="#ch27">§27</a>、<a href="#ch34">§34</a>，Part V 的 <a href="#ch35">§35</a>、<a href="#ch39">§39</a>–<a href="#ch40">§40</a>，Part VIII 定稿；其余章节定范围。取代 2026-07 的总体方案稿</td></tr>
+<tr><td><code>1.1.0-draft</code></td><td>2026-07-30</td><td><strong>Part VI 全部定稿</strong>（<a href="#ch41">§41</a>–<a href="#ch47">§47</a>）：事件模型 <code>WF-6</code>–<code>WF-7</code> · 活动契约 <code>WF-8</code>–<code>WF-9</code> · 闸门分类学与不可裁剪子集 <code>WF-10</code> · 失败路由 <code>WF-11</code> · 六类工作流各含时序图与失败路由表（<code>WF-12</code>–<code>WF-26</code>）· 新增 <code>FINV-10</code>（重构 = 断言零变更）· 新增 <code>CP-47</code>–<code>CP-54</code>。销 <code>QA-2</code> 原议题</td></tr>
+<tr><td><code>1.1.1-draft</code></td><td>2026-07-30</td><td><strong><code>FR-1</code> 落地</strong>：<code>spec/check-asfas-doc.mjs</code> 8 维度 + <code>spec/negative-verify.mjs</code> 逐维度负向验证，挂进 <code>npm test</code>。本规范自身由 <code>C0</code> 升至 <code>C1</code>。修复 12 张时序图中 9 处 SVG 内 <code>&lt;strong&gt;</code> 导致的解析中断（见 <a href="#status">§0.3</a>）。销 <code>QA-1</code> <code>QA-5</code>；新增 <code>QA-7</code></td></tr>
 </tbody>
 </table></div>
 
@@ -3324,11 +3883,10 @@ initial: &lt;插入时的初值&gt;
 <div class="tw"><table>
 <thead><tr><th>#</th><th>事项</th><th>倾向</th><th>决出前禁止</th></tr></thead>
 <tbody>
-<tr><td><code>QA-1</code></td><td><code>check-asfas-doc.mjs</code> 未实现，<code>FR-1</code> 当前仅为文档约束</td><td>实现（否则本规范停留在 <code>C0</code>）</td><td>不得声称本规范已达 <code>C1</code></td></tr>
-<tr><td><code>QA-2</code></td><td>Part IV–VII 待补章节的完成顺序</td><td>Part VI 工作流优先（价值最高且 Part IV 的角色契约依赖它）</td><td>不得在工作流模型定稿前冻结角色契约</td></tr>
+<tr><td><code>QA-2</code></td><td>剩余待补章节顺序（Part IV 角色契约 · Part V 运行时绑定 · Part VII 基础设施）<br><em>v1.1 已销原议题：Part VI 优先，已定稿</em></td><td><strong>Part IV 角色契约</strong>（<a href="#ch28">§28</a>–<a href="#ch33">§33</a>）——工作流已定稿，角色的输入输出契约现在有了可依据的边界</td><td>不得在 Part IV 角色契约定稿前写 Part V 的 SDK 逐项映射（映射目标未定）</td></tr>
 <tr><td><code>QA-3</code></td><td>L2 人工放行的载体：代码评审 vs 仓内放行台</td><td>评审（审阅人是自然人、时间戳由平台背书）</td><td>不得两套并行</td></tr>
 <tr><td><code>QA-4</code></td><td>多智能体并行的隔离方式：每 agent 独立工作副本 vs 串行</td><td>—</td><td>不得在未定前实现并行编排（会引入"两个 agent 基于不同基线判断"的新型上下文不一致）</td></tr>
-<tr><td><code>QA-5</code></td><td>本规范自身的一致性等级目标</td><td><code>C1</code></td><td>不得在 <code>QA-1</code> 前声明</td></tr>
+<tr><td><code>QA-7</code></td><td>负向验证用例与文档锚点耦合（注入点写死了具体章节号/rid），文档结构变动时用例会失效</td><td>用例失效时<strong>显式报错</strong>（当前行为），不静默跳过</td><td>不得把失效用例改成宽松匹配以"让它过去"</td></tr>
 <tr><td><code>QA-6</code></td><td>L1 白皮书与 L3 手册的派生时机</td><td>Part IV–VII 定稿后</td><td>不得提前派生（会立刻产生三套需同步的内容，违反 <code>FR-0</code>）</td></tr>
 </tbody>
 </table></div>
