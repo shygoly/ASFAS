@@ -1,0 +1,3409 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ASFAS — Agent Native Software Factory Architecture Specification v1.0</title>
+<meta name="description" content="Level 2 Engineering Specification. Knowledge Driven Software Factory.">
+<style>
+/* ============================================================
+   ASFAS stylesheet — self-contained, no external assets.
+   Themes: light (default) / dark (prefers-color-scheme + [data-theme])
+   ============================================================ */
+:root{
+  --bg:#ffffff; --bg-alt:#f6f8fa; --bg-sunk:#eef1f5;
+  --fg:#1f2328; --fg-mute:#59636e; --fg-faint:#848d97;
+  --line:#d1d9e0; --line-soft:#e4e8ed;
+  --accent:#0b5fa5; --accent-soft:#e7f0f9; --accent-line:#9dc3e6;
+  --must:#b0202b; --must-bg:#fdf0f0;
+  --should:#9a6207; --should-bg:#fdf6e6;
+  --may:#2b6a4d; --may-bg:#eef7f2;
+  --code-bg:#f2f4f7; --code-fg:#233;
+  --sidebar-w:310px; --toc-w:220px;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",Roboto,Helvetica,Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#0d1117; --bg-alt:#161b22; --bg-sunk:#1c2128;
+    --fg:#e6edf3; --fg-mute:#9198a1; --fg-faint:#6e7681;
+    --line:#30363d; --line-soft:#21262d;
+    --accent:#58a6ff; --accent-soft:#10243c; --accent-line:#1f4d7a;
+    --must:#ff7b72; --must-bg:#2d1517;
+    --should:#e3b341; --should-bg:#2b2313;
+    --may:#56d364; --may-bg:#12261a;
+    --code-bg:#161b22; --code-fg:#c9d1d9;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0d1117; --bg-alt:#161b22; --bg-sunk:#1c2128;
+  --fg:#e6edf3; --fg-mute:#9198a1; --fg-faint:#6e7681;
+  --line:#30363d; --line-soft:#21262d;
+  --accent:#58a6ff; --accent-soft:#10243c; --accent-line:#1f4d7a;
+  --must:#ff7b72; --must-bg:#2d1517;
+  --should:#e3b341; --should-bg:#2b2313;
+  --may:#56d364; --may-bg:#12261a;
+  --code-bg:#161b22; --code-fg:#c9d1d9;
+}
+:root[data-theme="light"]{
+  --bg:#ffffff; --bg-alt:#f6f8fa; --bg-sunk:#eef1f5;
+  --fg:#1f2328; --fg-mute:#59636e; --fg-faint:#848d97;
+  --line:#d1d9e0; --line-soft:#e4e8ed;
+  --accent:#0b5fa5; --accent-soft:#e7f0f9; --accent-line:#9dc3e6;
+  --must:#b0202b; --must-bg:#fdf0f0;
+  --should:#9a6207; --should-bg:#fdf6e6;
+  --may:#2b6a4d; --may-bg:#eef7f2;
+  --code-bg:#f2f4f7; --code-fg:#233;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth; scroll-padding-top:1.5rem}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font-family:var(--sans); font-size:16px; line-height:1.75;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent); text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ---------- layout ---------- */
+.shell{display:grid; grid-template-columns:var(--sidebar-w) minmax(0,1fr); min-height:100vh}
+.sidebar{
+  border-right:1px solid var(--line); background:var(--bg-alt);
+  position:sticky; top:0; height:100vh; overflow-y:auto; padding:0 0 4rem;
+}
+.main{min-width:0; padding:0 0 8rem}
+.wrap{max-width:920px; margin:0 auto; padding:0 3rem}
+
+/* ---------- sidebar ---------- */
+.brand{padding:1.5rem 1.25rem 1rem; border-bottom:1px solid var(--line)}
+.brand .mark{font-family:var(--mono); font-size:1.4rem; font-weight:700; letter-spacing:.02em; color:var(--fg)}
+.brand .sub{font-size:.72rem; color:var(--fg-mute); line-height:1.5; margin-top:.35rem}
+.brand .ver{display:inline-block; margin-top:.6rem; font-family:var(--mono); font-size:.68rem;
+  background:var(--accent-soft); color:var(--accent); border:1px solid var(--accent-line);
+  padding:.1rem .45rem; border-radius:3px}
+.searchbox{padding:.85rem 1rem; border-bottom:1px solid var(--line-soft)}
+.searchbox input{
+  width:100%; padding:.45rem .6rem; font-size:.82rem; font-family:var(--sans);
+  background:var(--bg); color:var(--fg); border:1px solid var(--line); border-radius:5px;
+}
+.searchbox input:focus{outline:2px solid var(--accent-line); outline-offset:-1px}
+nav.toc{padding:.75rem 0 0; font-size:.815rem}
+nav.toc .part{
+  padding:.9rem 1.25rem .3rem; font-size:.68rem; font-weight:700; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--fg-faint);
+}
+nav.toc a{
+  display:block; padding:.24rem 1.25rem .24rem 1.6rem; color:var(--fg-mute);
+  border-left:2px solid transparent; line-height:1.45;
+}
+nav.toc a:hover{color:var(--fg); background:var(--bg-sunk); text-decoration:none}
+nav.toc a.on{color:var(--accent); border-left-color:var(--accent); background:var(--accent-soft); font-weight:600}
+nav.toc a .n{font-family:var(--mono); font-size:.72rem; color:var(--fg-faint); margin-right:.45rem}
+nav.toc a.on .n{color:var(--accent)}
+nav.toc a.hide{display:none}
+nav.toc .part.hide{display:none}
+
+/* ---------- headings ---------- */
+.masthead{
+  border-bottom:1px solid var(--line); background:var(--bg-alt);
+  padding:4rem 0 3rem; margin-bottom:3rem;
+}
+.masthead h1{font-size:2.5rem; line-height:1.2; margin:0 0 .5rem; letter-spacing:-.02em}
+.masthead .zh{font-size:1.15rem; color:var(--fg-mute); font-weight:500; margin:0 0 1.5rem}
+.masthead dl{display:grid; grid-template-columns:auto 1fr; gap:.35rem 1.25rem;
+  font-size:.85rem; margin:0; max-width:620px}
+.masthead dt{color:var(--fg-faint); font-family:var(--mono); font-size:.75rem; padding-top:.12rem}
+.masthead dd{margin:0; color:var(--fg)}
+
+.part-head{
+  margin:5rem 0 2rem; padding:2rem 0 1.25rem; border-top:3px solid var(--fg);
+}
+.part-head .kicker{font-family:var(--mono); font-size:.75rem; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--fg-faint)}
+.part-head h2{font-size:2rem; margin:.35rem 0 .5rem; letter-spacing:-.01em}
+.part-head p{color:var(--fg-mute); margin:0; font-size:.95rem; max-width:62ch}
+
+h3.ch{
+  font-size:1.45rem; margin:3.5rem 0 1rem; padding-top:.5rem; letter-spacing:-.01em;
+  scroll-margin-top:1rem;
+}
+h3.ch .num{font-family:var(--mono); font-size:.95rem; color:var(--accent);
+  display:block; font-weight:600; letter-spacing:.04em; margin-bottom:.15rem}
+h4{font-size:1.05rem; margin:2.2rem 0 .7rem; letter-spacing:-.005em}
+h5{font-size:.92rem; margin:1.6rem 0 .5rem; color:var(--fg-mute);
+  text-transform:uppercase; letter-spacing:.06em; font-weight:700}
+p{margin:0 0 1rem}
+ul,ol{margin:0 0 1rem; padding-left:1.5rem}
+li{margin:.3rem 0}
+li>ul,li>ol{margin:.3rem 0}
+strong{font-weight:650}
+
+/* ---------- code ---------- */
+code{font-family:var(--mono); font-size:.855em; background:var(--code-bg);
+  padding:.1em .35em; border-radius:3px; color:var(--code-fg);
+  border:1px solid var(--line-soft)}
+pre{background:var(--code-bg); border:1px solid var(--line); border-radius:6px;
+  padding:1rem 1.1rem; overflow-x:auto; font-size:.82rem; line-height:1.6; margin:0 0 1.25rem}
+pre code{background:none; border:none; padding:0; font-size:1em}
+
+/* ---------- tables ---------- */
+.tw{overflow-x:auto; margin:0 0 1.5rem; border:1px solid var(--line); border-radius:6px}
+table{border-collapse:collapse; width:100%; font-size:.855rem; min-width:520px}
+th,td{border-bottom:1px solid var(--line-soft); padding:.55rem .8rem; text-align:left; vertical-align:top}
+th{background:var(--bg-alt); font-weight:650; font-size:.78rem; letter-spacing:.02em;
+  color:var(--fg-mute); text-transform:uppercase; white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:var(--bg-alt)}
+td code{white-space:nowrap}
+
+/* ---------- normative statements ---------- */
+.rule{
+  border:1px solid var(--line); border-left:4px solid var(--accent);
+  background:var(--bg-alt); border-radius:0 6px 6px 0;
+  padding:.9rem 1.1rem; margin:0 0 1.25rem;
+}
+.rule .rid{
+  font-family:var(--mono); font-size:.7rem; font-weight:700; letter-spacing:.06em;
+  color:var(--accent); display:inline-block; margin-right:.6rem;
+  border:1px solid var(--accent-line); background:var(--accent-soft);
+  padding:.05rem .4rem; border-radius:3px; vertical-align:1px;
+}
+.rule p:last-child{margin-bottom:0}
+.rule.inv{border-left-color:var(--must)}
+.rule.inv .rid{color:var(--must); border-color:var(--must); background:var(--must-bg)}
+
+kbd.k{font-family:var(--mono); font-weight:700; font-size:.78em; letter-spacing:.03em;
+  padding:.05em .3em; border-radius:3px; border:1px solid currentColor; white-space:nowrap}
+kbd.must{color:var(--must); background:var(--must-bg)}
+kbd.should{color:var(--should); background:var(--should-bg)}
+kbd.may{color:var(--may); background:var(--may-bg)}
+
+/* ---------- callouts ---------- */
+.note{border:1px solid var(--line); border-radius:6px; padding:.85rem 1.05rem;
+  margin:0 0 1.25rem; background:var(--bg-alt); font-size:.92rem}
+.note .lbl{font-size:.68rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--fg-faint); display:block; margin-bottom:.35rem}
+.note p:last-child{margin-bottom:0}
+.note.warn{border-color:var(--should); background:var(--should-bg)}
+.note.warn .lbl{color:var(--should)}
+.note.evidence{border-left:4px solid var(--may)}
+.note.evidence .lbl{color:var(--may)}
+
+/* ---------- diagrams ---------- */
+figure{margin:0 0 1.75rem}
+figure svg{display:block; width:100%; height:auto; max-width:100%}
+figcaption{font-size:.78rem; color:var(--fg-faint); margin-top:.6rem; text-align:center}
+.svgbox{border:1px solid var(--line); border-radius:8px; padding:1.25rem; background:var(--bg-alt)}
+svg text{font-family:var(--sans); fill:var(--fg)}
+svg .mono{font-family:var(--mono)}
+svg .box{fill:var(--bg); stroke:var(--line); stroke-width:1.5}
+svg .box-a{fill:var(--accent-soft); stroke:var(--accent-line); stroke-width:1.5}
+svg .lbl{font-size:13px; font-weight:600}
+svg .sub{font-size:10.5px; fill:var(--fg-mute)}
+svg .arw{stroke:var(--fg-mute); stroke-width:1.5; fill:none}
+svg .dim{fill:var(--fg-faint); font-size:10px}
+
+/* ---------- misc ---------- */
+hr{border:none; border-top:1px solid var(--line); margin:2.5rem 0}
+.stub{border:1px dashed var(--line); border-radius:6px; padding:1.1rem 1.25rem;
+  background:var(--bg-alt); margin:0 0 1.5rem}
+.stub .lbl{font-family:var(--mono); font-size:.68rem; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--fg-faint); display:block; margin-bottom:.5rem}
+.stub p:last-child{margin-bottom:0}
+.lead{font-size:1.05rem; color:var(--fg-mute); max-width:64ch; margin-bottom:1.75rem}
+.themebtn{position:fixed; top:1rem; right:1rem; z-index:50;
+  background:var(--bg-alt); color:var(--fg-mute); border:1px solid var(--line);
+  border-radius:6px; padding:.35rem .6rem; font-size:.75rem; cursor:pointer; font-family:var(--sans)}
+.themebtn:hover{color:var(--fg); border-color:var(--fg-faint)}
+.anchor{color:var(--fg-faint); font-weight:400; opacity:0; margin-left:.4rem; font-size:.75em}
+h3.ch:hover .anchor,h4:hover .anchor{opacity:1}
+
+/* ---------- responsive ---------- */
+@media (max-width:1080px){
+  .shell{grid-template-columns:1fr}
+  .sidebar{position:static; height:auto; max-height:none; border-right:none; border-bottom:1px solid var(--line)}
+  nav.toc{max-height:340px; overflow-y:auto}
+  .wrap{padding:0 1.5rem}
+  .masthead h1{font-size:1.9rem}
+}
+@media print{
+  .sidebar,.themebtn{display:none}
+  .shell{display:block}
+  body{font-size:10.5pt}
+  .wrap{max-width:none; padding:0}
+  h3.ch{page-break-after:avoid}
+  .tw,.rule,figure,pre{page-break-inside:avoid}
+  .part-head{page-break-before:always}
+  a{color:inherit; text-decoration:none}
+}
+</style>
+</head>
+<body>
+<button class="themebtn" id="themebtn" type="button">◐ theme</button>
+<div class="shell">
+
+<aside class="sidebar">
+  <div class="brand">
+    <div class="mark">ASFAS</div>
+    <div class="sub">Agent Native Software Factory<br>Architecture Specification</div>
+    <span class="ver">v1.0 · Level 2 · Engineering Spec</span>
+  </div>
+  <div class="searchbox">
+    <input type="search" id="tocfilter" placeholder="筛选章节…" autocomplete="off" aria-label="筛选章节">
+  </div>
+  <nav class="toc" id="toc">
+    <div class="part">Front Matter</div>
+    <a href="#status"><span class="n">§0</span>规范状态与阅读指引</a>
+
+    <div class="part">Part I · Vision</div>
+    <a href="#ch1"><span class="n">1</span>导言</a>
+    <a href="#ch2"><span class="n">2</span>问题陈述</a>
+    <a href="#ch3"><span class="n">3</span>设计目标</a>
+    <a href="#ch4"><span class="n">4</span>设计原则</a>
+    <a href="#ch5"><span class="n">5</span>知识驱动软件工厂</a>
+    <a href="#ch6"><span class="n">6</span>适用范围与一致性</a>
+
+    <div class="part">Part II · Architecture</div>
+    <a href="#ch7"><span class="n">7</span>四层参考架构</a>
+    <a href="#ch8"><span class="n">8</span>Layer 1 · 项目层</a>
+    <a href="#ch9"><span class="n">9</span>Layer 2 · 软件工厂层</a>
+    <a href="#ch10"><span class="n">10</span>Layer 3 · 运行时层</a>
+    <a href="#ch11"><span class="n">11</span>Layer 4 · 基础设施层</a>
+    <a href="#ch12"><span class="n">12</span>层间契约与依赖规则</a>
+    <a href="#ch13"><span class="n">13</span>多项目拓扑</a>
+    <a href="#ch14"><span class="n">14</span>架构不变量</a>
+
+    <div class="part">Part III · Knowledge</div>
+    <a href="#ch15"><span class="n">15</span>元语模型总论</a>
+    <a href="#ch16"><span class="n">16</span>元语文件解剖</a>
+    <a href="#ch17"><span class="n">17</span>ARCHITECTURE.md</a>
+    <a href="#ch18"><span class="n">18</span>DESIGN.md</a>
+    <a href="#ch19"><span class="n">19</span>DOMAIN.md</a>
+    <a href="#ch20"><span class="n">20</span>FLOWS.md</a>
+    <a href="#ch21"><span class="n">21</span>DECISIONS.md</a>
+    <a href="#ch22"><span class="n">22</span>DEPLOY.md</a>
+    <a href="#ch23"><span class="n">23</span>条件元语 AI / AGENT-OPS</a>
+    <a href="#ch24"><span class="n">24</span>AGENTS.md 入口指针</a>
+    <a href="#ch25"><span class="n">25</span>校验器契约与漂移经济学</a>
+
+    <div class="part">Part IV · Agents</div>
+    <a href="#ch26"><span class="n">26</span>智能体模型与生命周期</a>
+    <a href="#ch27"><span class="n">27</span>能力注册表与动作分级</a>
+    <a href="#ch28"><span class="n">28</span>Supervisor Agent</a>
+    <a href="#ch29"><span class="n">29</span>Spec Agent</a>
+    <a href="#ch30"><span class="n">30</span>Impl Agent</a>
+    <a href="#ch31"><span class="n">31</span>Test Agent</a>
+    <a href="#ch32"><span class="n">32</span>Reviewer Agent</a>
+    <a href="#ch33"><span class="n">33</span>Guard Agent</a>
+    <a href="#ch34"><span class="n">34</span>禁止智能体化的面</a>
+
+    <div class="part">Part V · Runtime</div>
+    <a href="#ch35"><span class="n">35</span>运行时抽象接口</a>
+    <a href="#ch36"><span class="n">36</span>Claude Agent SDK 绑定</a>
+    <a href="#ch37"><span class="n">37</span>Session / Handoff / SubAgent</a>
+    <a href="#ch38"><span class="n">38</span>Checkpoint 与恢复</a>
+    <a href="#ch39"><span class="n">39</span>工具面与 MCP</a>
+    <a href="#ch40"><span class="n">40</span>运行时替换协议</a>
+
+    <div class="part">Part VI · Workflow</div>
+    <a href="#ch41"><span class="n">41</span>工作流模型</a>
+    <a href="#ch42"><span class="n">42</span>需求开发工作流</a>
+    <a href="#ch43"><span class="n">43</span>缺陷修复工作流</a>
+    <a href="#ch44"><span class="n">44</span>热修复工作流</a>
+    <a href="#ch45"><span class="n">45</span>发布工作流</a>
+    <a href="#ch46"><span class="n">46</span>重构工作流</a>
+    <a href="#ch47"><span class="n">47</span>研究工作流</a>
+
+    <div class="part">Part VII · Infrastructure</div>
+    <a href="#ch48"><span class="n">48</span>计算与沙箱</a>
+    <a href="#ch49"><span class="n">49</span>源码控制与人工放行闸</a>
+    <a href="#ch50"><span class="n">50</span>状态、记忆与存储</a>
+    <a href="#ch51"><span class="n">51</span>可观测性</a>
+    <a href="#ch52"><span class="n">52</span>成本治理</a>
+
+    <div class="part">Part VIII · Extension</div>
+    <a href="#ch53"><span class="n">53</span>新增项目</a>
+    <a href="#ch54"><span class="n">54</span>新增智能体 / 工作流 / 工具</a>
+    <a href="#ch55"><span class="n">55</span>新增运行时</a>
+
+    <div class="part">Appendix</div>
+    <a href="#apxA"><span class="n">A</span>一致性检查清单</a>
+    <a href="#apxB"><span class="n">B</span>编号体系与 ID 命名空间</a>
+    <a href="#apxC"><span class="n">C</span>元语模板</a>
+    <a href="#apxD"><span class="n">D</span>校验器参考实现</a>
+    <a href="#apxE"><span class="n">E</span>Prompt 规范</a>
+    <a href="#apxF"><span class="n">F</span>命名与编码风格</a>
+    <a href="#apxG"><span class="n">G</span>参考实现</a>
+    <a href="#apxH"><span class="n">H</span>术语表</a>
+    <a href="#apxI"><span class="n">I</span>变更记录</a>
+  </nav>
+</aside>
+
+<main class="main">
+
+<header class="masthead">
+  <div class="wrap">
+    <h1>Agent Native Software Factory<br>Architecture Specification</h1>
+    <p class="zh">智能体原生软件工厂架构规范 · <strong>Knowledge Driven Software Factory</strong></p>
+    <dl>
+      <dt>Document</dt><dd>ASFAS — Level 2 Engineering Specification</dd>
+      <dt>Version</dt><dd>1.0.0-draft</dd>
+      <dt>Status</dt><dd>Draft · Part I–III normative · Part IV–VIII scoped</dd>
+      <dt>Date</dt><dd>2026-07-30</dd>
+      <dt>Repository</dt><dd><code>~/Sync/project/ai-factory/spec/ASFAS.html</code></dd>
+      <dt>Supersedes</dt><dd><code>AI_Software_Factory_Claude_Agent_SDK_方案.html</code>（2026-07，总体方案稿）</dd>
+    </dl>
+  </div>
+</header>
+
+<div class="wrap">
+
+<!-- ═══════════════════════ FRONT MATTER ═══════════════════════ -->
+
+<h3 class="ch" id="status"><span class="num">§0</span>规范状态与阅读指引<a class="anchor" href="#status">#</a></h3>
+
+<p class="lead">本文件是 AI Software Factory 的<strong>唯一架构宪法</strong>。它规定工厂如何组织知识、如何调度智能体、如何约束运行时，以及一个项目要"符合 ASFAS"必须满足什么。它<strong>不</strong>描述任何具体业务系统。</p>
+
+<h4>0.1 三级文档体系中的位置</h4>
+
+<div class="tw"><table>
+<thead><tr><th>Level</th><th>文档</th><th>读者</th><th>关系</th></tr></thead>
+<tbody>
+<tr><td><code>L1</code></td><td>Architecture White Paper</td><td>投资人 · 合作伙伴 · 客户</td><td><strong>派生自本文件</strong>，删规范条款、留理念与能力</td></tr>
+<tr><td><strong><code>L2</code></strong></td><td><strong>Engineering Specification（本文件）</strong></td><td>研发团队 · 智能体</td><td><strong>唯一事实来源</strong></td></tr>
+<tr><td><code>L3</code></td><td>Developer Handbook</td><td>日常开发</td><td><strong>派生自本文件</strong>，只写"怎么做"，规范条款用引用</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">FR-0</span>L1 与 L3 <kbd class="k must">MUST NOT</kbd> 包含与本文件冲突的规范性陈述。二者<kbd class="k must">MUST</kbd>以引用（<code>ASFAS §N</code>）而非复制的方式承载规范内容。任何三方不一致<kbd class="k must">MUST</kbd>以本文件为准，并按 <a href="#apxI">附录 I</a> 登记。</p>
+</div>
+
+<p>先写 L2 再派生 L1/L3，是为了避免最常见的失败模式：三套文档各自演进，最后没人知道哪套是真的。这与本规范治理项目知识的方式同构（<a href="#ch5">§5</a>）。</p>
+
+<h4>0.2 规范性关键词</h4>
+
+<p>本文件中的 <kbd class="k must">MUST</kbd> / <kbd class="k must">MUST NOT</kbd> / <kbd class="k should">SHOULD</kbd> / <kbd class="k should">SHOULD NOT</kbd> / <kbd class="k may">MAY</kbd> 按 RFC 2119 与 RFC 8174 解释，且<strong>仅在大写时</strong>具有规范含义。</p>
+
+<div class="tw"><table>
+<thead><tr><th>关键词</th><th>含义</th><th>违反后果</th></tr></thead>
+<tbody>
+<tr><td><kbd class="k must">MUST</kbd> / <kbd class="k must">MUST NOT</kbd></td><td>绝对要求 / 绝对禁止</td><td><strong>不符合 ASFAS</strong>。一致性检查点（<code>CP-n</code>）失败</td></tr>
+<tr><td><kbd class="k should">SHOULD</kbd> / <kbd class="k should">SHOULD NOT</kbd></td><td>强烈建议，偏离须有理由</td><td>仍可符合，但偏离<kbd class="k must">MUST</kbd>登记在项目 <code>DECISIONS.md</code></td></tr>
+<tr><td><kbd class="k may">MAY</kbd></td><td>可选</td><td>无</td></tr>
+</tbody>
+</table></div>
+
+<h4>0.3 本文件自身的规范约束</h4>
+
+<p>一份规定"文档必须机器可校验"的规范，如果自己不可校验，就是它所批判的那种文档。因此：</p>
+
+<div class="rule">
+<p><span class="rid">FR-1</span>本文件<kbd class="k must">MUST</kbd>是机器可解析的。所有规范性陈述<kbd class="k must">MUST</kbd>包裹在 <code>&lt;div class="rule"&gt;</code> 内并携带唯一 <code>&lt;span class="rid"&gt;</code> 标识；所有章节<kbd class="k must">MUST</kbd>携带 <code>id="chN"</code> 锚点且编号连续；所有 <code>ASFAS §N</code> 形式的内部引用<kbd class="k must">MUST</kbd>能解析到存在的锚点。校验器见 <a href="#apxD">附录 D</a>。</p>
+</div>
+
+<div class="note warn">
+<span class="lbl">诚实标注</span>
+<p><code>check-asfas-doc.mjs</code> <strong>当前尚未实现</strong>。在它落地前，<code>FR-1</code> 仅是文档约束，与本规范批评的"君子协定"同性质。此项登记在 <a href="#apxI">附录 I</a> 的未决清单，不假装它已被守住——理由见 <a href="#ch25">§25.6</a>。</p>
+</div>
+
+<h4>0.4 参考体系</h4>
+
+<p>本规范在结构与方法上吸收了七套成熟体系，但都不照搬——每条借用都注明了本规范做了什么改动：</p>
+
+<div class="tw"><table>
+<thead><tr><th>来源</th><th>借用了什么</th><th>本规范的改动</th></tr></thead>
+<tbody>
+<tr><td>AWS Well-Architected Framework</td><td>支柱化的原则表述 + 每条原则配可核查问题</td><td>原则<kbd class="k must">MUST</kbd>可落到校验器/CI 三选一，不接受"最佳实践"式建议（<a href="#ch4">§4</a>）</td></tr>
+<tr><td>Anthropic Engineering RFC</td><td>RFC 2119 关键词、编号提案、显式未决项</td><td>未决项<strong>唯一位置</strong>制（<a href="#ch21">§21</a>），禁止散落</td></tr>
+<tr><td>Google Software Design Doc</td><td>目标/非目标对称陈述、备选方案与拒绝理由</td><td>非目标<kbd class="k must">MUST</kbd>写明"违反会被拒绝合并"（<a href="#ch17">§17</a>）</td></tr>
+<tr><td>Microsoft Agentic AI Architecture</td><td>Supervisor/Worker 拓扑、typed state 传递</td><td>增加<strong>禁止智能体化清单</strong>（<a href="#ch34">§34</a>）——确定性的不许交给模型</td></tr>
+<tr><td>Kubernetes Architecture</td><td>声明式期望态、控制器循环、CRD 式扩展</td><td>期望态载体是<strong>元语文件</strong>而非 API 对象（<a href="#ch15">§15</a>）</td></tr>
+<tr><td>Temporal Architecture</td><td>工作流/活动分离、确定性重放、检查点</td><td>重放对象是 <strong>agent run 血缘</strong>（<a href="#ch27">§27</a>）</td></tr>
+<tr><td>GitHub Engineering Handbook</td><td>Issue→Branch→PR→Review→Merge 流程骨架</td><td>PR review 被赋予<strong>合规放行闸</strong>语义（<a href="#ch49">§49</a>）</td></tr>
+</tbody>
+</table></div>
+
+<h4>0.5 如何读这份文件</h4>
+
+<div class="tw"><table>
+<thead><tr><th>你是</th><th>读这些</th></tr></thead>
+<tbody>
+<tr><td>第一次接触本体系</td><td><a href="#ch1">§1</a> → <a href="#ch5">§5</a> → <a href="#ch7">§7</a>，约 20 分钟建立全貌</td></tr>
+<tr><td>要给一个既有项目补元语</td><td><a href="#ch15">§15</a>–<a href="#ch25">§25</a>（Part III 全部）+ <a href="#apxC">附录 C</a> 模板</td></tr>
+<tr><td>要写校验器</td><td><a href="#ch16">§16</a>、<a href="#ch25">§25</a>、<a href="#apxD">附录 D</a></td></tr>
+<tr><td>要上编排面</td><td>Part IV + Part V，但先确认 Part III 已全绿（<a href="#ch14">§14</a> <code>FINV-4</code>）</td></tr>
+<tr><td>coding agent</td><td><a href="#ch6">§6</a> 一致性等级 → 目标项目的 <code>AGENTS.md</code> → 按需切片读元语</td></tr>
+</tbody>
+</table></div>
+
+<!-- ═══════════════════════ PART I ═══════════════════════ -->
+
+<div class="part-head" id="partI">
+  <div class="kicker">Part I</div>
+  <h2>Vision · 设计理念</h2>
+  <p>回答一个问题：为什么 AI 时代的软件开发必须重新设计组织方式，而不只是换一个更聪明的代码补全。</p>
+</div>
+
+<h3 class="ch" id="ch1"><span class="num">Chapter 1</span>导言<a class="anchor" href="#ch1">#</a></h3>
+
+<h4>1.1 当前 AI 编码框架的共同结构</h4>
+
+<p>把主流 AI 编码框架的架构图叠在一起，会看到同一个形状：<strong>一个足够强的模型，加一圈工具，加一点编排</strong>。差异集中在编排模式（单 agent / ReAct / Supervisor / swarm）与工具面丰富度上。它们隐含同一个假设：</p>
+
+<blockquote style="border-left:3px solid var(--line);margin:0 0 1.25rem;padding:.25rem 0 .25rem 1.25rem;color:var(--fg-mute)">
+只要模型够强、工具够多、编排够巧，软件就能被生产出来。
+</blockquote>
+
+<p>这个假设在<strong>单次任务</strong>尺度上成立，在<strong>长周期多人多智能体</strong>尺度上不成立。原因不在模型能力，在于一个被系统性忽略的输入：智能体读到的"项目是什么样"这件事，本身没有被工程化。</p>
+
+<h4>1.2 被忽略的输入：项目事实</h4>
+
+<p>人类工程师进入一个陌生代码库时，会花几天时间重建一套心智模型：有哪些表、状态怎么流转、哪些约束不能破、为什么当初选了这个方案。这套模型存在人脑里，靠 code review、走廊对话、"上次那个坑"来同步。</p>
+
+<p>智能体没有走廊。它每次会话都从零开始，靠三种渠道重建同一套模型：</p>
+
+<div class="tw"><table>
+<thead><tr><th>渠道</th><th>可靠性</th><th>失效方式</th></tr></thead>
+<tbody>
+<tr><td>读代码</td><td>准确但不完整</td><td>代码写了"是什么"，没写"为什么"与"不许怎样"。看到 <code>if (perm &amp;&amp; !has)</code> 无法判断这是 fail-open bug 还是有意设计</td></tr>
+<tr><td>读文档</td><td>完整但可能失真</td><td>文档与代码分叉后，智能体读到的是<strong>假事实</strong>，并<strong>基于假事实继续写代码</strong></td></tr>
+<tr><td>模型先验</td><td>流畅但无关</td><td>用通用最佳实践填补项目特有约束的空白，产出"看起来对"的代码</td></tr>
+</tbody>
+</table></div>
+
+<p>三种渠道里，第二种最危险。代码不完整会让智能体停下来问；模型先验产出的东西通常在 review 时能被认出来；<strong>而失真的文档会让智能体自信地做错事</strong>，且错误随迭代放大。长周期无人值守时这一点是致命的——没有人在中途发现"文档过时了"。</p>
+
+<h4>1.3 本规范的命题</h4>
+
+<div class="rule">
+<p><span class="rid">FR-2</span>ASFAS 兼容实现<kbd class="k must">MUST</kbd>把"项目事实"作为一等工程产物对待：它有 schema、有校验器、有 CI 闸门、有 owner、有版本，与代码同等严格。<kbd class="k must">MUST NOT</kbd>依赖人工 review 来保证文档与代码一致。</p>
+</div>
+
+<p>这不是"把文档写好"的号召。写好的文档三个月后照样会过时——这是熵，不是态度问题。本规范的做法是<strong>让文档不可能过时</strong>：文档里的结构化片段是解析目标，与代码侧的闭集做集合相等对拍，校验器挂进测试命令，<strong>破坏格式 = 测试红</strong>。</p>
+
+<p>这套做法在两个真实仓库上跑通了（<a href="#apxG">附录 G</a>）。它产生的效果不是"文档更整齐"，而是<strong>文档开始主动报错</strong>——这是本规范全部论证的经验基础。</p>
+
+<div class="note evidence">
+<span class="lbl">Evidence · 文档开始报错</span>
+<p>在参考实现 <code>GMPGCPwork</code> 中，作者手写完第一版 <code>DOMAIN.md</code> 后运行校验器，立刻被报出漏登记了两张表。<strong>人写文档必然漏，这正是对拍不能靠人工 review 的直接证据</strong>。同一批校验器还查出了一处存在约两年、无人发现的环境变量登记盲区——不是因为检查逻辑不严，而是因为<strong>检查器的扫描面漏了一个目录</strong>。见 <a href="#ch25">§25.4</a>。</p>
+</div>
+
+<h4>1.4 与"AI Coding Framework"的定位差异</h4>
+
+<figure><div class="svgbox">
+<svg viewBox="0 0 720 200" role="img" aria-label="传统 AI Coding Framework 与 ASFAS 的层级对比">
+  <text x="12" y="20" class="lbl" style="font-size:11.5px;fill:var(--fg-mute)">典型 AI Coding Framework</text>
+  <rect x="12" y="32" width="150" height="34" rx="5" class="box"/><text x="87" y="53" class="lbl" text-anchor="middle">Prompt</text>
+  <path d="M 172 49 L 196 49" class="arw" marker-end="url(#ah)"/>
+  <rect x="206" y="32" width="150" height="34" rx="5" class="box"/><text x="281" y="53" class="lbl" text-anchor="middle">Agent + Tools</text>
+  <path d="M 366 49 L 390 49" class="arw" marker-end="url(#ah)"/>
+  <rect x="400" y="32" width="150" height="34" rx="5" class="box"/><text x="475" y="53" class="lbl" text-anchor="middle">Code</text>
+  <text x="566" y="53" class="dim">事实来源 = 模型 + 代码现状</text>
+
+  <line x1="12" y1="92" x2="708" y2="92" stroke="var(--line)" stroke-width="1"/>
+
+  <text x="12" y="118" class="lbl" style="font-size:11.5px;fill:var(--accent)">ASFAS — Knowledge Driven Software Factory</text>
+  <rect x="12" y="130" width="150" height="38" rx="5" class="box-a"/>
+  <text x="87" y="148" class="lbl" text-anchor="middle">Knowledge</text>
+  <text x="87" y="161" class="sub" text-anchor="middle">元语 · 机器校验</text>
+  <path d="M 172 149 L 196 149" class="arw" marker-end="url(#ah)"/>
+  <rect x="206" y="130" width="150" height="38" rx="5" class="box"/>
+  <text x="281" y="148" class="lbl" text-anchor="middle">Workflow</text>
+  <text x="281" y="161" class="sub" text-anchor="middle">确定性编排</text>
+  <path d="M 366 149 L 390 149" class="arw" marker-end="url(#ah)"/>
+  <rect x="400" y="130" width="150" height="38" rx="5" class="box"/>
+  <text x="475" y="148" class="lbl" text-anchor="middle">Agent</text>
+  <text x="475" y="161" class="sub" text-anchor="middle">知识的执行者</text>
+  <path d="M 560 149 L 584 149" class="arw" marker-end="url(#ah)"/>
+  <rect x="594" y="130" width="114" height="38" rx="5" class="box"/>
+  <text x="651" y="153" class="lbl" text-anchor="middle">Code</text>
+  <defs><marker id="ah" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+    <path d="M0,0 L8,4 L0,8 z" fill="var(--fg-mute)"/></marker></defs>
+</svg>
+</div><figcaption>图 1-1 · 事实来源的位置决定了体系的性质</figcaption></figure>
+
+<p>差别不在多了几个方框，在于<strong>事实来源的位置</strong>。上图中 Agent 从链条的<strong>起点</strong>移到了<strong>中段</strong>：它不再是知识的产生者，而是知识的执行者。这条位移是本规范全部设计决策的源头，展开见 <a href="#ch5">§5</a>。</p>
+
+<h3 class="ch" id="ch2"><span class="num">Chapter 2</span>问题陈述<a class="anchor" href="#ch2">#</a></h3>
+
+<p class="lead">本章列出本规范要解决的六个具体故障模式。每个都不是假想的——都能在真实仓库里指出实例。规范后文的每条约束都对应回这里的某一条。</p>
+
+<h4>2.1 PS-1 · 上下文不一致（Context Divergence）</h4>
+
+<p>多个智能体（或同一智能体的多次会话）对同一个概念持有不同版本的理解。典型触发：A 会话改了 schema，B 会话读的是改前的文档。</p>
+
+<p><strong>为什么这是头号问题</strong>：多智能体系统在生产中失败，最常见的原因不是编排模式选错，而是各 agent 之间的上下文不一致。编排模式错了，表现是效率低；上下文不一致，表现是<strong>产出正确形式的错误代码</strong>——它能通过类型检查，能通过测试（如果测试也基于同一份错误理解），只在运行时或合规审查时暴露。</p>
+
+<p><strong>本规范的对策</strong>：<a href="#ch15">§15</a> 元语单一事实来源 + <a href="#ch25">§25</a> 机器对拍 + <a href="#ch39">§39</a> 带版本的语义引用（<code>semantic_refs</code>）。</p>
+
+<h4>2.2 PS-2 · 静默漂移（Silent Drift）</h4>
+
+<p>文档与代码分叉，且<strong>没有任何机制报错</strong>。分叉在发生时是无害的（一次小改动忘了同步），累积到某个阈值后变成"文档不可信"，团队于是绕过文档直接读代码——文档正式死亡。</p>
+
+<div class="note evidence">
+<span class="lbl">Evidence · 漂移的三种真实形态</span>
+<p>参考实现中查获的三类：<strong>① 数字漂移</strong>——文档自述"共 27 项决策"，实际 33 项；文档称"19 个模块"，实际 21 个。结论是 <em>写数字的文档注定漂移</em>，改为不写数字、以 <code>ls</code> 为准。<strong>② 登记漂移</strong>——枚举值加了但文档没加。<strong>③ 覆盖漂移</strong>——检查器存在但扫描面漏了一个目录，导致某个环境变量约两年未被登记。三者在 <a href="#ch25">§25</a> 分别有对策。</p>
+</div>
+
+<h4>2.3 PS-3 · 假绿（False Green）</h4>
+
+<p>闸门显示通过，但它实际上什么也没检查。这比没有闸门更危险，<strong>因为它让人停止怀疑</strong>。</p>
+
+<div class="tw"><table>
+<thead><tr><th>假绿类型</th><th>成因</th><th>真实实例</th></tr></thead>
+<tbody>
+<tr><td>语义假绿</td><td>检查器的语义模型比被检对象粗</td><td>把状态机的 <code>impl</code> 标注当作<em>转移级</em>语义，于是同一目标态被同时声明"已实现"和"未实现"却都判通过。改为<strong>状态级</strong>语义并显式检测矛盾声明后才真正生效</td></tr>
+<tr><td>时点假绿</td><td>检查"已提交的历史"而非"即将提交的内容"</td><td>用 <code>git log --diff-filter</code> 与 <code>git grep</code> 做守护，两者都看不到工作区未提交的改动——<strong>而那恰恰是闸门最该拦的时刻</strong>。改用 <code>git diff HEAD</code> + 直接读磁盘</td></tr>
+<tr><td>覆盖假绿</td><td>扫描面不完整</td><td>见 PS-2 的第三类</td></tr>
+<tr><td>豁免假绿</td><td>测试被 <code>skip</code>/<code>only</code> 而套件仍显示绿</td><td>对不变量测试加 <code>skip</code> 被列为不设放行路径的禁令（<a href="#ch27">§27</a>）</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">FR-3</span>每个校验器<kbd class="k must">MUST</kbd>随附<strong>负向验证</strong>：构造一个应当失败的输入，确认它确实失败，再回滚确认恢复通过。未经负向验证的校验器<kbd class="k must NOT">MUST NOT</kbd>计入一致性证据。</p>
+</div>
+
+<h4>2.4 PS-4 · 无法归属（Unattributable Change）</h4>
+
+<p>面对一处可疑代码，无法回答：谁改的、依据什么决策、谁放行的、当时跑过哪些闸门。对普通项目这是效率问题；对受监管系统这是<strong>合规缺陷</strong>——检查官可以直接问"这段签名逻辑是谁写的、依据什么、谁审的"。</p>
+
+<p><strong>本规范的对策</strong>：<a href="#ch27">§27</a> 决策血缘（append-only、ALCOA+ 对齐）。</p>
+
+<h4>2.5 PS-5 · 越权与不可逆损坏</h4>
+
+<p>智能体执行了一个即使人类批准也不应执行的动作：改已应用的数据库迁移、削弱审计不可删守护、把密钥写进入库文件。这类动作的共同特征是<strong>损坏的是证据本身</strong>，事后无法通过再改一次来修复。</p>
+
+<p><strong>本规范的对策</strong>：<a href="#ch27">§27</a> 动作分级 <code>L0–L3</code>，其中 <code>L3</code> <strong>不设人工放行路径</strong>——判据是"即使有人批准，这个动作本身仍然违规或造成不可逆的证据损坏"。</p>
+
+<h4>2.6 PS-6 · 确定性约束被模型化</h4>
+
+<p>把本可以用确定性规则表达的检查，做成了"让一个 agent 去审查"。这看起来更智能，实际上是<strong>用不可验证约束替换了可验证约束</strong>，同时丢掉可复现性。</p>
+
+<div class="rule inv">
+<p><span class="rid">FINV-1</span>能用确定性规则表达的约束，<kbd class="k must">MUST NOT</kbd>交给模型执行。这条是<strong>不变量</strong>而非建议：违反它会使整个一致性体系失去可验证基础。清单与判据见 <a href="#ch34">§34</a>。</p>
+</div>
+
+<h4>2.7 故障模式与规范条款的映射</h4>
+
+<div class="tw"><table>
+<thead><tr><th>#</th><th>故障模式</th><th>主要对策章节</th><th>可验证性</th></tr></thead>
+<tbody>
+<tr><td><code>PS-1</code></td><td>上下文不一致</td><td><a href="#ch15">§15</a> · <a href="#ch25">§25</a> · <a href="#ch39">§39</a></td><td>校验器（集合相等对拍）</td></tr>
+<tr><td><code>PS-2</code></td><td>静默漂移</td><td><a href="#ch16">§16</a> · <a href="#ch25">§25</a></td><td>校验器 + CI 闸门</td></tr>
+<tr><td><code>PS-3</code></td><td>假绿</td><td><a href="#ch25">§25</a> · <code>FR-3</code></td><td>负向验证记录</td></tr>
+<tr><td><code>PS-4</code></td><td>无法归属</td><td><a href="#ch27">§27</a></td><td>血缘记录 + append-only 守护</td></tr>
+<tr><td><code>PS-5</code></td><td>越权 / 不可逆损坏</td><td><a href="#ch27">§27</a> · <a href="#ch49">§49</a></td><td>路径面分级 + 放行闸</td></tr>
+<tr><td><code>PS-6</code></td><td>确定性约束被模型化</td><td><a href="#ch34">§34</a> · <code>FINV-1</code></td><td>约定测试（禁止清单）</td></tr>
+</tbody>
+</table></div>
+
+<h3 class="ch" id="ch3"><span class="num">Chapter 3</span>设计目标<a class="anchor" href="#ch3">#</a></h3>
+
+<p class="lead">六条目标。每条配一个<strong>可核查问题</strong>——不能被核查的目标是口号，本规范不收。</p>
+
+<div class="rule">
+<p><span class="rid">FG-1</span><strong>Agent Native</strong>　工厂的一切产物<kbd class="k must">MUST</kbd>首先对智能体可读、可解析、可验证，其次才考虑对人的观感。当二者冲突时，机器可解析性优先。</p>
+</div>
+<p><em>核查问题：</em>随便挑一份工厂文档，能否写出一个 20 行以内的解析器提取其规范性内容？如果需要自然语言理解才能提取，则不满足。</p>
+
+<div class="rule">
+<p><span class="rid">FG-2</span><strong>Knowledge First</strong>　知识<kbd class="k must">MUST</kbd>先于智能体存在。项目在没有任何编排面的情况下，元语层<kbd class="k must">MUST</kbd>独立成立并独立产生价值。</p>
+</div>
+<p><em>核查问题：</em>如果永远不上多智能体，这套元语还值得做吗？答案必须是"值得"。<a href="#ch14">§14</a> <code>FINV-4</code> 把它变成硬顺序约束。</p>
+
+<div class="rule">
+<p><span class="rid">FG-3</span><strong>Event Driven</strong>　工作流的推进<kbd class="k must">MUST</kbd>由显式事件触发，<kbd class="k must NOT">MUST NOT</kbd>依赖智能体"自己觉得该做下一步了"。事件<kbd class="k must">MUST</kbd>可持久化、可重放。</p>
+</div>
+<p><em>核查问题：</em>杀掉编排进程再重启，工作流能否从最后一个事件恢复而不重做已完成的活动？</p>
+
+<div class="rule">
+<p><span class="rid">FG-4</span><strong>Project Independent</strong>　工厂<kbd class="k must NOT">MUST NOT</kbd>包含任何单一项目的业务知识。工厂与项目之间只有一条接口：元语契约。</p>
+</div>
+<p><em>核查问题：</em>在工厂代码库中 grep 任一项目的业务术语，命中数<kbd class="k must">MUST</kbd>为 0（测试夹具除外）。</p>
+
+<div class="rule">
+<p><span class="rid">FG-5</span><strong>Runtime Replaceable</strong>　运行时<kbd class="k must">MUST</kbd>可替换。工厂层<kbd class="k must NOT">MUST NOT</kbd>直接依赖任何厂商 SDK 的类型或调用；一切经 <a href="#ch35">§35</a> 的运行时抽象接口。</p>
+</div>
+<p><em>核查问题：</em>在工厂层 grep 厂商 SDK 的 import，命中<kbd class="k must">MUST</kbd>仅出现在 <code>runtime/&lt;vendor&gt;/</code> 适配器目录内。</p>
+
+<div class="rule">
+<p><span class="rid">FG-6</span><strong>Governed by Default</strong>　治理能力<kbd class="k must">MUST</kbd>与自主性能力同步交付，<kbd class="k must NOT">MUST NOT</kbd>后置。新增一档自主性之前，对应的动作分级、血缘字段与护栏<kbd class="k must">MUST</kbd>已在册。</p>
+</div>
+<p><em>核查问题：</em>能力注册表中是否存在<strong>已实现但未登记</strong>的角色？<kbd class="k must">MUST</kbd>为 0。</p>
+
+<div class="note">
+<span class="lbl">关于 Cloud Native</span>
+<p>原方案稿列有 <em>Cloud Native</em> 目标。本规范<strong>不将其列为设计目标</strong>，降级为 <a href="#ch48">§48</a> 的基础设施选型约束。理由：云原生描述的是部署形态，不是本体系的区分性特征——一个跑在单机上的工厂只要满足 <code>FG-1</code>–<code>FG-6</code> 仍然符合 ASFAS。把部署形态写进设计目标会让目标层与实现层混淆，且诱导预埋（<a href="#ch4">§4</a> <code>FP-6</code>）。</p>
+</div>
+
+<h3 class="ch" id="ch4"><span class="num">Chapter 4</span>设计原则<a class="anchor" href="#ch4">#</a></h3>
+
+<p class="lead">目标说"要达到什么"，原则说"遇到分歧时按什么判"。每条原则<kbd class="k must">MUST</kbd>能落到 grep / 约定测试 / CI 门禁三选一——<strong>写不出守护方式的原则会被删</strong>。</p>
+
+<div class="rule">
+<p><span class="rid">FP-1</span><strong>Single Source of Truth</strong>　每个事实<kbd class="k must">MUST</kbd>只有一处权威定义。其他位置<kbd class="k must">MUST</kbd>用引用，<kbd class="k must NOT">MUST NOT</kbd>复制。<strong>复制即制造第二个事实来源</strong>，而两个事实来源必然在某天分叉。</p>
+</div>
+<p><em>守护：</em>链接可解析性校验 + 集合相等对拍（<a href="#ch25">§25</a>）。<em>推论：</em>论证留在出处文档，登记册只放"ID + 一句话 + 结论 + 出处"（<a href="#ch21">§21</a>）。本规范自身遵守此条——它不复制任何参考实现的表格内容（<a href="#ch6">§6.4</a>）。</p>
+
+<div class="rule">
+<p><span class="rid">FP-2</span><strong>Everything is Reviewable</strong>　任何影响产物的决定<kbd class="k must">MUST</kbd>留下可审查痕迹：决策入登记册，改动入血缘，放行入闸门记录。<kbd class="k must NOT">MUST NOT</kbd>存在"只有当时那个会话知道为什么"的改动。</p>
+</div>
+<p><em>守护：</em>血缘字段完整性校验；触及高影响路径面的改动无放行记录 = 红。</p>
+
+<div class="rule">
+<p><span class="rid">FP-3</span><strong>Everything is Replaceable — except Knowledge</strong>　运行时、模型、编排模式、云厂商<kbd class="k must">MUST</kbd>可替换。<strong>唯独元语层不可替换</strong>——它是工厂的核心资产，其余都是可换的实现。</p>
+</div>
+<p><em>守护：</em><code>FG-5</code> 的 import 边界测试。<em>推论：</em>换 Runtime 时元语零改动，是 <a href="#ch40">§40</a> 替换协议的验收条件。</p>
+
+<div class="rule">
+<p><span class="rid">FP-4</span><strong>Fail Closed</strong>　守卫解析不出结论时<kbd class="k must">MUST</kbd>拒绝，<kbd class="k must NOT">MUST NOT</kbd>放行。校验器遇到无法解析的输入<kbd class="k must">MUST</kbd>报错，<kbd class="k must NOT">MUST NOT</kbd>跳过。</p>
+</div>
+<div class="note warn">
+<span class="lbl">Evidence · 一个字符的 fail-open</span>
+<p>参考实现中一处权限守卫从 <code>if (!perm || !perms.has(perm)) throw FORBIDDEN</code> 被改为 <code>if (perm &amp;&amp; !perms.has(perm)) throw FORBIDDEN</code>。校验<strong>顺序完全没变</strong>，判据却从"解析不出权限就拒绝"翻转为"解析不出就放行"——任何将来漏映射的动作都会静默跳过鉴权。<strong>"顺序看着对"不等于"判据是对的"。</strong> 由此得出 <code>FP-4</code> 的操作化推论：合规路径上的守卫，<kbd class="k must">MUST</kbd>逐条阅读判据的<strong>否定分支</strong>。</p>
+</div>
+
+<div class="rule">
+<p><span class="rid">FP-5</span><strong>Diagnose, Never Auto-Fix</strong>　治理工具<kbd class="k must NOT">MUST NOT</kbd>提供 <code>--fix</code>。校验器只报告违规与位置，修复由人或智能体在理解原因后进行。</p>
+</div>
+<p><em>理由：</em>自动修会让执行者跳过"为什么违规"，把治理降级成格式化器。而违规的价值恰恰在于它揭示了理解偏差。<em>守护：</em>传入 <code>--fix</code> <kbd class="k must">MUST</kbd>以非零码退出。</p>
+
+<div class="rule">
+<p><span class="rid">FP-6</span><strong>No Speculative Scaffolding</strong>　<kbd class="k must NOT">MUST NOT</kbd>预埋"以后可能用到"的代码、配置或注册项。能力注册表<kbd class="k must">MUST</kbd>是闭集：没有编排面就不登记编排角色。</p>
+</div>
+<p><em>理由：</em>预埋的注册项无法被负向验证（它指向不存在的东西），会成为下一轮假绿的温床。<em>守护：</em>注册表条目的路径面 glob <kbd class="k must">MUST</kbd>能匹配到真实存在的路径。</p>
+
+<div class="rule">
+<p><span class="rid">FP-7</span><strong>Honest Gaps</strong>　无法机器化守护的约束<kbd class="k must">MUST</kbd>显式登记为"仅文档约束"并说明原因，<kbd class="k must NOT">MUST NOT</kbd>省略不提，也<kbd class="k must NOT">MUST NOT</kbd>假装已被守住。</p>
+</div>
+<p><em>理由：</em><strong>登记一条挡不住的禁令，比假装它被挡住要好</strong>——读者由此知道该靠人盯，而不是误以为有闸门。这条把"诚实"从美德变成了可核查的规范要求。<em>守护：</em>无守护列的禁令条目<kbd class="k must">MUST</kbd>在豁免表在册，否则校验器红。</p>
+
+<div class="note">
+<span class="lbl">关于 "Everything is Workflow / Event / Tool"</span>
+<p>原方案稿的这三条被<strong>降级</strong>：它们描述的是实现风格而非判断准则，且已被 <code>FG-3</code>（事件驱动）与 <a href="#ch39">§39</a>（工具面）覆盖。作为"原则"它们无法回答分歧——当有人问"这个检查该做成 Tool 还是校验器"，"Everything is Tool"给出的是错误答案（正解见 <code>FINV-1</code>）。保留一条无法裁决分歧的原则，会稀释其余原则的权威。</p>
+</div>
+
+<h3 class="ch" id="ch5"><span class="num">Chapter 5</span>知识驱动软件工厂<a class="anchor" href="#ch5">#</a></h3>
+
+<p class="lead">本章是全书的核心命题。前四章的问题与原则在此收束为一条结构主张。</p>
+
+<h4>5.1 命题</h4>
+
+<div class="rule inv">
+<p><span class="rid">FINV-2</span>工厂的核心资产是 <strong>Knowledge</strong>，不是 Agent。<code>Knowledge → Workflow → Agent → Code</code> 是单向依赖链：上游<kbd class="k must NOT">MUST NOT</kbd>依赖下游。Agent <kbd class="k must">MUST</kbd>被建模为<strong>知识的执行者</strong>，而非知识的产生者或持有者。</p>
+</div>
+
+<h4>5.2 单向依赖链的四段</h4>
+
+<div class="tw"><table>
+<thead><tr><th>层</th><th>是什么</th><th>可替换性</th><th>失去它的后果</th></tr></thead>
+<tbody>
+<tr><td><strong>Knowledge</strong></td><td>元语文件：项目的表、状态机、决策、边界、部署事实</td><td><strong>不可替换</strong>（<code>FP-3</code>）</td><td>工厂失去全部价值；智能体退回猜测</td></tr>
+<tr><td><strong>Workflow</strong></td><td>确定性编排：什么事件触发什么活动、什么闸门必须通过</td><td>可替换（换编排引擎）</td><td>失去可重放性与可预测性，但知识仍在</td></tr>
+<tr><td><strong>Agent</strong></td><td>在给定知识与工作流下执行具体活动的模型实例</td><td>可替换（换模型 / 换 Runtime）</td><td>换一个执行者即可；知识与流程不受影响</td></tr>
+<tr><td><strong>Code</strong></td><td>产物</td><td>—</td><td>可从上游重新生成</td></tr>
+</tbody>
+</table></div>
+
+<p>把 Agent 放在第三位有三个直接后果，它们解释了本规范后文的大部分约束：</p>
+
+<ol>
+<li><strong>Agent 无状态化</strong>　Agent 不"记住"项目——它每次从元语重新加载。这消除了"不同 agent 记忆不同"这一类上下文不一致（<code>PS-1</code>），代价是每次会话的加载成本，用切片读取缓解（<a href="#ch16">§16.5</a>）。</li>
+<li><strong>知识改进优先于模型改进</strong>　产出质量不佳时，第一诊断对象是元语的完整性与准确性，不是 prompt 或模型。<a href="#ch25">§25.7</a> 的度量体系据此设计。</li>
+<li><strong>Agent 数量不是能力指标</strong>　增加 agent 不增加工厂能力，只增加并行度与协调成本。能力的增长来自知识覆盖面的增长。</li>
+</ol>
+
+<h4>5.3 与 Kubernetes 声明式模型的类比与差异</h4>
+
+<figure><div class="svgbox">
+<svg viewBox="0 0 700 168" role="img" aria-label="Kubernetes 控制器循环与 ASFAS 知识循环的类比">
+  <text x="10" y="18" class="lbl" style="font-size:11px;fill:var(--fg-mute)">Kubernetes</text>
+  <rect x="10" y="28" width="122" height="32" rx="4" class="box"/><text x="71" y="48" class="lbl" text-anchor="middle" style="font-size:11.5px">Desired State</text>
+  <path d="M 142 44 L 168 44" class="arw" marker-end="url(#ah2)"/>
+  <rect x="178" y="28" width="122" height="32" rx="4" class="box"/><text x="239" y="48" class="lbl" text-anchor="middle" style="font-size:11.5px">Controller</text>
+  <path d="M 310 44 L 336 44" class="arw" marker-end="url(#ah2)"/>
+  <rect x="346" y="28" width="122" height="32" rx="4" class="box"/><text x="407" y="48" class="lbl" text-anchor="middle" style="font-size:11.5px">Actual State</text>
+  <path d="M 407 62 L 407 76 L 71 76 L 71 62" class="arw" stroke-dasharray="3,3" marker-end="url(#ah2)"/>
+  <text x="490" y="48" class="dim">reconcile loop</text>
+
+  <text x="10" y="112" class="lbl" style="font-size:11px;fill:var(--accent)">ASFAS</text>
+  <rect x="10" y="122" width="122" height="32" rx="4" class="box-a"/><text x="71" y="142" class="lbl" text-anchor="middle" style="font-size:11.5px">元语（期望态）</text>
+  <path d="M 142 138 L 168 138" class="arw" marker-end="url(#ah2)"/>
+  <rect x="178" y="122" width="122" height="32" rx="4" class="box"/><text x="239" y="142" class="lbl" text-anchor="middle" style="font-size:11.5px">校验器</text>
+  <path d="M 310 138 L 336 138" class="arw" marker-end="url(#ah2)"/>
+  <rect x="346" y="122" width="122" height="32" rx="4" class="box"/><text x="407" y="142" class="lbl" text-anchor="middle" style="font-size:11.5px">代码（实际态）</text>
+  <path d="M 407 156 L 407 166 L 71 166 L 71 156" class="arw" stroke-dasharray="3,3"/>
+  <text x="490" y="136" class="dim" style="fill:var(--must)">不自动 reconcile</text>
+  <text x="490" y="150" class="dim">差异 → 报红 → 人/agent 决断</text>
+  <defs><marker id="ah2" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+    <path d="M0,0 L8,4 L0,8 z" fill="var(--fg-mute)"/></marker></defs>
+</svg>
+</div><figcaption>图 5-1 · 相同的期望态/实际态结构，相反的差异处置策略</figcaption></figure>
+
+<p>结构同构：元语是期望态，代码是实际态，校验器是控制器。<strong>关键差异在差异处置</strong>——Kubernetes 控制器自动把实际态拉向期望态；ASFAS 校验器<strong>只报告差异，绝不自动收敛</strong>（<code>FP-5</code>）。</p>
+
+<p>原因是两者的"差异"含义不同。Pod 数量不符只有一种解释（需要调谐）；而元语与代码不符有<strong>两种</strong>解释：文档过时了，或者代码写错了。<strong>自动收敛必须先假定其中一方正确，而这个假定无法由机器做出。</strong></p>
+
+<div class="rule">
+<p><span class="rid">FR-4</span>元语与代码不一致时，实现<kbd class="k must">MUST</kbd>停止并报告冲突，<kbd class="k must NOT">MUST NOT</kbd>单方面修改任意一侧。项目<kbd class="k should">SHOULD</kbd>维护一张<strong>已知有意偏离表</strong>，登记那些"结论未变、实现已改主意"的条目。</p>
+</div>
+
+<div class="note evidence">
+<span class="lbl">Evidence · 为什么需要"有意偏离表"</span>
+<p>参考实现的登记册里有一条决策写着采用某队列库，而代码实际用了另一种实现——这是实施时有意改的主意，不是 bug。<strong>没有这张表，下一个智能体会自作主张把代码"修正"回登记册写的方案。</strong> 偏离表的作用不是记录债务，是<strong>阻止基于登记册的错误修复</strong>。同理，项目<kbd class="k should">SHOULD</kbd>维护"已知松弛点"表，标注那些故意保留的不一致，避免被顺手"修好"。</p>
+</div>
+
+<h4>5.4 与 Temporal 的类比与差异</h4>
+
+<p>Temporal 用事件历史的确定性重放来恢复工作流状态，要求活动是幂等的、工作流代码是确定性的。ASFAS 借用这个结构，但重放对象不同：</p>
+
+<div class="tw"><table>
+<thead><tr><th></th><th>Temporal</th><th>ASFAS</th></tr></thead>
+<tbody>
+<tr><td>重放什么</td><td>工作流事件历史</td><td>工作流事件历史 <strong>+ agent run 血缘</strong></td></tr>
+<tr><td>确定性来自</td><td>工作流代码不含非确定操作</td><td>编排层确定性；<strong>agent 活动本身非确定</strong></td></tr>
+<tr><td>重放目的</td><td>恢复执行</td><td>恢复执行 <strong>+ 事后审计归属</strong>（<code>PS-4</code>）</td></tr>
+<tr><td>非确定性处置</td><td>禁止</td><td>隔离在活动内；活动<strong>输出</strong>须经确定性闸门验证</td></tr>
+</tbody>
+</table></div>
+
+<p>这条差异决定了 <a href="#ch41">§41</a> 工作流模型的一个核心约束：<strong>模型的非确定性可以存在，但只能存在于活动内部；活动之间的推进条件必须是确定性的</strong>。否则整条工作流不可重放，<code>PS-4</code> 无解。</p>
+
+<h4>5.5 这套体系不适用的场景</h4>
+
+<p>诚实地划出边界（<code>FP-7</code>）。以下场景采用 ASFAS 的成本高于收益：</p>
+
+<div class="tw"><table>
+<thead><tr><th>场景</th><th>为什么不适用</th></tr></thead>
+<tbody>
+<tr><td>一次性脚本 / 原型验证</td><td>元语的成本在于维护，而原型的价值在于被丢弃。没有长周期就没有漂移</td></tr>
+<tr><td>单人 + 单会话 + 短周期</td><td>上下文不一致的前提是"多个持有者"。人脑里那份就够用</td></tr>
+<tr><td>代码即完整规格的项目</td><td>如纯算法库：没有状态机、没有跨模块约束、没有部署事实，元语无内容可写</td></tr>
+<tr><td>需求本身高频剧变的探索期</td><td>元语会成为变更摩擦。<kbd class="k should">SHOULD</kbd>等结构稳定后再引入，先只立 <code>DECISIONS.md</code></td></tr>
+</tbody>
+</table></div>
+
+<h3 class="ch" id="ch6"><span class="num">Chapter 6</span>适用范围与一致性<a class="anchor" href="#ch6">#</a></h3>
+
+<h4>6.1 规范对象</h4>
+
+<div class="tw"><table>
+<thead><tr><th>规范</th><th>不规范</th></tr></thead>
+<tbody>
+<tr><td>工厂如何组织知识（元语的 schema 与校验器契约）</td><td>任何项目的业务知识内容</td></tr>
+<tr><td>智能体的能力边界、动作分级、血缘要求</td><td>具体 prompt 文本（<a href="#apxE">附录 E</a> 只规定格式）</td></tr>
+<tr><td>运行时抽象接口与替换协议</td><td>某个 SDK 的用法教程（属 L3 Handbook）</td></tr>
+<tr><td>工作流的必备闸门与事件语义</td><td>某团队的分支命名偏好</td></tr>
+<tr><td>基础设施的能力要求</td><td>云厂商选型（属项目 <code>DECISIONS.md</code>）</td></tr>
+</tbody>
+</table></div>
+
+<h4>6.2 一致性等级</h4>
+
+<p>一个项目声称"符合 ASFAS"时，<kbd class="k must">MUST</kbd>声明达到的等级。等级是<strong>累积</strong>的。</p>
+
+<div class="tw"><table>
+<thead><tr><th>等级</th><th>名称</th><th>要求</th><th>典型状态</th></tr></thead>
+<tbody>
+<tr><td><code>C0</code></td><td>Documented</td><td>六本核心元语齐备，格式符合 <a href="#ch16">§16</a></td><td>写完了，但还没有校验器</td></tr>
+<tr><td><strong><code>C1</code></strong></td><td><strong>Verified</strong></td><td><code>C0</code> + 每本元语有校验器 + 校验器挂进默认测试命令 + 全部通过负向验证（<code>FR-3</code>）</td><td><strong>本规范推荐的最低生产等级</strong>。漂移会报红</td></tr>
+<tr><td><code>C2</code></td><td>Governed</td><td><code>C1</code> + 动作分级在册 + 血缘 append-only + 护栏阈值在册（<a href="#ch27">§27</a>）</td><td>可以让智能体在受控范围内自主写代码</td></tr>
+<tr><td><code>C3</code></td><td>Orchestrated</td><td><code>C2</code> + 编排面 + typed state + Reviewer 闸门（Part IV / VI）</td><td>多智能体协作</td></tr>
+<tr><td><code>C4</code></td><td>Autonomous</td><td><code>C3</code> + 护栏有运行时强制点 + 成本预算强制 + 度量闭环</td><td>长周期无人值守</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule inv">
+<p><span class="rid">FINV-3</span>等级<kbd class="k must NOT">MUST NOT</kbd>跳跃。声明 <code>Cn</code> 时 <code>C0…Cn-1</code> 的全部要求<kbd class="k must">MUST</kbd>已满足并可验证。<strong>在 <code>C1</code> 未达成时启用 <code>C3</code> 编排面，等于给一群智能体发放无护栏的写权限</strong>——安全债会在此集中爆发。</p>
+</div>
+
+<h4>6.3 参考实现的当前等级</h4>
+
+<div class="tw"><table>
+<thead><tr><th>项目</th><th>等级</th><th>依据</th><th>缺口</th></tr></thead>
+<tbody>
+<tr><td><code>GMPGCPwork</code></td><td><strong>C2</strong></td><td>6 元语 + 13 校验器挂进 <code>pnpm test</code> + 动作分级 <code>L0–L3</code> + <code>.agent-runs/</code> append-only</td><td>护栏无运行时强制点（已在项目豁免表登记）→ 距 <code>C3</code> 缺编排面</td></tr>
+<tr><td><code>diabetes</code></td><td><strong>C1</strong></td><td>6 元语 + <code>AI.md</code> + 4 校验器挂进测试</td><td>无动作分级 / 无血缘 → 未达 <code>C2</code></td></tr>
+<tr><td>本规范自身</td><td><strong>C0</strong></td><td>结构与编号体系齐备</td><td><code>check-asfas-doc.mjs</code> 未实现（<code>FR-1</code>，见 §0.3 诚实标注）</td></tr>
+</tbody>
+</table></div>
+
+<h4>6.4 本规范与参考实现的引用关系</h4>
+
+<div class="rule">
+<p><span class="rid">FR-5</span>本规范<kbd class="k must NOT">MUST NOT</kbd>复制任何参考实现的元语内容。引用参考实现时<kbd class="k must">MUST</kbd>采用以下三种形式之一：<strong>①</strong> 结构性描述（"该项目登记了 N 台状态机"）；<strong>②</strong> 经验陈述（"该实践查出了某类问题"）；<strong>③</strong> 路径引用（指向文件与小节，不粘贴内容）。<kbd class="k must NOT">MUST NOT</kbd>粘贴其表格、枚举取值或规范条款原文。</p>
+</div>
+
+<p>理由是 <code>FP-1</code> 的直接应用：一份复制了 <code>DOMAIN.md</code> 表格的规范，会在该项目下次改 schema 时变成假事实——而它正是要治这个病。本规范中所有标注为 <em>Evidence</em> 的段落均属形式 ②，可核查但不构成第二事实来源。</p>
+
+<h4>6.5 术语约定</h4>
+
+<div class="tw"><table>
+<thead><tr><th>术语</th><th>英文</th><th>定义</th></tr></thead>
+<tbody>
+<tr><td><strong>元语</strong></td><td>Meta-Language</td><td>项目根目录下承载单一类别项目事实的机器可校验文档。全集与判据见 <a href="#ch15">§15</a></td></tr>
+<tr><td><strong>工厂</strong></td><td>Software Factory</td><td>与项目无关的研发流程、知识加载、闸门与编排能力集合（Layer 2）</td></tr>
+<tr><td><strong>项目</strong></td><td>Project</td><td>被工厂生产的具体业务系统（Layer 1）</td></tr>
+<tr><td><strong>校验器</strong></td><td>Verifier</td><td>对元语与代码做双向对拍的确定性程序。契约见 <a href="#ch25">§25</a></td></tr>
+<tr><td><strong>对拍</strong></td><td>Cross-Check</td><td>文档侧闭集与代码侧闭集做集合相等比较（非子集）</td></tr>
+<tr><td><strong>漂移</strong></td><td>Drift</td><td>元语与代码之间未被登记的不一致</td></tr>
+<tr><td><strong>血缘</strong></td><td>Lineage / Provenance</td><td>一次智能体会话的结构化记录，append-only</td></tr>
+<tr><td><strong>动作分级</strong></td><td>Action Level</td><td>按可逆性与影响面划分的智能体权限档，见 <a href="#ch27">§27</a></td></tr>
+<tr><td><strong>放行闸</strong></td><td>Release Gate</td><td>高影响改动生效前的人工确认点，见 <a href="#ch49">§49</a></td></tr>
+<tr><td><strong>假绿</strong></td><td>False Green</td><td>闸门通过但未实际检查，见 <code>PS-3</code></td></tr>
+</tbody>
+</table></div>
+
+<div class="note">
+<span class="lbl">用词纪律</span>
+<p>本规范用<strong>元语</strong>而非"知识文件""SoT 文档"。理由：<em>元语</em> 强调它是<strong>描述项目的语言</strong>，而非项目的一部分——这个区分在 <a href="#ch12">§12</a> 层间依赖规则中承载实际约束。同义词替换会侵蚀这个区分，因此列为用词禁令，落 <a href="#apxF">附录 F</a>。</p>
+</div>
+
+<!-- ═══════════════════════ PART II ═══════════════════════ -->
+
+<div class="part-head" id="partII">
+  <div class="kicker">Part II</div>
+  <h2>Architecture · 总体架构</h2>
+  <p>四层参考架构、每层的职责与产物、层间的依赖规则，以及三条架构不变量。本部分定义"什么放在哪里"，Part III–VII 定义"每层内部怎么做"。</p>
+</div>
+
+<h3 class="ch" id="ch7"><span class="num">Chapter 7</span>四层参考架构<a class="anchor" href="#ch7">#</a></h3>
+
+<h4>7.1 分层</h4>
+
+<figure><div class="svgbox">
+<svg viewBox="0 0 760 396" role="img" aria-label="ASFAS 四层参考架构">
+  <!-- L1 -->
+  <rect x="16" y="16" width="470" height="76" rx="6" class="box-a"/>
+  <text x="34" y="40" class="lbl">Layer 1 · Project　项目层</text>
+  <text x="34" y="58" class="sub">被生产的业务系统。承载全部业务知识，以元语为对外唯一接口。</text>
+  <text x="34" y="74" class="sub mono">ARCHITECTURE · DESIGN · DOMAIN · FLOWS · DECISIONS · DEPLOY　(+AGENTS 入口)</text>
+  <text x="502" y="46" class="dim">产物：可运行的业务软件</text>
+  <text x="502" y="62" class="dim" style="fill:var(--must)">项目独有 · 工厂不得内嵌</text>
+
+  <!-- L2 -->
+  <rect x="16" y="106" width="470" height="90" rx="6" class="box"/>
+  <text x="34" y="130" class="lbl">Layer 2 · Software Factory　软件工厂层</text>
+  <text x="34" y="148" class="sub">与项目无关的研发能力：知识加载、工作流编排、闸门、放行、度量。</text>
+  <text x="34" y="164" class="sub mono">Knowledge Loader · Workflow Engine · Gates · Review · Release · Metrics</text>
+  <text x="34" y="182" class="sub" style="fill:var(--accent)">★ 核心资产 —— 不可替换（FP-3）</text>
+  <text x="502" y="140" class="dim">产物：流程与闸门</text>
+  <text x="502" y="156" class="dim">跨项目复用</text>
+
+  <!-- L3 -->
+  <rect x="16" y="210" width="470" height="76" rx="6" class="box"/>
+  <text x="34" y="234" class="lbl">Layer 3 · Agent Runtime　运行时层</text>
+  <text x="34" y="252" class="sub">Agent 生命周期、Session、Handoff、SubAgent、Tool 调用、Checkpoint。</text>
+  <text x="34" y="268" class="sub mono">RuntimeAdapter&lt;Claude Agent SDK | … &gt;　经 §35 抽象接口</text>
+  <text x="502" y="244" class="dim">产物：执行一次活动</text>
+  <text x="502" y="260" class="dim" style="fill:var(--may)">可替换 · 最小化</text>
+
+  <!-- L4 -->
+  <rect x="16" y="300" width="470" height="76" rx="6" class="box"/>
+  <text x="34" y="324" class="lbl">Layer 4 · Infrastructure　基础设施层</text>
+  <text x="34" y="342" class="sub">计算与沙箱、源码控制、状态存储、可观测性、成本计量。</text>
+  <text x="34" y="358" class="sub mono">Sandbox · Git/Forge · Postgres/Redis/Object Store · Traces · MCP transport</text>
+  <text x="502" y="334" class="dim">产物：可依赖的能力</text>
+  <text x="502" y="350" class="dim" style="fill:var(--may)">可替换</text>
+
+  <!-- dependency arrows: upward "serves", downward "depends on" -->
+  <path d="M 251 106 L 251 92" class="arw" marker-end="url(#ah3)"/>
+  <path d="M 251 210 L 251 196" class="arw" marker-end="url(#ah3)"/>
+  <path d="M 251 300 L 251 286" class="arw" marker-end="url(#ah3)"/>
+  <defs><marker id="ah3" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+    <path d="M0,0 L9,4.5 L0,9 z" fill="var(--fg-mute)"/></marker></defs>
+</svg>
+</div><figcaption>图 7-1 · 四层参考架构。箭头方向 = "服务于"；依赖方向与之相反。</figcaption></figure>
+
+<h4>7.2 两个方向要分清</h4>
+
+<p>图 7-1 的箭头指向上方，读作"服务于"。<strong>依赖方向恰好相反</strong>，且这条反向关系是本规范最容易被误读的一点：</p>
+
+<div class="tw"><table>
+<thead><tr><th>关系</th><th>方向</th><th>含义</th></tr></thead>
+<tbody>
+<tr><td><strong>服务</strong>（图中箭头）</td><td>L4 → L3 → L2 → L1</td><td>下层为上层提供能力</td></tr>
+<tr><td><strong>依赖</strong>（import / 类型引用）</td><td>L2 → L3 → L4</td><td>工厂依赖运行时，运行时依赖基础设施</td></tr>
+<tr><td><strong>知识流</strong></td><td>L1 → L2</td><td>项目的元语被工厂读取；<strong>工厂不依赖任何具体项目</strong></td></tr>
+</tbody>
+</table></div>
+
+<p>L1 与 L2 的关系不是普通的分层依赖，而是<strong>数据关系</strong>：工厂读元语，像编译器读源文件。编译器不"依赖"某个源文件，它依赖<strong>源文件的语法</strong>。同理：</p>
+
+<div class="rule inv">
+<p><span class="rid">FINV-4</span>Layer 2 <kbd class="k must">MUST</kbd>只依赖元语的 <strong>schema</strong>，<kbd class="k must NOT">MUST NOT</kbd>依赖任何具体项目的元语 <strong>内容</strong>。在工厂代码库中 grep 任一项目的业务术语，命中数<kbd class="k must">MUST</kbd>为 0（测试夹具除外）。</p>
+</div>
+
+<h4>7.3 每层的产物与可替换性</h4>
+
+<div class="tw"><table>
+<thead><tr><th>层</th><th>产物</th><th>可替换</th><th>替换成本</th><th>替换时元语改动</th></tr></thead>
+<tbody>
+<tr><td>L1 项目</td><td>业务软件</td><td>—（就是被生产的东西）</td><td>—</td><td>—</td></tr>
+<tr><td><strong>L2 工厂</strong></td><td>流程 · 闸门 · 度量</td><td><strong>不可替换</strong></td><td>等于重建整个体系</td><td>—</td></tr>
+<tr><td>L3 运行时</td><td>一次活动的执行</td><td>可替换</td><td>写一个适配器（<a href="#ch40">§40</a>）</td><td><strong>零</strong></td></tr>
+<tr><td>L4 基础设施</td><td>计算 · 存储 · 追溯</td><td>可替换</td><td>换实现，接口不变</td><td>仅 <code>DEPLOY.md</code></td></tr>
+</tbody>
+</table></div>
+
+<p>"L3 替换时元语改动为零"是 <a href="#ch40">§40</a> 运行时替换协议的<strong>验收条件</strong>，不是愿望。如果换运行时需要改 <code>DOMAIN.md</code>，说明运行时的关注点泄漏进了知识层，属架构缺陷。</p>
+
+<h3 class="ch" id="ch8"><span class="num">Chapter 8</span>Layer 1 · 项目层<a class="anchor" href="#ch8">#</a></h3>
+
+<h4>8.1 职责</h4>
+
+<p>项目层承载<strong>全部</strong>业务知识，并把它组织成机器可校验的元语。项目层对工厂只暴露一个接口：元语文件集。</p>
+
+<div class="rule">
+<p><span class="rid">FR-6</span>项目<kbd class="k must">MUST</kbd>在仓库根目录提供 <a href="#ch15">§15</a> 定义的六本核心元语与 <code>AGENTS.md</code> 入口文件。项目的业务知识<kbd class="k must NOT">MUST NOT</kbd>只存在于代码注释、外部 wiki 或个人记忆中——凡工厂需要消费的事实，<kbd class="k must">MUST</kbd>在元语中有权威位置。</p>
+</div>
+
+<h4>8.2 为什么是六本，不是三本或十本</h4>
+
+<p>这是本规范被问得最多的问题。答案不是"经验上差不多够"，而是一条<strong>正交性判据</strong>：</p>
+
+<div class="rule">
+<p><span class="rid">FR-7</span>元语集合<kbd class="k must">MUST</kbd>满足正交性：每本回答一类问题，且<strong>任两本回答的问题类不重叠</strong>。新增一本元语的充分必要条件是——存在一类项目事实，它<strong>无法</strong>放进现有任何一本而不制造重叠。仅因某本"太长"而拆分<kbd class="k must NOT">MUST NOT</kbd>构成新增理由（应改为分小节切片，见 <a href="#ch16">§16.5</a>）。</p>
+</div>
+
+<p>六本核心元语沿三条正交轴划分：</p>
+
+<figure><div class="svgbox">
+<svg viewBox="0 0 700 250" role="img" aria-label="六本核心元语的三轴正交划分">
+  <text x="12" y="20" class="lbl" style="font-size:11px;fill:var(--fg-faint)">轴 1 · 事实 vs 决策</text>
+  <rect x="12" y="30" width="470" height="30" rx="4" class="box"/>
+  <text x="247" y="50" class="lbl" text-anchor="middle" style="font-size:11.5px">五本事实元语　“项目现在是什么样”</text>
+  <rect x="494" y="30" width="194" height="30" rx="4" class="box-a"/>
+  <text x="591" y="50" class="lbl" text-anchor="middle" style="font-size:11.5px">DECISIONS　“什么已被决定”</text>
+
+  <text x="12" y="88" class="lbl" style="font-size:11px;fill:var(--fg-faint)">轴 2 · 代码内 vs 代码外</text>
+  <rect x="12" y="98" width="352" height="30" rx="4" class="box"/>
+  <text x="188" y="118" class="lbl" text-anchor="middle" style="font-size:11.5px">四本：可与代码直接对拍</text>
+  <rect x="376" y="98" width="106" height="30" rx="4" class="box"/>
+  <text x="429" y="118" class="lbl" text-anchor="middle" style="font-size:11.5px">DEPLOY</text>
+  <text x="494" y="118" class="dim">与环境/compose/.env 对拍</text>
+
+  <text x="12" y="156" class="lbl" style="font-size:11px;fill:var(--fg-faint)">轴 3 · 结构 / 呈现 / 静态 / 动态</text>
+  <rect x="12" y="166" width="112" height="52" rx="4" class="box"/>
+  <text x="68" y="188" class="lbl" text-anchor="middle" style="font-size:11px">ARCHITECTURE</text>
+  <text x="68" y="204" class="sub" text-anchor="middle">结构 · 边界</text>
+  <rect x="132" y="166" width="112" height="52" rx="4" class="box"/>
+  <text x="188" y="188" class="lbl" text-anchor="middle" style="font-size:11px">DESIGN</text>
+  <text x="188" y="204" class="sub" text-anchor="middle">呈现 · 术语</text>
+  <rect x="252" y="166" width="112" height="52" rx="4" class="box"/>
+  <text x="308" y="188" class="lbl" text-anchor="middle" style="font-size:11px">DOMAIN</text>
+  <text x="308" y="204" class="sub" text-anchor="middle">静态数据形状</text>
+  <rect x="372" y="166" width="112" height="52" rx="4" class="box"/>
+  <text x="428" y="188" class="lbl" text-anchor="middle" style="font-size:11px">FLOWS</text>
+  <text x="428" y="204" class="sub" text-anchor="middle">动态状态转移</text>
+  <text x="500" y="196" class="dim">四本互不重叠，合起来覆盖“是什么”</text>
+
+  <text x="12" y="242" class="dim">AGENTS.md 不在任何轴上 —— 它不含一手事实，只含指针与阅读规则（§8.3）</text>
+</svg>
+</div><figcaption>图 8-1 · 六本核心元语的正交划分</figcaption></figure>
+
+<div class="tw"><table>
+<thead><tr><th>元语</th><th>回答的问题</th><th>对拍对象</th><th>规范</th></tr></thead>
+<tbody>
+<tr><td><code>ARCHITECTURE.md</code></td><td>系统怎么分层？边界在哪？哪些工程选择不可逆？</td><td>目录结构 · import 图 · 依赖清单</td><td><a href="#ch17">§17</a></td></tr>
+<tr><td><code>DESIGN.md</code></td><td>界面规范是什么？术语用哪个词？</td><td>设计 token · 组件 · 用词 grep</td><td><a href="#ch18">§18</a></td></tr>
+<tr><td><code>DOMAIN.md</code></td><td>有哪些数据对象、字段、枚举、关系、约束？</td><td>schema 定义（表 / 枚举，集合相等）</td><td><a href="#ch19">§19</a></td></tr>
+<tr><td><code>FLOWS.md</code></td><td>状态怎么流转？谁能触发？受哪条约束？实现了吗？</td><td>状态写入点（双向）</td><td><a href="#ch20">§20</a></td></tr>
+<tr><td><code>DECISIONS.md</code></td><td>什么已被决定？未决的有哪些？在哪论证？</td><td>代码与文档中的 ID 标记（双向）</td><td><a href="#ch21">§21</a></td></tr>
+<tr><td><code>DEPLOY.md</code></td><td>端口是什么？读哪些环境变量？依赖什么运行环境？</td><td>env 样例 · 编排文件 · 代码读取点（三方）</td><td><a href="#ch22">§22</a></td></tr>
+</tbody>
+</table></div>
+
+<h4>8.3 AGENTS.md 为什么不是元语</h4>
+
+<p>原方案稿把 <code>AGENTS.md</code> 列为"六个知识文件"之一。本规范<strong>更正</strong>这一点，理由是结构性的：</p>
+
+<div class="rule">
+<p><span class="rid">FR-8</span><code>AGENTS.md</code> <kbd class="k must">MUST</kbd>是<strong>入口指针</strong>而非元语：它<kbd class="k must NOT">MUST NOT</kbd>含任何一手事实，只含 ① 指向六本元语的指针与一句话职责，② 改哪类代码前必读哪本的阅读规则，③ 硬规矩与禁止行为，④ 命令清单。任何在 <code>AGENTS.md</code> 中出现的一手事实<kbd class="k must">MUST</kbd>视为 <code>FP-1</code> 违反。</p>
+</div>
+
+<p>如果 <code>AGENTS.md</code> 是元语，它必然复制其他六本的内容（否则它写什么？），而复制即制造第二事实来源。<strong>它是目录，不是章节</strong>。这个区分有实际后果：</p>
+
+<ul>
+<li><code>AGENTS.md</code> <kbd class="k should">SHOULD</kbd>保持在 100 行以内——它是被<strong>每次</strong>加载的文件，而六本元语是<strong>按需切片</strong>加载的。</li>
+<li><code>AGENTS.md</code> <kbd class="k must NOT">MUST NOT</kbd>写具体数字（模块数量、文件行数）。<strong>写数字的文档注定漂移</strong>——改为写"以 <code>ls</code> 为准"或写结构描述。</li>
+<li>它的校验器检查的是<strong>指针可解析性</strong>，不是内容正确性。</li>
+</ul>
+
+<div class="note evidence">
+<span class="lbl">Evidence · 数字漂移</span>
+<p>参考实现的 <code>AGENTS.md</code> 曾声称某目录有 19 个模块（实为 21），前端为"43 行骨架"（实为多个页面 + UI 原语）。两处都在补元语时被查出。修法不是把数字改对，而是<strong>删掉数字</strong>——因为改对的数字下个月还会错。</p>
+</div>
+
+<h4>8.4 项目层的非目标</h4>
+
+<div class="rule">
+<p><span class="rid">FR-9</span>项目的元语<kbd class="k must">MUST</kbd>只写事实，<kbd class="k must NOT">MUST NOT</kbd>写愿望。<code>DOMAIN.md</code> 写 schema <strong>现在</strong>的样子，不是应该的样子；"应该的样子"<kbd class="k must">MUST</kbd>进 <code>DECISIONS.md</code> 的未决段或需求文档。</p>
+</div>
+
+<p>这条约束容易被低估。混入愿望的元语无法对拍——校验器会持续报红，团队于是给它加豁免，最终豁免表比契约表还长。<strong>事实与愿望的分离，是元语可校验的前提。</strong></p>
+
+<h3 class="ch" id="ch9"><span class="num">Chapter 9</span>Layer 2 · 软件工厂层<a class="anchor" href="#ch9">#</a></h3>
+
+<h4>9.1 职责与模块</h4>
+
+<p>工厂层是本体系的核心资产（<code>FP-3</code>）。它由七个能力域构成，全部与项目无关：</p>
+
+<div class="tw"><table>
+<thead><tr><th>能力域</th><th>职责</th><th>关键约束</th><th>规范</th></tr></thead>
+<tbody>
+<tr><td><strong>Knowledge Loader</strong></td><td>解析元语、按切片提供、产出带版本的语义引用</td><td>只依赖 schema（<code>FINV-4</code>）；解析失败<kbd class="k must">MUST</kbd>中断而非降级</td><td><a href="#ch16">§16</a></td></tr>
+<tr><td><strong>Verifier Suite</strong></td><td>元语 ↔ 代码双向对拍</td><td>确定性；无 <code>--fix</code>（<code>FP-5</code>）；须负向验证（<code>FR-3</code>）</td><td><a href="#ch25">§25</a></td></tr>
+<tr><td><strong>Workflow Engine</strong></td><td>事件驱动的活动编排、闸门推进、重放</td><td>推进条件<kbd class="k must">MUST</kbd>确定性（<a href="#ch5">§5.4</a>）</td><td><a href="#ch41">§41</a></td></tr>
+<tr><td><strong>Agent Registry</strong></td><td>角色定义、动作分级、工具面授权</td><td>闭集（<code>FP-6</code>）；路径面须可解析</td><td><a href="#ch27">§27</a></td></tr>
+<tr><td><strong>Review &amp; Release</strong></td><td>Reviewer 闸门、人工放行、放行记录</td><td>放行权<kbd class="k must NOT">MUST NOT</kbd>下放给 Worker</td><td><a href="#ch49">§49</a></td></tr>
+<tr><td><strong>Lineage Store</strong></td><td>血缘记录写入与查询</td><td>append-only；字段完整性校验</td><td><a href="#ch27">§27</a></td></tr>
+<tr><td><strong>Metrics</strong></td><td>成功率、幻觉率、漂移拦截率、成本</td><td>度量<kbd class="k must NOT">MUST NOT</kbd>反过来成为优化目标</td><td><a href="#ch25">§25.7</a></td></tr>
+</tbody>
+</table></div>
+
+<h4>9.2 工厂层的目录约定</h4>
+
+<pre><code>ai-factory/
+├── spec/                    # 本规范（L2 文档）
+│   └── ASFAS.html
+├── factory/                 # ★ 核心资产 —— 与项目无关
+│   ├── knowledge/           #   元语解析器 + 切片器 + 语义引用
+│   ├── verifiers/           #   校验器套件（确定性，无 --fix）
+│   ├── workflow/            #   事件 · 活动 · 闸门 · 重放
+│   ├── agents/              #   角色定义 · 动作分级 · 工具面授权
+│   ├── review/              #   Reviewer 闸门 · 人工放行
+│   ├── lineage/             #   血缘写入与查询
+│   └── metrics/
+├── runtime/                 # 可替换适配器，每厂商一目录
+│   ├── interface.ts         #   §35 抽象接口（唯一被 factory/ import 的文件）
+│   └── claude-agent-sdk/    #   §36 绑定
+├── infrastructure/          # L4 能力封装
+└── projects/                # 项目注册表（只放指针，不放项目代码）
+    └── registry.json</code></pre>
+
+<div class="rule">
+<p><span class="rid">FR-10</span><code>factory/</code> <kbd class="k must NOT">MUST NOT</kbd> import 任何厂商 SDK。厂商 SDK 的 import <kbd class="k must">MUST</kbd>仅出现在 <code>runtime/&lt;vendor&gt;/</code> 内。<code>projects/</code> <kbd class="k must NOT">MUST NOT</kbd>包含项目源码——只登记路径、一致性等级与元语位置。</p>
+</div>
+
+<p>两条边界都可用 grep 守护，属 <a href="#apxA">附录 A</a> 一致性检查点 <code>CP-9</code>、<code>CP-10</code>。</p>
+
+<h4>9.3 工厂层不做什么</h4>
+
+<div class="tw"><table>
+<thead><tr><th>不做</th><th>理由</th><th>归属</th></tr></thead>
+<tbody>
+<tr><td>不承载业务逻辑</td><td><code>FG-4</code> 项目独立</td><td>L1</td></tr>
+<tr><td>不实现 Agent 生命周期</td><td>那是运行时职责，且必须可替换</td><td>L3</td></tr>
+<tr><td>不自建模型推理</td><td>模型是可替换实现，不是工厂资产</td><td>L3 / 外部</td></tr>
+<tr><td>不自动修复违规</td><td><code>FP-5</code></td><td>人 / Agent</td></tr>
+<tr><td>不做业务级监控告警</td><td>工厂只观测<strong>自己</strong>；被生产系统的可观测性属该项目</td><td>L1 / L4</td></tr>
+</tbody>
+</table></div>
+
+<h3 class="ch" id="ch10"><span class="num">Chapter 10</span>Layer 3 · 运行时层<a class="anchor" href="#ch10">#</a></h3>
+
+<h4>10.1 职责边界</h4>
+
+<p>运行时的职责用一句话概括：<strong>把一次"活动"变成一次实际的模型会话，并把结果与副作用交回工厂</strong>。它管六件事：</p>
+
+<div class="tw"><table>
+<thead><tr><th>#</th><th>职责</th><th>不属于运行时</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Agent 实例的创建与销毁</td><td>决定<strong>该不该</strong>创建（工厂决策）</td></tr>
+<tr><td>2</td><td>Session 上下文的维持</td><td>决定 session 里放什么知识（Knowledge Loader）</td></tr>
+<tr><td>3</td><td>Tool 调用的执行与结果回传</td><td>决定<strong>哪些</strong> tool 可用（Agent Registry）</td></tr>
+<tr><td>4</td><td>SubAgent / Handoff 的机制</td><td>拓扑设计（<a href="#ch28">§28</a>）</td></tr>
+<tr><td>5</td><td>Checkpoint 的写入与恢复</td><td>何时该 checkpoint（工作流）</td></tr>
+<tr><td>6</td><td>流式输出与 token 计量上报</td><td>预算判断与中止（Guard Agent）</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule inv">
+<p><span class="rid">FINV-5</span>运行时<kbd class="k must">MUST</kbd>保持最小化：它<kbd class="k must NOT">MUST NOT</kbd>承载任何业务流程、闸门判断、权限决策或知识加载策略。判据：<strong>把运行时整体替换为另一厂商实现后，工厂层与元语层<kbd class="k must">MUST</kbd>零改动</strong>。</p>
+</div>
+
+<p><code>FINV-5</code> 是可测的，不是原则性表述。<a href="#ch40">§40</a> 定义的替换协议要求提交一份 diff 证明——如果替换运行时导致 <code>factory/</code> 有改动，说明职责泄漏。</p>
+
+<h4>10.2 运行时选型（FADR-1）</h4>
+
+<div class="rule">
+<p><span class="rid">FADR-1</span><strong>决定：</strong>首个运行时绑定采用 <strong>Claude Agent SDK</strong>，不自研运行时。<strong>状态：</strong>已定。<strong>影响：</strong>Part V 全部代码形态。</p>
+</div>
+
+<h5>决策理由</h5>
+
+<div class="tw"><table>
+<thead><tr><th>#</th><th>理由</th><th>反驳过的替代方案</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>自研运行时是<strong>纯成本</strong>：它不属于核心资产（<code>FP-3</code> 明确运行时可替换），投入自研等于在可替换层投重资</td><td>自研 —— 已否决</td></tr>
+<tr><td>2</td><td>SDK 原生提供本体系必需的四项机制：SubAgent、Session 持久化、MCP 工具面、流式与计量</td><td>裸 API + 自建循环 —— 需重建这四项</td></tr>
+<tr><td>3</td><td>MCP 工具面提供<strong>可审计的收窄接口</strong>：agent 能做什么由 server 暴露什么决定，比在 prompt 里写"请不要改迁移"可靠一个量级</td><td>prompt 约束 —— 不可验证</td></tr>
+<tr><td>4</td><td>参考实现的技术栈为 Node/TS，与 SDK 一致，无跨语言桥接成本</td><td>Python 编排框架 —— 引入进程边界</td></tr>
+</tbody>
+</table></div>
+
+<h5>为什么不用通用 Agent 框架（含 OpenClaw 类）</h5>
+
+<p>这类框架的设计目标是<strong>让 agent 能做更多事</strong>；本体系的设计目标是<strong>让 agent 只能做被授权的事</strong>。两者在三处直接冲突：</p>
+
+<div class="tw"><table>
+<thead><tr><th>冲突点</th><th>通用框架倾向</th><th>本规范要求</th></tr></thead>
+<tbody>
+<tr><td>工具面</td><td>尽可能开放（shell / 浏览器 / 任意 HTTP）</td><td>按角色收窄，经 MCP 授权（<a href="#ch39">§39</a>）</td></tr>
+<tr><td>失败处置</td><td>自主重试直到成功</td><td>超护栏<kbd class="k must">MUST</kbd>升级给人，不静默重试（<a href="#ch27">§27</a>）</td></tr>
+<tr><td>决策位置</td><td>agent 自主判断下一步</td><td>推进条件由确定性工作流裁决（<code>FG-3</code>）</td></tr>
+</tbody>
+</table></div>
+
+<p>这不是"那些框架不好"，而是<strong>它们优化的方向与本体系相反</strong>。在受监管场景下，开放的工具面是需要被抵消的属性，而不是卖点。</p>
+
+<div class="note warn">
+<span class="lbl">待同步 · 参考实现的未决项</span>
+<p>参考实现 <code>GMPGCPwork</code> 的 P9 计划中，编排面运行时选型仍登记为未决（Claude Agent SDK subagents vs LangGraph）。<code>FADR-1</code> 在工厂层已拍板，因此该项目<kbd class="k should">SHOULD</kbd>在下一次提交中把该未决项<strong>销项并入册</strong>，出处指向本节。<strong>工厂层拍板不自动销掉项目层的未决项</strong>——两处登记册各自独立，须显式同步（<code>FP-1</code>：登记册是权威，不是缓存）。</p>
+</div>
+
+<h3 class="ch" id="ch11"><span class="num">Chapter 11</span>Layer 4 · 基础设施层<a class="anchor" href="#ch11">#</a></h3>
+
+<h4>11.1 能力要求（而非选型）</h4>
+
+<p>本规范<strong>不规定</strong>用哪家云、哪个数据库。它规定基础设施<kbd class="k must">MUST</kbd>提供的<strong>能力</strong>，选型属项目 <code>DECISIONS.md</code>。</p>
+
+<div class="tw"><table>
+<thead><tr><th>能力</th><th>要求</th><th>为什么本体系需要它</th><th>规范</th></tr></thead>
+<tbody>
+<tr><td><strong>隔离沙箱</strong></td><td>每次高影响活动<kbd class="k must">MUST</kbd>在与其他活动隔离的环境中执行；文件系统与网络出口可限制</td><td>并行 agent 互不污染；越权动作的爆炸半径可控（<code>PS-5</code>）</td><td><a href="#ch48">§48</a></td></tr>
+<tr><td><strong>源码控制 + 放行闸</strong></td><td><kbd class="k must">MUST</kbd>提供带时间戳与身份的人工确认点</td><td>高影响改动的可归属性（<code>PS-4</code>）</td><td><a href="#ch49">§49</a></td></tr>
+<tr><td><strong>不可篡改存储</strong></td><td>血缘记录<kbd class="k must">MUST</kbd>只可追加</td><td>血缘一旦可事后修改就等于没有</td><td><a href="#ch50">§50</a></td></tr>
+<tr><td><strong>状态存储</strong></td><td>工作流事件<kbd class="k must">MUST</kbd>可持久化、可按序重放</td><td><code>FG-3</code> 事件驱动的前提</td><td><a href="#ch50">§50</a></td></tr>
+<tr><td><strong>追溯</strong></td><td>一次活动的输入/输出/工具调用<kbd class="k should">SHOULD</kbd>可关联到 <code>run_id</code></td><td>幻觉率等度量的数据来源</td><td><a href="#ch51">§51</a></td></tr>
+<tr><td><strong>计量</strong></td><td>token 与计算时长<kbd class="k must">MUST</kbd>可归集到活动粒度</td><td>成本护栏无计量则无强制点</td><td><a href="#ch52">§52</a></td></tr>
+</tbody>
+</table></div>
+
+<h4>11.2 参考选型</h4>
+
+<p>以下是首个实现的选型，<strong>登记为参考而非要求</strong>。任何满足 §11.1 能力要求的替代选型均符合 ASFAS。</p>
+
+<div class="tw"><table>
+<thead><tr><th>能力</th><th>参考选型</th><th>替换成本</th></tr></thead>
+<tbody>
+<tr><td>沙箱</td><td>Fly.io Machines + 容器镜像</td><td>低（接口即"起一个隔离环境跑一条命令"）</td></tr>
+<tr><td>源码控制 + 放行</td><td>GitHub（Issue → Branch → PR → Review → Merge）</td><td>中（放行记录格式需重映射）</td></tr>
+<tr><td>不可篡改血缘</td><td>Git 内的 append-only 目录</td><td>低</td></tr>
+<tr><td>状态存储</td><td>PostgreSQL（事件表）+ Redis Streams（队列）</td><td>低</td></tr>
+<tr><td>对象存储</td><td>S3 兼容</td><td>低</td></tr>
+<tr><td>工具面传输</td><td>MCP</td><td>—（<a href="#ch39">§39</a> 要求）</td></tr>
+</tbody>
+</table></div>
+
+<div class="note">
+<span class="lbl">血缘存储的选型推理</span>
+<p>把血缘放进 Git 而非独立数据库，理由有三：与代码<strong>同版本可追溯</strong>；天然可 diff；append-only 可用 <code>git diff --diff-filter=MD</code> 直接强制，无需另建存储与权限体系。已否决的替代方案是"接入业务侧的哈希链表"——那会让<strong>开发期工具依赖业务表</strong>，违反 <code>FG-4</code>。</p>
+<p><strong>已知限制</strong>（<code>FP-7</code>）：Git 的 append-only 守护只对<strong>已提交</strong>记录生效，未提交记录的改动 <code>git diff HEAD</code> 看不见。这是 git 语义决定的，不是漏洞——记录一旦入库即锁死。此限制<kbd class="k must">MUST</kbd>在项目豁免表登记。</p>
+</div>
+
+<h3 class="ch" id="ch12"><span class="num">Chapter 12</span>层间契约与依赖规则<a class="anchor" href="#ch12">#</a></h3>
+
+<h4>12.1 四条依赖规则</h4>
+
+<div class="rule">
+<p><span class="rid">FR-11</span><strong>向下依赖</strong>　L<em>n</em> <kbd class="k may">MAY</kbd>依赖 L<em>n+1</em>，<kbd class="k must NOT">MUST NOT</kbd>依赖 L<em>n-1</em>。运行时<kbd class="k must NOT">MUST NOT</kbd>知道工厂的存在；基础设施<kbd class="k must NOT">MUST NOT</kbd>知道运行时的存在。</p>
+</div>
+
+<div class="rule">
+<p><span class="rid">FR-12</span><strong>不跨层</strong>　L2 <kbd class="k must NOT">MUST NOT</kbd>直接调用 L4。需要基础设施能力时<kbd class="k must">MUST</kbd>经 L3 或经 L4 的显式封装接口，不得绕过。</p>
+</div>
+
+<div class="rule">
+<p><span class="rid">FR-13</span><strong>知识单向流</strong>　元语的流向<kbd class="k must">MUST</kbd>是 L1 → L2。L2 <kbd class="k must NOT">MUST NOT</kbd>写回项目元语；元语的作者是人或经放行的智能体活动，<strong>不是工厂自身</strong>。</p>
+</div>
+
+<div class="rule">
+<p><span class="rid">FR-14</span><strong>接口收窄</strong>　跨层调用<kbd class="k must">MUST</kbd>经显式声明的接口，<kbd class="k must NOT">MUST NOT</kbd>依赖对方内部符号。跨层传递的结构化数据<kbd class="k must">MUST</kbd>有 schema，解析失败<kbd class="k must">MUST</kbd>中断而非容错降级。</p>
+</div>
+
+<h4>12.2 为什么 FR-13 排除了"工厂自动更新元语"</h4>
+
+<p>一个诱人的想法是：既然校验器能发现元语与代码不一致，为什么不让工厂自动把元语改对？</p>
+
+<p>这在 <a href="#ch5">§5.3</a> 已从"差异有两种解释"角度否决过。此处补一个更强的理由：<strong>如果工厂能写元语，元语就不再是期望态，而变成实际态的镜像</strong>。它会自动收敛到"代码现在是什么样"，从而永远为真、永远无法报错——校验器变成恒绿。</p>
+
+<div class="note warn">
+<span class="lbl">这是一种假绿（PS-3）</span>
+<p>自动同步的文档是<strong>最隐蔽的假绿</strong>：它看起来是最高级的自动化，实际上销毁了闸门的全部价值。元语的价值恰恰来自它<strong>可能与代码不符</strong>——那个不符就是信号。</p>
+</div>
+
+<h4>12.3 层间契约清单</h4>
+
+<div class="tw"><table>
+<thead><tr><th>契约</th><th>方向</th><th>载体</th><th>校验</th></tr></thead>
+<tbody>
+<tr><td>元语 schema</td><td>L1 → L2</td><td>元语文件的格式契约（<a href="#ch16">§16</a>）</td><td>格式契约校验器；解析空转即红</td></tr>
+<tr><td>Runtime Interface</td><td>L2 → L3</td><td><code>runtime/interface.ts</code>（<a href="#ch35">§35</a>）</td><td>import 边界 grep（<code>CP-9</code>）</td></tr>
+<tr><td>Typed Task State</td><td>L2 内部 · Agent 间</td><td>Zod/JSON Schema（<a href="#ch39">§39</a>）</td><td>parse 失败即中断</td></tr>
+<tr><td>Tool Surface</td><td>L3 → L4</td><td>MCP server 能力声明</td><td>角色 × 工具面授权矩阵</td></tr>
+<tr><td>Lineage Record</td><td>L2 → L4</td><td>血缘字段表（<a href="#ch27">§27</a>）</td><td>字段完整性 + append-only</td></tr>
+</tbody>
+</table></div>
+
+<h3 class="ch" id="ch13"><span class="num">Chapter 13</span>多项目拓扑<a class="anchor" href="#ch13">#</a></h3>
+
+<h4>13.1 一个工厂，N 个项目</h4>
+
+<figure><div class="svgbox">
+<svg viewBox="0 0 700 214" role="img" aria-label="一个工厂服务多个项目的拓扑">
+  <rect x="188" y="12" width="324" height="46" rx="6" class="box-a"/>
+  <text x="350" y="32" class="lbl" text-anchor="middle">AI Software Factory（L2）</text>
+  <text x="350" y="49" class="sub" text-anchor="middle">与项目无关 · 只依赖元语 schema</text>
+
+  <path d="M 250 58 L 120 94" class="arw" marker-end="url(#ah4)"/>
+  <path d="M 350 58 L 350 94" class="arw" marker-end="url(#ah4)"/>
+  <path d="M 450 58 L 580 94" class="arw" marker-end="url(#ah4)"/>
+
+  <rect x="34" y="98" width="172" height="66" rx="5" class="box"/>
+  <text x="120" y="118" class="lbl" text-anchor="middle" style="font-size:12px">Project A</text>
+  <text x="120" y="134" class="sub" text-anchor="middle">6 元语 + AI.md</text>
+  <text x="120" y="149" class="sub" text-anchor="middle" style="fill:var(--may)">一致性 C1</text>
+
+  <rect x="264" y="98" width="172" height="66" rx="5" class="box"/>
+  <text x="350" y="118" class="lbl" text-anchor="middle" style="font-size:12px">Project B</text>
+  <text x="350" y="134" class="sub" text-anchor="middle">6 元语 + AGENT-OPS.md</text>
+  <text x="350" y="149" class="sub" text-anchor="middle" style="fill:var(--may)">一致性 C2</text>
+
+  <rect x="494" y="98" width="172" height="66" rx="5" class="box"/>
+  <text x="580" y="118" class="lbl" text-anchor="middle" style="font-size:12px">Project C</text>
+  <text x="580" y="134" class="sub" text-anchor="middle">6 元语</text>
+  <text x="580" y="149" class="sub" text-anchor="middle" style="fill:var(--should)">一致性 C0（补校验器中）</text>
+
+  <text x="34" y="192" class="dim">项目间零耦合：A 的元语改动不影响 B。工厂对三者的差异只感知“一致性等级”与“条件元语是否存在”。</text>
+  <text x="34" y="208" class="dim">跨项目共享的只有 schema 与校验器实现 —— 不是知识内容。</text>
+  <defs><marker id="ah4" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+    <path d="M0,0 L8,4 L0,8 z" fill="var(--fg-mute)"/></marker></defs>
+</svg>
+</div><figcaption>图 13-1 · 多项目拓扑。工厂对项目的唯一感知维度是一致性等级与条件元语存在性。</figcaption></figure>
+
+<div class="rule">
+<p><span class="rid">FR-15</span>项目之间<kbd class="k must NOT">MUST NOT</kbd>共享元语内容。跨项目复用<kbd class="k must">MUST</kbd>限于 schema、校验器实现与工厂能力。若两个项目确实共享一段领域知识，该知识<kbd class="k must">MUST</kbd>被提取为独立项目（有自己的六本元语）并被两者<strong>引用</strong>，<kbd class="k must NOT">MUST NOT</kbd>在两处各写一份。</p>
+</div>
+
+<h4>13.2 项目注册表</h4>
+
+<p><code>projects/registry.json</code> 是工厂对项目的<strong>唯一感知面</strong>。每个条目登记：</p>
+
+<div class="tw"><table>
+<thead><tr><th>字段</th><th>含义</th><th>必需</th></tr></thead>
+<tbody>
+<tr><td><code>id</code></td><td>项目标识，全局唯一</td><td>✓</td></tr>
+<tr><td><code>path</code></td><td>仓库位置（本地路径或远端 URL）</td><td>✓</td></tr>
+<tr><td><code>conformance</code></td><td>声明的一致性等级 <code>C0</code>–<code>C4</code>（<a href="#ch6">§6.2</a>）</td><td>✓</td></tr>
+<tr><td><code>meta_languages</code></td><td>存在的元语清单，含条件元语</td><td>✓</td></tr>
+<tr><td><code>verify_cmd</code></td><td>运行全部校验器的命令</td><td>✓（<code>C1</code> 起）</td></tr>
+<tr><td><code>action_levels</code></td><td>动作分级表位置</td><td><code>C2</code> 起</td></tr>
+<tr><td><code>lineage_dir</code></td><td>血缘目录位置</td><td><code>C2</code> 起</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">FR-16</span>注册表条目声明的一致性等级<kbd class="k must">MUST</kbd>可由工厂验证，<kbd class="k must NOT">MUST NOT</kbd>仅为自我声明。工厂<kbd class="k must">MUST</kbd>能通过执行 <code>verify_cmd</code> 与检查必需字段的存在性来确认等级；声明等级高于可验证等级 = 红。</p>
+</div>
+
+<h4>13.3 元语版本与语义引用</h4>
+
+<p>多项目 + 多智能体场景下，"review_rounds 是什么"必须有唯一答案。本规范用<strong>带版本的语义引用</strong>解决：</p>
+
+<pre><code>sot://&lt;project&gt;/&lt;META&gt;#&lt;anchor&gt;@&lt;version&gt;
+  例：sot://gmpgcp/DOMAIN#review_rounds@v3
+inv://&lt;project&gt;/&lt;INV-id&gt;
+dec://&lt;project&gt;/&lt;decision-id&gt;</code></pre>
+
+<div class="rule">
+<p><span class="rid">FR-17</span>智能体之间传递的任务状态<kbd class="k must">MUST</kbd>用语义引用指代项目事实，<kbd class="k must NOT">MUST NOT</kbd>内联事实内容。语义引用<kbd class="k must">MUST</kbd>可解析；解析失败<kbd class="k must">MUST</kbd>中断任务（<code>FR-14</code>）。</p>
+</div>
+
+<p>这条从根上消除 <code>PS-1</code>：所有智能体对同一概念的理解来自<strong>同一处同一版本</strong>，而不是各自 prompt 里的一段摘要。摘要会分叉，引用不会。</p>
+
+<h3 class="ch" id="ch14"><span class="num">Chapter 14</span>架构不变量<a class="anchor" href="#ch14">#</a></h3>
+
+<p class="lead">不变量是<strong>任何实现都不得违反</strong>的硬约束，违反即不符合 ASFAS。它们与 <kbd class="k should">SHOULD</kbd> 级要求的区别是：不变量没有"有理由就可偏离"这条路。</p>
+
+<h4>14.1 全部不变量</h4>
+
+<div class="tw"><table>
+<thead><tr><th>ID</th><th>内容</th><th>出处</th><th>守护方式</th></tr></thead>
+<tbody>
+<tr><td><code>FINV-1</code></td><td>能用确定性规则表达的约束不得交给模型</td><td><a href="#ch2">§2.6</a></td><td>约定测试：禁止清单（<a href="#ch34">§34</a>）</td></tr>
+<tr><td><code>FINV-2</code></td><td><code>Knowledge → Workflow → Agent → Code</code> 单向依赖；Agent 是执行者</td><td><a href="#ch5">§5.1</a></td><td>import 边界测试 + <code>FR-13</code> 校验</td></tr>
+<tr><td><code>FINV-3</code></td><td>一致性等级不得跳跃</td><td><a href="#ch6">§6.2</a></td><td>注册表等级 vs 必需字段存在性（<code>FR-16</code>）</td></tr>
+<tr><td><code>FINV-4</code></td><td>L2 只依赖元语 schema，不依赖任何项目的元语内容</td><td><a href="#ch7">§7.2</a></td><td>业务术语 grep，命中须为 0</td></tr>
+<tr><td><code>FINV-5</code></td><td>运行时最小化：替换运行时后 L1/L2 零改动</td><td><a href="#ch10">§10.1</a></td><td>替换协议的 diff 证明（<a href="#ch40">§40</a>）</td></tr>
+<tr><td><code>FINV-6</code></td><td>闸门必须检查"即将提交的内容"，不是"已提交的历史"</td><td>§14.2</td><td>负向验证：在工作区注入违规，闸门须红</td></tr>
+<tr><td><code>FINV-7</code></td><td>血缘 append-only：已写入记录不得修改或删除</td><td><a href="#ch27">§27</a></td><td>存储层 append-only + diff 过滤器守护</td></tr>
+</tbody>
+</table></div>
+
+<h4>14.2 FINV-6 的来由</h4>
+
+<div class="rule inv">
+<p><span class="rid">FINV-6</span>闸门<kbd class="k must">MUST</kbd>检查<strong>即将提交的内容</strong>（工作区 + 暂存区），<kbd class="k must NOT">MUST NOT</kbd>只检查已提交的历史。用版本控制命令实现检查时<kbd class="k must">MUST</kbd>显式验证这一点。</p>
+</div>
+
+<div class="note evidence">
+<span class="lbl">Evidence · 三次假绿都源于同一个错误</span>
+<p>参考实现在写治理校验器的过程中出现三次假绿，其中两次同源：一处禁令用 <code>git log --diff-filter=M</code> 检查是否改动了受保护文件，另一处用 <code>git grep</code> 检查测试是否被 skip。<strong>两者都看不到工作区未提交的改动——而那恰恰是闸门最该拦的时刻。</strong> 修法是改用 <code>git diff HEAD</code> 并直接读磁盘文件。</p>
+<p>第三次是语义假绿（见 <code>PS-3</code> 表）。三次的共同教训被提升为不变量：<strong>闸门的时点和检查逻辑一样重要</strong>，而版本控制命令特别容易在这一点上出错，因为它们默认面向"历史"。</p>
+</div>
+
+<h4>14.3 不变量与一致性等级的关系</h4>
+
+<div class="tw"><table>
+<thead><tr><th>不变量</th><th>从哪个等级起适用</th><th>理由</th></tr></thead>
+<tbody>
+<tr><td><code>FINV-1</code> <code>FINV-2</code> <code>FINV-4</code></td><td><code>C0</code></td><td>结构性约束，与是否有校验器无关</td></tr>
+<tr><td><code>FINV-3</code></td><td><code>C0</code></td><td>等级声明本身的规则</td></tr>
+<tr><td><code>FINV-6</code></td><td><code>C1</code></td><td><code>C0</code> 尚无闸门</td></tr>
+<tr><td><code>FINV-5</code></td><td><code>C3</code></td><td><code>C2</code> 及以下可能尚无运行时层</td></tr>
+<tr><td><code>FINV-7</code></td><td><code>C2</code></td><td>血缘从 <code>C2</code> 起要求</td></tr>
+</tbody>
+</table></div>
+
+<p>注意 <code>FINV-1</code>、<code>FINV-2</code>、<code>FINV-4</code> 从 <code>C0</code> 起就适用——它们不需要任何工具支撑，只需要不做错事。这也是它们被列为不变量而非要求的原因：<strong>没有"暂时做不到"这个借口</strong>。</p>
+
+<!-- ═══════════════════════ PART III ═══════════════════════ -->
+
+<div class="part-head" id="partIII">
+  <div class="kicker">Part III</div>
+  <h2>Knowledge System · 知识体系</h2>
+  <p>本部分是全规范的核心。它定义元语的判据、结构、格式契约、校验器契约、生命周期与所有权。几乎所有 Agent 项目都没有把 Knowledge 设计清楚——本部分是本规范对这一空缺的正面回答。</p>
+</div>
+
+<h3 class="ch" id="ch15"><span class="num">Chapter 15</span>元语模型总论<a class="anchor" href="#ch15">#</a></h3>
+
+<h4>15.1 定义与判据</h4>
+
+<div class="rule">
+<p><span class="rid">MS-1</span>一份文档要成为<strong>元语</strong>，<kbd class="k must">MUST</kbd>同时满足五条判据：<strong>①单一类别</strong>——只承载一类项目事实；<strong>②权威</strong>——该类事实在此处是唯一权威定义，他处只可引用；<strong>③可解析</strong>——规范性内容以结构化片段（表格 / 代码块）承载，非自然语言散文；<strong>④可对拍</strong>——存在代码或环境侧的闭集与之做集合相等比较；<strong>⑤有闸门</strong>——对拍失败时默认测试命令报红。</p>
+</div>
+
+<p>五条缺一不可，且每条都排除了一类常见的伪元语：</p>
+
+<div class="tw"><table>
+<thead><tr><th>缺哪条</th><th>退化成</th><th>失效方式</th></tr></thead>
+<tbody>
+<tr><td>缺 ① 单一类别</td><td>大杂烩文档</td><td>无法确定改某类事实时该读哪本；智能体只能全文加载</td></tr>
+<tr><td>缺 ② 权威</td><td>摘要 / 缓存</td><td>与真正的权威处分叉，成为假事实（<code>PS-2</code>）</td></tr>
+<tr><td>缺 ③ 可解析</td><td>设计说明书</td><td>校验器写不出来；只能靠人工 review，而人写文档必然漏</td></tr>
+<tr><td>缺 ④ 可对拍</td><td>愿望清单</td><td>永远无法判定它是否为真（<code>FR-9</code>）</td></tr>
+<tr><td>缺 ⑤ 有闸门</td><td>君子协定</td><td>违反无成本，几个月后无人遵守</td></tr>
+</tbody>
+</table></div>
+
+<div class="note">
+<span class="lbl">判据 ④ 为什么要"集合相等"而不是"子集"</span>
+<p>子集检查只能发现"代码里有文档没登记"，发现不了"文档登记了代码里没有"——后者是<strong>死条目</strong>，同样是假事实。智能体读到一个不存在的表名会基于它写代码。因此对拍<kbd class="k must">MUST</kbd>双向：缺项与死项都报红。</p>
+</div>
+
+<h4>15.2 元语全集</h4>
+
+<p>元语集合是<strong>分层的</strong>：六本核心元语对所有项目必需；两本条件元语在触发条件满足时必需；<code>AGENTS.md</code> 是入口指针而非元语（<code>FR-8</code>）。</p>
+
+<figure><div class="svgbox">
+<svg viewBox="0 0 700 236" role="img" aria-label="元语全集：6 核心 + 2 条件 + 1 入口">
+  <rect x="12" y="12" width="676" height="26" rx="4" style="fill:none;stroke:var(--accent-line);stroke-width:1.5;stroke-dasharray:4,3"/>
+  <text x="24" y="30" class="lbl" style="font-size:11px;fill:var(--accent)">AGENTS.md　入口指针（非元语）· 每次加载 · &lt;100 行 · 只含指针与阅读规则</text>
+
+  <text x="12" y="62" class="lbl" style="font-size:11px;fill:var(--fg-faint)">核心元语（六本 · 所有项目必需）</text>
+  <rect x="12" y="72" width="106" height="56" rx="4" class="box-a"/>
+  <text x="65" y="94" class="lbl" text-anchor="middle" style="font-size:10.5px">ARCHITECTURE</text>
+  <text x="65" y="110" class="sub" text-anchor="middle">分层 · 边界</text>
+  <text x="65" y="122" class="sub" text-anchor="middle">§17</text>
+
+  <rect x="126" y="72" width="106" height="56" rx="4" class="box-a"/>
+  <text x="179" y="94" class="lbl" text-anchor="middle" style="font-size:10.5px">DESIGN</text>
+  <text x="179" y="110" class="sub" text-anchor="middle">呈现 · 术语</text>
+  <text x="179" y="122" class="sub" text-anchor="middle">§18</text>
+
+  <rect x="240" y="72" width="106" height="56" rx="4" class="box-a"/>
+  <text x="293" y="94" class="lbl" text-anchor="middle" style="font-size:10.5px">DOMAIN</text>
+  <text x="293" y="110" class="sub" text-anchor="middle">数据形状</text>
+  <text x="293" y="122" class="sub" text-anchor="middle">§19</text>
+
+  <rect x="354" y="72" width="106" height="56" rx="4" class="box-a"/>
+  <text x="407" y="94" class="lbl" text-anchor="middle" style="font-size:10.5px">FLOWS</text>
+  <text x="407" y="110" class="sub" text-anchor="middle">状态机</text>
+  <text x="407" y="122" class="sub" text-anchor="middle">§20</text>
+
+  <rect x="468" y="72" width="106" height="56" rx="4" class="box-a"/>
+  <text x="521" y="94" class="lbl" text-anchor="middle" style="font-size:10.5px">DECISIONS</text>
+  <text x="521" y="110" class="sub" text-anchor="middle">ID 登记册</text>
+  <text x="521" y="122" class="sub" text-anchor="middle">§21</text>
+
+  <rect x="582" y="72" width="106" height="56" rx="4" class="box-a"/>
+  <text x="635" y="94" class="lbl" text-anchor="middle" style="font-size:10.5px">DEPLOY</text>
+  <text x="635" y="110" class="sub" text-anchor="middle">端口 · env</text>
+  <text x="635" y="122" class="sub" text-anchor="middle">§22</text>
+
+  <text x="12" y="160" class="lbl" style="font-size:11px;fill:var(--fg-faint)">条件元语（触发条件满足时必需 · §15.3）</text>
+  <rect x="12" y="170" width="330" height="52" rx="4" class="box"/>
+  <text x="177" y="190" class="lbl" text-anchor="middle" style="font-size:11px">AI.md</text>
+  <text x="177" y="205" class="sub" text-anchor="middle">触发：产品侧含模型生成面</text>
+  <text x="177" y="217" class="sub" text-anchor="middle">治理对象 = 产品里的 AI</text>
+
+  <rect x="358" y="170" width="330" height="52" rx="4" class="box"/>
+  <text x="523" y="190" class="lbl" text-anchor="middle" style="font-size:11px">AGENT-OPS.md</text>
+  <text x="523" y="205" class="sub" text-anchor="middle">触发：仓库由 coding agent 写</text>
+  <text x="523" y="217" class="sub" text-anchor="middle">治理对象 = 写这个仓库的 agent</text>
+</svg>
+</div><figcaption>图 15-1 · 元语全集。两本条件元语的治理对象截然不同，不可合并。</figcaption></figure>
+
+<h4>15.3 条件元语的触发条件</h4>
+
+<div class="rule">
+<p><span class="rid">MS-2</span>条件元语的存在性<kbd class="k must">MUST</kbd>由客观触发条件决定，<kbd class="k must NOT">MUST NOT</kbd>凭偏好取舍。触发条件满足而元语缺失 = 不符合；<strong>触发条件不满足而元语存在 = 违反 <code>FP-6</code>（预埋）</strong>。</p>
+</div>
+
+<div class="tw"><table>
+<thead><tr><th>条件元语</th><th>触发条件</th><th>治理对象</th><th>不满足时</th></tr></thead>
+<tbody>
+<tr><td><code>AI.md</code></td><td>产品交付面包含模型推理或生成能力</td><td><strong>产品里的 AI</strong>：模型选型、prompt 资产、幻觉边界、降级策略、用户可见的不确定性</td><td><kbd class="k must NOT">MUST NOT</kbd>创建</td></tr>
+<tr><td><code>AGENT-OPS.md</code></td><td>仓库代码由 coding agent 参与编写</td><td><strong>写这个仓库的 agent</strong>：动作分级、禁令、血缘、护栏</td><td><kbd class="k must NOT">MUST NOT</kbd>创建</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">MS-3</span><code>AI.md</code> 与 <code>AGENT-OPS.md</code> <kbd class="k must NOT">MUST NOT</kbd>合并。二者的治理对象、读者、生命周期与违规后果完全不同：前者约束<strong>产品向用户承诺什么</strong>，后者约束<strong>开发过程如何被信任</strong>。一个项目<kbd class="k may">MAY</kbd>只有其中一本、两本都有，或两本都无。</p>
+</div>
+
+<p>这条看似琐碎，实际防的是一类真实混淆。参考实现 <code>GMPGCPwork</code> 的产品侧<strong>没有</strong> AI 能力（它是文档协作平台），但仓库由 coding agent 编写——因此它有 <code>AGENT-OPS.md</code> 而<strong>刻意不设</strong> <code>AI.md</code>，并在文档中明确声明"将来若产品引入模型生成面，另立一本，不要往本文件里塞"。而 <code>diabetes</code> 的情况相反。<strong>把两者合并会让任一项目的元语同时包含无关内容与缺失内容。</strong></p>
+
+<h4>15.4 元语属性矩阵</h4>
+
+<div class="tw"><table>
+<thead><tr><th>元语</th><th>Owner</th><th>更新触发</th><th>对拍对象</th><th>动作等级</th><th>加载策略</th></tr></thead>
+<tbody>
+<tr><td><code>ARCHITECTURE</code></td><td>架构负责人</td><td>分层变化 · 新增不可逆工程决策</td><td>目录结构 · import 图 · 依赖清单</td><td>高</td><td>按需（§3 边界最常读）</td></tr>
+<tr><td><code>DESIGN</code></td><td>设计负责人</td><td>新增页面类型 · token 变化 · 术语变化</td><td>设计 token · 组件 · 用词 grep</td><td>中</td><td>按需</td></tr>
+<tr><td><code>DOMAIN</code></td><td>数据负责人</td><td><strong>任何</strong> schema 改动</td><td>表 / 枚举集合相等（枚举顺序敏感）</td><td><strong>高</strong></td><td><strong>按聚合切片</strong></td></tr>
+<tr><td><code>FLOWS</code></td><td>业务负责人</td><td><strong>任何</strong>状态写入改动</td><td>状态写入点（双向 impl 对拍）</td><td><strong>高</strong></td><td><strong>按状态机切片</strong></td></tr>
+<tr><td><code>DECISIONS</code></td><td>架构负责人</td><td>任何决策产生或销项</td><td>代码与文档中的 ID 标记（双向）</td><td><strong>高</strong></td><td>全文（短）</td></tr>
+<tr><td><code>DEPLOY</code></td><td>运维负责人</td><td>端口变化 · 新增读取的 env 键</td><td>env 样例 · 编排文件 · 代码读取点（三方）</td><td><strong>高</strong></td><td>全文（短）</td></tr>
+<tr><td><code>AI</code></td><td>AI 负责人</td><td>模型 / prompt / 降级策略变化</td><td>模型标识 · prompt 资产 · 降级分支</td><td><strong>高</strong></td><td>按需</td></tr>
+<tr><td><code>AGENT-OPS</code></td><td>工程负责人</td><td>新增角色 · 分级调整 · 护栏调整</td><td>路径面可解析 · 禁令守护 · 血缘字段</td><td><strong>高</strong></td><td>动 高等级面前必读</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">MS-4</span>每本元语<kbd class="k must">MUST</kbd>有唯一 Owner 角色（可以是同一个人担任多个角色，但角色本身<kbd class="k must NOT">MUST NOT</kbd>模糊）。Owner 对<strong>该元语与代码的一致性</strong>负责，不对该元语的文字质量负责——一致性由校验器判定，文字质量不是可验证属性。</p>
+</div>
+
+<h4>15.5 元语间的引用关系</h4>
+
+<figure><div class="svgbox">
+<svg viewBox="0 0 700 250" role="img" aria-label="元语之间的引用关系图">
+  <!-- DECISIONS at center-right as registry -->
+  <rect x="470" y="100" width="126" height="48" rx="5" class="box-a"/>
+  <text x="533" y="120" class="lbl" text-anchor="middle" style="font-size:11px">DECISIONS</text>
+  <text x="533" y="136" class="sub" text-anchor="middle">ID 登记册</text>
+
+  <rect x="30" y="16" width="126" height="44" rx="5" class="box"/>
+  <text x="93" y="34" class="lbl" text-anchor="middle" style="font-size:11px">ARCHITECTURE</text>
+  <text x="93" y="49" class="sub" text-anchor="middle">ADR · B-n 论证</text>
+
+  <rect x="30" y="76" width="126" height="44" rx="5" class="box"/>
+  <text x="93" y="94" class="lbl" text-anchor="middle" style="font-size:11px">DESIGN</text>
+  <text x="93" y="109" class="sub" text-anchor="middle">DS-n 论证</text>
+
+  <rect x="30" y="136" width="126" height="44" rx="5" class="box"/>
+  <text x="93" y="154" class="lbl" text-anchor="middle" style="font-size:11px">DOMAIN</text>
+  <text x="93" y="169" class="sub" text-anchor="middle">表 · 枚举 · INV 落点</text>
+
+  <rect x="30" y="196" width="126" height="44" rx="5" class="box"/>
+  <text x="93" y="214" class="lbl" text-anchor="middle" style="font-size:11px">FLOWS</text>
+  <text x="93" y="229" class="sub" text-anchor="middle">状态机 · inv 引用</text>
+
+  <rect x="250" y="196" width="126" height="44" rx="5" class="box"/>
+  <text x="313" y="214" class="lbl" text-anchor="middle" style="font-size:11px">DEPLOY</text>
+  <text x="313" y="229" class="sub" text-anchor="middle">端口 · env</text>
+
+  <!-- arrows: 论证 → 登记册 (结论上行) -->
+  <path d="M 156 38 C 320 38 380 96 468 112" class="arw" marker-end="url(#ah5)"/>
+  <path d="M 156 98 C 300 98 380 108 468 120" class="arw" marker-end="url(#ah5)"/>
+  <path d="M 156 158 C 300 158 380 140 468 132" class="arw" marker-end="url(#ah5)"/>
+  <path d="M 156 218 C 300 240 400 170 468 142" class="arw" marker-end="url(#ah5)"/>
+  <path d="M 376 218 C 430 210 460 170 476 150" class="arw" marker-end="url(#ah5)"/>
+
+  <!-- FLOWS -> DOMAIN states -->
+  <path d="M 93 196 L 93 180" class="arw" stroke-dasharray="3,3" marker-end="url(#ah5)"/>
+  <text x="102" y="190" class="dim">states = 枚举取值</text>
+
+  <text x="418" y="76" class="dim">结论上行（一句话 + 出处）</text>
+  <text x="418" y="176" class="dim" style="fill:var(--must)">论证不下行（禁止复制）</text>
+  <text x="30" y="12" class="dim">论证留在各自出处 —— 登记册只放 ID + 一句话 + 结论 + 出处（FP-1）</text>
+  <defs><marker id="ah5" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+    <path d="M0,0 L8,4 L0,8 z" fill="var(--fg-mute)"/></marker></defs>
+</svg>
+</div><figcaption>图 15-2 · 元语引用关系。结论向登记册汇聚，论证留在出处，形成无环图。</figcaption></figure>
+
+<div class="rule">
+<p><span class="rid">MS-5</span>元语引用图<kbd class="k must">MUST</kbd>无环。结论<kbd class="k must">MUST</kbd>单向汇聚到 <code>DECISIONS.md</code>（ID + 一句话 + 结论 + 出处），论证<kbd class="k must">MUST</kbd>留在出处元语。所有跨元语引用<kbd class="k must">MUST</kbd>是可解析的相对路径链接；链接目标不存在 = 红。</p>
+</div>
+
+<p>无环性不是洁癖。有环的引用图意味着存在"A 说见 B，B 说见 A"的情况——智能体会在两者间循环，而人会放弃阅读。<code>DECISIONS.md</code> 作为汇聚点是<strong>唯一被允许被所有元语引用的元语</strong>，因为它只含指针不含论证，不会产生回指需求。</p>
+
+<h4>15.6 元语不是什么</h4>
+
+<div class="tw"><table>
+<thead><tr><th>不是</th><th>区别</th></tr></thead>
+<tbody>
+<tr><td>不是需求文档</td><td>需求写"要做什么"（未来），元语写"是什么"（现在）。需求属项目管理产物，可引用但不是元语</td></tr>
+<tr><td>不是设计说明书</td><td>说明书面向人类评审，允许散文论证；元语的规范性内容<kbd class="k must">MUST</kbd>结构化</td></tr>
+<tr><td>不是 API 文档</td><td>API 文档从代码生成，是代码的投影；元语是<strong>独立的期望态</strong>，能与代码不符——这正是它的价值</td></tr>
+<tr><td>不是变更日志</td><td>日志记录历史序列，元语描述当前状态。<code>DECISIONS.md</code> 是登记册不是日志（<a href="#ch21">§21</a>）</td></tr>
+<tr><td>不是 wiki</td><td>wiki 无 schema、无对拍、无闸门，缺判据 ③④⑤</td></tr>
+<tr><td>不是 prompt</td><td>prompt 是把元语<strong>装配</strong>进上下文的方式；元语本身与运行时无关（<code>FINV-5</code>）</td></tr>
+</tbody>
+</table></div>
+
+<h3 class="ch" id="ch16"><span class="num">Chapter 16</span>元语文件解剖<a class="anchor" href="#ch16">#</a></h3>
+
+<p class="lead">本章定义所有元语共享的结构。<a href="#ch17">§17</a>–<a href="#ch23">§23</a> 只描述各本的<strong>差异部分</strong>，共性在此一次讲清。</p>
+
+<h4>16.1 五段结构</h4>
+
+<div class="tw"><table>
+<thead><tr><th>#</th><th>段</th><th>必需</th><th>内容</th><th>动作等级</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><strong>抬头块</strong> Header</td><td><kbd class="k must">MUST</kbd></td><td>SoT 声明 · 校验命令 · 关联元语 · 只写事实声明</td><td>高</td></tr>
+<tr><td>2</td><td><strong>契约段</strong> Contract</td><td><kbd class="k must">MUST</kbd></td><td>解析目标：结构化表格与代码块</td><td><strong>高</strong></td></tr>
+<tr><td>3</td><td><strong>叙述段</strong> Narrative</td><td><kbd class="k may">MAY</kbd></td><td>理由、举例、注意事项——不被解析</td><td>低</td></tr>
+<tr><td>4</td><td><strong>松弛点表</strong> Known Slack</td><td><kbd class="k should">SHOULD</kbd></td><td>故意保留的不一致 + 理由</td><td>高</td></tr>
+<tr><td>5</td><td><strong>格式契约附录</strong></td><td><kbd class="k must">MUST</kbd></td><td>校验器的解析规则，供人和 agent 核对</td><td><strong>高</strong></td></tr>
+</tbody>
+</table></div>
+
+<h4>16.2 抬头块</h4>
+
+<div class="rule">
+<p><span class="rid">MS-6</span>每本元语<kbd class="k must">MUST</kbd>以抬头块开头，含四项：<strong>①</strong> 本文件是何类事实的唯一权威（含与旧文档冲突时的取代声明）；<strong>②</strong> 校验命令的可执行路径；<strong>③</strong> 关联元语的链接与一句话职责；<strong>④</strong> "只写事实不写愿望"的显式声明（<code>FR-9</code>）。</p>
+</div>
+
+<pre><code># DOMAIN.md — 数据契约（Source of Truth）
+
+&gt; **本文件的表格是解析目标**，与 &lt;schema 位置&gt; 做集合相等对拍。
+&gt; 破坏格式 / 声明与实现不符 = **测试红**（`&lt;校验命令&gt;`，已挂进 `&lt;默认测试命令&gt;`）。
+&gt;
+&gt; 关联：[`FLOWS.md`](FLOWS.md)（状态转移）· [`DECISIONS.md`](DECISIONS.md)（INV 在册）
+&gt;
+&gt; **只写事实**：写 schema **现在**的样子，不是应该的样子。
+&gt; 应该的样子进 `DECISIONS.md` 未决段。</code></pre>
+
+<p>抬头块看起来是礼节，实际有三个功能：智能体读第一屏就知道<strong>破坏格式的后果</strong>；提供校验命令让它能自查；取代声明解决"仓库里有旧设计文档"这个几乎必然存在的情况。</p>
+
+<h4>16.3 契约段与叙述段的分界</h4>
+
+<p>这个区分是元语设计中最有实用价值的一条，因为它直接映射到智能体的写权限：</p>
+
+<div class="rule">
+<p><span class="rid">MS-7</span>元语<kbd class="k must">MUST</kbd>可区分契约段与叙述段。契约段<kbd class="k must">MUST</kbd>被校验器解析，改动<kbd class="k must">MUST</kbd>归入<strong>高影响动作等级</strong>（须人工放行）。叙述段<kbd class="k must NOT">MUST NOT</kbd>被解析，改动<kbd class="k may">MAY</kbd>归入低影响等级（智能体自主 + 事后审计）。</p>
+</div>
+
+<div class="tw"><table>
+<thead><tr><th></th><th>契约段</th><th>叙述段</th></tr></thead>
+<tbody>
+<tr><td>形式</td><td>表格、<code>flow</code> 代码块、键值清单</td><td>段落、引用块、举例</td></tr>
+<tr><td>被解析</td><td>是</td><td>否</td></tr>
+<tr><td>破坏格式</td><td><strong>测试红</strong></td><td>无影响</td></tr>
+<tr><td>智能体可自主改</td><td>否（须放行）</td><td>是（须落血缘）</td></tr>
+<tr><td>典型内容</td><td>表名集合、枚举取值、状态转移、env 键位、ID 登记行</td><td>为什么这样设计、踩过的坑、阅读建议</td></tr>
+</tbody>
+</table></div>
+
+<p>没有这条分界，元语只能整体按最高等级保护——那会导致智能体连改个错别字都要人放行，团队随后放宽整体等级，契约段随之失去保护。<strong>分级保护的前提是分界清晰。</strong></p>
+
+<h4>16.4 格式契约附录</h4>
+
+<div class="rule">
+<p><span class="rid">MS-8</span>每本元语<kbd class="k must">MUST</kbd>在末尾附<strong>格式契约</strong>，逐条写明校验器的解析规则（哪张表的哪一列被解析、ID 是否需反引号包裹、代码块的字段顺序等），并<kbd class="k must">MUST</kbd>包含一条兜底规则：<strong>任一解析目标解析为 0 行 = 格式契约破坏 = 红</strong>。</p>
+</div>
+
+<p>兜底规则解决一个具体的攻击面：如果有人把契约表格改写成散文，校验器会解析出 0 行，然后"没有发现任何违规"——<strong>一种典型的假绿（<code>PS-3</code>）</strong>。解析空转必须视为失败而非通过。</p>
+
+<pre><code>## 附录：格式契约（校验器解析规则）
+
+1. §1 表格首列为反引号包裹的 &lt;ID 形式&gt;；至少一行。
+2. §2 的 `flow` 块每行须五段齐全（`via`/`by`/`inv`/`impl`）。
+3. 跨元语链接目标（仓库相对路径）必须存在。
+4. **任一表解析为 0 行 = 格式契约破坏 = 红。**</code></pre>
+
+<h4>16.5 切片与按需加载</h4>
+
+<div class="rule">
+<p><span class="rid">MS-9</span>预期超过约 300 行的元语<kbd class="k must">MUST</kbd>按<strong>内聚单元</strong>分 <code>##</code> 小节，使消费方可只加载相关切片。切片依据<kbd class="k must">MUST</kbd>是领域内聚性（聚合 / 状态机 / 限界上下文），<kbd class="k must NOT">MUST NOT</kbd>是字母序或行数均分。</p>
+</div>
+
+<div class="tw"><table>
+<thead><tr><th>元语</th><th>切片依据</th><th>加载指引写在哪</th></tr></thead>
+<tbody>
+<tr><td><code>DOMAIN</code></td><td>聚合 / 限界上下文</td><td><code>AGENTS.md</code> 阅读规则："改某模块前按聚合切片读对应小节，勿全文加载"</td></tr>
+<tr><td><code>FLOWS</code></td><td>每台状态机一节</td><td>同上："改任何状态写入前先读对应 <code>flow</code> 块"</td></tr>
+<tr><td><code>ARCHITECTURE</code></td><td>关注点（分层 / 配置 / 契约 / 不变量）</td><td>同上</td></tr>
+<tr><td><code>DECISIONS</code> <code>DEPLOY</code></td><td>不切片（本身应短）</td><td>—</td></tr>
+</tbody>
+</table></div>
+
+<p>切片不只是省 token。全文加载会让不相关的事实进入上下文，而模型对上下文中的<strong>无关但相似</strong>的内容特别容易混淆——加载了全部 27 张表时写错表名的概率，高于只加载相关 5 张时。<strong>切片同时是准确性措施。</strong></p>
+
+<h4>16.6 松弛点表</h4>
+
+<div class="rule">
+<p><span class="rid">MS-10</span>存在<strong>故意保留</strong>的不一致时，元语<kbd class="k should">SHOULD</kbd>设"已知松弛点"表，逐条登记：不一致内容 · 为什么保留 · 什么条件下收敛。未登记的不一致<kbd class="k must">MUST</kbd>视为漂移。</p>
+</div>
+
+<p>松弛点表的作用不是记录技术债，而是<strong>阻止错误修复</strong>。参考实现的 <code>DOMAIN.md</code> 登记了六处故意的松弛（未收敛的枚举、类型偏弱的列、两处缺外键、一张已跑过迁移的死表、未实现的乐观锁）。文档里明确写着"那些不是 bug，别顺手修"。</p>
+
+<div class="note evidence">
+<span class="lbl">Evidence · 三张"防止错误修复"的表</span>
+<p>本规范要求的三张表都不是记债务，而是防止下一个智能体做出<strong>看起来正确的错误改动</strong>：<code>DOMAIN</code> 的<strong>松弛点表</strong>防止顺手"修"故意的不一致；<code>DECISIONS</code> 的<strong>有意偏离表</strong>防止把代码"修正"回登记册写的旧方案；<code>AGENT-OPS</code> 的<strong>豁免表</strong>防止误以为某条禁令有机器守护。三者共同解决同一个问题：<strong>智能体缺少"这是有意的"这一类信息</strong>，而代码本身无法表达意图。</p>
+</div>
+
+<h4>16.7 版本管理</h4>
+
+<div class="rule">
+<p><span class="rid">MS-11</span>元语<kbd class="k must NOT">MUST NOT</kbd>维护独立版本号。元语的版本<kbd class="k must">MUST</kbd>是其所在提交的版本——元语与代码<kbd class="k must">MUST</kbd>在<strong>同一提交</strong>内保持一致。语义引用中的 <code>@version</code>（<a href="#ch13">§13.3</a>）<kbd class="k must">MUST</kbd>解析为提交标识，而非文档内自述的版本号。</p>
+</div>
+
+<p>理由与 <code>FR-8</code> 禁止写数字同源：文档内自述的版本号是又一个会漂移的数字。而提交标识天然准确、天然可对拍、天然可回放。</p>
+
+<div class="rule">
+<p><span class="rid">MS-12</span>以下三类改动<kbd class="k must">MUST</kbd>在同一提交内完成，<kbd class="k must NOT">MUST NOT</kbd>分次提交：<strong>①</strong> 契约段改动 + 对应代码改动；<strong>②</strong> 新增决策入册 + 在出处补论证；<strong>③</strong> 未决项决出后入册 + 从未决段销项。</p>
+</div>
+
+<p><code>MS-12</code> 是"文档不可能过时"的操作化形式。允许分次提交就等于允许存在一个"文档已改代码未改"的中间提交——而那个提交会被智能体读到。</p>
+
+<h4>16.8 元语的反模式</h4>
+
+<div class="tw"><table>
+<thead><tr><th>#</th><th>反模式</th><th>为什么有害</th><th>正解</th></tr></thead>
+<tbody>
+<tr><td><code>MA-1</code></td><td>写具体数字（模块数、表数、行数）</td><td>注定漂移（<code>PS-2</code>）</td><td>写"以 <code>ls</code> 为准"或改为可对拍的完整清单</td></tr>
+<tr><td><code>MA-2</code></td><td>把论证复制进登记册</td><td>制造第二事实来源（<code>FP-1</code>）</td><td>只放 ID + 一句话 + 结论 + 出处</td></tr>
+<tr><td><code>MA-3</code></td><td>混入愿望（"应该改成…"）</td><td>无法对拍（<code>FR-9</code>）</td><td>移入 <code>DECISIONS</code> 未决段</td></tr>
+<tr><td><code>MA-4</code></td><td>未决项散落多处</td><td>无法确认是否已决；重复讨论</td><td>未决项唯一位置制（<a href="#ch21">§21</a>）</td></tr>
+<tr><td><code>MA-5</code></td><td>契约表格改写为散文</td><td>解析空转 = 假绿（<code>PS-3</code>）</td><td>格式契约兜底规则（<code>MS-8</code>）</td></tr>
+<tr><td><code>MA-6</code></td><td>为"太长"而拆出新元语</td><td>破坏正交性（<code>FR-7</code>）</td><td>分小节切片（<code>MS-9</code>）</td></tr>
+<tr><td><code>MA-7</code></td><td>元语内自述版本号</td><td>又一个漂移的数字（<code>MS-11</code>）</td><td>用提交标识</td></tr>
+<tr><td><code>MA-8</code></td><td>把不一致直接"修好"而不查是否有意</td><td>破坏已定决策</td><td>先查三张表（<code>MS-10</code>）；冲突时停下（<code>FR-4</code>）</td></tr>
+</tbody>
+</table></div>
+
+<h3 class="ch" id="ch17"><span class="num">Chapter 17</span>ARCHITECTURE.md<a class="anchor" href="#ch17">#</a></h3>
+
+<h4>17.1 职责与边界</h4>
+
+<div class="tw"><table>
+<thead><tr><th>回答</th><th>不回答</th></tr></thead>
+<tbody>
+<tr><td>系统分几层？每层职责一句话是什么？</td><td>有哪些表和字段（→ <code>DOMAIN</code>）</td></tr>
+<tr><td>模块之间的硬边界在哪？违反了怎么被抓住？</td><td>状态怎么流转（→ <code>FLOWS</code>）</td></tr>
+<tr><td>哪些工程选择是不可逆的？为什么这样选？</td><td>决策的登记（→ <code>DECISIONS</code>；此处只放<strong>论证</strong>）</td></tr>
+<tr><td>目标是什么？<strong>非目标</strong>是什么？</td><td>端口与环境变量（→ <code>DEPLOY</code>）</td></tr>
+<tr><td>合规/业务不变量落在哪个守护点？</td><td>界面规范（→ <code>DESIGN</code>）</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">MS-13</span><code>ARCHITECTURE.md</code> <kbd class="k must">MUST</kbd>在抬头块声明<strong>读者判别标准</strong>：读完任一节，读者能回答"我违反了会怎么被抓住"，而非"作者建议我怎么做"。每条硬规矩<kbd class="k must">MUST</kbd>能落到 grep / 约定测试 / CI 门禁三选一——<strong>写不出守护方式的规矩<kbd class="k must">MUST</kbd>删除</strong>。</p>
+</div>
+
+<p>这条判别标准的价值在于它<strong>可自我执行</strong>：任何人写下一条无守护的规矩，标准本身就要求删掉它。它把"架构文档会退化成建议合集"这个必然趋势变成了可检测的违规。</p>
+
+<h4>17.2 必备结构</h4>
+
+<div class="tw"><table>
+<thead><tr><th>小节</th><th>段类型</th><th>内容</th><th>必需</th></tr></thead>
+<tbody>
+<tr><td>取代关系声明</td><td>抬头</td><td>与仓内旧设计文档冲突时以本文件为准；旧文档降为历史参考</td><td><kbd class="k must">MUST</kbd></td></tr>
+<tr><td>决策摘要</td><td>契约</td><td>已锁定的技术选型表，<strong>每行带锁定依据</strong>（指向具体配置文件）</td><td><kbd class="k must">MUST</kbd></td></tr>
+<tr><td>目标与<strong>非目标</strong></td><td>契约</td><td>非目标<kbd class="k must">MUST</kbd>写明"违反这些会被拒绝合并"</td><td><kbd class="k must">MUST</kbd></td></tr>
+<tr><td>总体架构图</td><td>叙述</td><td>组件与数据流</td><td><kbd class="k should">SHOULD</kbd></td></tr>
+<tr><td>分层与边界</td><td>契约</td><td>每层一句话职责 + 硬边界表（<strong>每条带守护方式</strong>）</td><td><kbd class="k must">MUST</kbd></td></tr>
+<tr><td>配置 / 环境机制</td><td>契约</td><td>加载机制与铁律（<strong>键位清单归 <code>DEPLOY</code></strong>，此处只写机制）</td><td><kbd class="k must">MUST</kbd></td></tr>
+<tr><td>不变量与守护点</td><td>契约</td><td>每条 INV：含义 + 守护落点（文件:行 或 DB 对象）</td><td><kbd class="k must">MUST</kbd></td></tr>
+<tr><td>ADR 表</td><td>契约</td><td>每条：内容 + 守护方式 + 落地状态</td><td><kbd class="k must">MUST</kbd></td></tr>
+<tr><td>待决策项</td><td>契约</td><td>当前倾向 + <strong>决出前禁止预埋什么</strong> + 触发时机</td><td><kbd class="k should">SHOULD</kbd></td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">MS-14</span>非目标<kbd class="k must">MUST</kbd>与目标对称陈述，且<kbd class="k must">MUST</kbd>说明拒绝后果。待决策项<kbd class="k must">MUST</kbd>写明"决出前禁止做什么"——<strong>倾向本身会诱导预埋</strong>（<code>FP-6</code>），登记倾向而不登记禁令是不完整的。</p>
+</div>
+
+<h4>17.3 格式契约与校验器</h4>
+
+<div class="tw"><table>
+<thead><tr><th>校验维度</th><th>对拍对象</th><th>失败判定</th></tr></thead>
+<tbody>
+<tr><td>分层表 ↔ 目录结构</td><td>声明的层目录须真实存在</td><td>指向不存在的目录 = 红</td></tr>
+<tr><td>硬边界 ↔ 守护脚本</td><td>每条边界声明的守护方式须可定位（脚本存在 / grep 可执行 / CI job 存在）</td><td>无守护或守护不可定位 = 红</td></tr>
+<tr><td>ADR 表 ↔ 登记册</td><td>此处出现的 ADR ID 须在 <code>DECISIONS.md</code> 在册</td><td>脱册 = 红</td></tr>
+<tr><td>不变量守护落点</td><td><code>路径#符号</code> 或 <code>路径:行</code> 须可解析</td><td>落点不存在 = 红</td></tr>
+<tr><td>锁定依据</td><td>决策摘要每行的依据文件须存在</td><td>依据文件缺失 = 红</td></tr>
+<tr><td>格式契约兜底</td><td>任一契约表解析为 0 行</td><td>红（<code>MS-8</code>）</td></tr>
+</tbody>
+</table></div>
+
+<h4>17.4 生命周期与更新策略</h4>
+
+<div class="tw"><table>
+<thead><tr><th>触发</th><th>动作</th><th>同提交要求</th></tr></thead>
+<tbody>
+<tr><td>新增/删除一层或一个限界上下文</td><td>改分层表 + 图</td><td><code>MS-12</code> ①</td></tr>
+<tr><td>新增硬边界</td><td>加边界行 + <strong>同时</strong>落守护脚本</td><td>是——无守护的边界不予合并</td></tr>
+<tr><td>新增不可逆工程决策</td><td>写 ADR 论证 + 入登记册</td><td><code>MS-12</code> ②</td></tr>
+<tr><td>待决策项决出</td><td>补论证 + 入册 + 销项</td><td><code>MS-12</code> ③</td></tr>
+<tr><td>Phase / 里程碑完成</td><td>更新状态；<strong>执行计划文档降为历史快照</strong></td><td>否</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">MS-15</span>阶段性执行计划（plan / 迭代文档）<kbd class="k must NOT">MUST NOT</kbd>被当作元语。完成后<kbd class="k must">MUST</kbd>显式降为历史快照，且<kbd class="k must">MUST</kbd>在 <code>ARCHITECTURE.md</code> 声明"当前事实以元语 + 代码为准"。</p>
+</div>
+
+<p>这条防的是一类常见腐烂：计划文档写得很详细（含代码片段与测试断言），完成后没人标记它已过期，下一个智能体读到它并当作现状。<strong>计划是意图的快照，不是事实。</strong></p>
+
+<h3 class="ch" id="ch18"><span class="num">Chapter 18</span>DESIGN.md<a class="anchor" href="#ch18">#</a></h3>
+
+<h4>18.1 职责与边界</h4>
+
+<p><code>DESIGN.md</code> 是元语中最容易越界的一本：它天然吸引"把所有前端相关的东西都写进来"。本规范划的界是：</p>
+
+<div class="tw"><table>
+<thead><tr><th>回答</th><th>不回答</th></tr></thead>
+<tbody>
+<tr><td>设计 token 的唯一源在哪？取值是什么？</td><td>字段契约与 DTO 形状（→ <code>DOMAIN</code> / 契约层）</td></tr>
+<tr><td><strong>术语注册表</strong>：某个概念在 UI 上用哪个词？禁用哪个词？</td><td>组件的实现细节</td></tr>
+<tr><td>页面/布局模板有哪几类？</td><td>分层职责划分（→ <code>ARCHITECTURE</code>）</td></tr>
+<tr><td>UI 反模式有哪些？怎么被抓住？</td><td>状态机（→ <code>FLOWS</code>）</td></tr>
+<tr><td>可访问性底线是什么？</td><td>设计工具与协作流程（属 L3 Handbook）</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">MS-16</span>架构问题（字段契约、分层职责、数据形状）<kbd class="k must NOT">MUST NOT</kbd>写进 <code>DESIGN.md</code>。这类越界<kbd class="k must">MUST</kbd>登记为 UI 反模式并接受评审把关。</p>
+</div>
+
+<h4>18.2 术语注册表：本元语最被低估的部分</h4>
+
+<div class="rule">
+<p><span class="rid">MS-17</span><code>DESIGN.md</code> <kbd class="k must">MUST</kbd>维护<strong>术语注册表</strong>：每个业务概念登记 ① 唯一用词，② <strong>禁用的同义词</strong>，③ 禁用理由。UI 中使用同义词替代注册表术语<kbd class="k must">MUST</kbd>登记为反模式。</p>
+</div>
+
+<p>为什么这条重要到要写成 <kbd class="k must">MUST</kbd>：在受监管或专业领域，同义词不是风格问题而是<strong>语义错误</strong>。参考实现中"审核"与"审批"指两个不同动作（后者特指变更控制中的特定环节），UI 上混用会让用户误判自己在做什么。而智能体特别容易犯这个错——它的语言模型倾向于用同义词增加表达多样性，这在此处恰好是有害的。</p>
+
+<p>术语注册表同时是<strong>可 grep 的</strong>：禁用词在 UI 源码中出现即报红。这让它满足元语判据 ④⑤。</p>
+
+<h4>18.3 必备结构与校验器</h4>
+
+<div class="tw"><table>
+<thead><tr><th>小节</th><th>段类型</th><th>校验维度</th></tr></thead>
+<tbody>
+<tr><td>设计 token 唯一源</td><td>契约</td><td>UI 源码中<strong>禁止</strong>色值/间距字面量散点，须走 token；grep 命中 = 红</td></tr>
+<tr><td>术语注册表</td><td>契约</td><td>禁用词在 UI 源码出现 = 红</td></tr>
+<tr><td>页面模板清单</td><td>契约</td><td>声明的模板须有对应实现（或标注"未实现"并在待决段登记）</td></tr>
+<tr><td>反模式表</td><td>契约</td><td>每条带守护方式；ID 须在 <code>DECISIONS.md</code> 在册</td></tr>
+<tr><td>可访问性底线</td><td>契约</td><td><kbd class="k should">SHOULD</kbd> 可测（如状态不得仅靠颜色传达 → 组件测试）</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">MS-18</span><code>DESIGN.md</code> <kbd class="k must NOT">MUST NOT</kbd>预填未被消费的 token 或组件规范。UI 尚为骨架时，本元语<kbd class="k should">SHOULD</kbd>只立结构与术语注册表，token 取值随首次真实消费一并落地（<code>FP-6</code>）。</p>
+</div>
+
+<h4>18.4 命名空间冲突：一个真实教训</h4>
+
+<div class="note warn">
+<span class="lbl">Evidence · 前缀撞车</span>
+<p>参考实现中 <code>DESIGN.md</code> 用 <code>D-1…D-5</code> 编号 UI 反模式，而需求文档用 <code>D-01A…D-C1</code> 编号业务决策点。两者<strong>视觉上同前缀</strong>：智能体拿着 <code>D-2</code>（色值规矩）去决策点清单查会查不到，反之亦然。修法是把 UI 反模式改为独立前缀 <code>DS-n</code>，且在过渡期<strong>两种写法都在册</strong>，校验器同时接受。</p>
+<p>教训被提升为规范：<strong>ID 命名空间的区分性必须在视觉层面成立，不能只在语义层面成立</strong>——因为查册是靠模式匹配完成的。见 <a href="#apxB">附录 B</a>。</p>
+</div>
+
+<h3 class="ch" id="ch19"><span class="num">Chapter 19</span>DOMAIN.md<a class="anchor" href="#ch19">#</a></h3>
+
+<h4>19.1 职责与边界</h4>
+
+<p><code>DOMAIN.md</code> 是数据形状的唯一权威描述：有哪些数据对象、字段要点、关系、枚举取值、以及每张表落在哪条不变量上。它<strong>不</strong>写状态如何流转（那是 <code>FLOWS</code>）。</p>
+
+<div class="rule">
+<p><span class="rid">MS-19</span><code>DOMAIN.md</code> <kbd class="k must">MUST</kbd>与 schema 定义做<strong>双向集合相等</strong>对拍，覆盖两个集合：① 数据对象名集合；② 枚举名集合<strong>及每个枚举的取值序列</strong>。缺项与死项均<kbd class="k must">MUST</kbd>报红。</p>
+</div>
+
+<div class="rule">
+<p><span class="rid">MS-20</span>枚举取值的对拍<kbd class="k must">MUST</kbd><strong>顺序敏感</strong>。理由：多数数据库的原生枚举类型，其声明顺序决定比较与排序语义——<code>[low, medium, high]</code> 与 <code>[high, medium, low]</code> 是<strong>不同的类型</strong>，会让 <code>&gt;</code> 比较得出相反结果。顺序不敏感的对拍会放过这类静默语义变更。</p>
+</div>
+
+<p><code>MS-20</code> 是本规范中最容易被实现者省略的一条，因为"集合相等"直觉上不含顺序。但枚举在此处不是集合而是<strong>有序类型</strong>，把它当集合检查是一个语义假绿（<code>PS-3</code> 第一类）。</p>
+
+<h4>19.2 必备结构</h4>
+
+<div class="tw"><table>
+<thead><tr><th>小节</th><th>段类型</th><th>内容</th></tr></thead>
+<tbody>
+<tr><td>抬头块</td><td>抬头</td><td>含"按聚合切片读，勿全文加载"的指引</td></tr>
+<tr><td>枚举全集</td><td><strong>契约</strong></td><td>每个枚举一行：名称 + <strong>有序取值</strong> + 用在哪</td></tr>
+<tr><td>聚合切片 × N</td><td><strong>契约</strong></td><td>每个 <code>##</code> 一个聚合；每张表一行：字段要点 + 关系 + <strong>落哪条 INV</strong></td></tr>
+<tr><td>关系概览</td><td>叙述</td><td>ER 图或关系清单</td></tr>
+<tr><td><strong>已知松弛点</strong></td><td><strong>契约</strong></td><td>故意保留的不一致 + 理由 + 收敛条件（<code>MS-10</code>）</td></tr>
+<tr><td>格式契约附录</td><td>契约</td><td>解析规则 + 兜底</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">MS-21</span>每张数据对象行<kbd class="k must">MUST</kbd>标注它承载哪条不变量（无则显式写"—"）。<strong>未标注不等于无约束</strong>——空白与"—"<kbd class="k must">MUST</kbd>可区分，否则无法判断是"没有约束"还是"忘了写"。</p>
+</div>
+
+<h4>19.3 校验器契约</h4>
+
+<pre><code>校验器 A　文档对象名集合  ==  schema 对象名集合          （双向，集合相等）
+校验器 B　文档枚举名集合  ==  schema 枚举名集合          （双向）
+          且逐枚举：文档取值序列  ==  schema 取值序列      （顺序敏感，MS-20）
+校验器 C　文档中的 INV/决策 ID   ⊆  DECISIONS.md 在册集合
+校验器 D　文档中的相对路径链接   →  目标文件须存在
+校验器 E　格式契约：任一契约表解析为 0 行 = 红            （MS-8）</code></pre>
+
+<div class="note evidence">
+<span class="lbl">Evidence · 校验器立刻抓住了作者本人</span>
+<p>参考实现的作者手写完第一版 <code>DOMAIN.md</code> 后运行校验器 A，立刻被报出漏登记两张表。这不是作者不认真——<strong>27 张表的集合，人眼核对必然漏</strong>。这条经验是判据 ③④（可解析、可对拍）存在的直接理由：人工 review 在集合相等这类任务上系统性不可靠。</p>
+</div>
+
+<h4>19.4 死条目的处置</h4>
+
+<div class="rule">
+<p><span class="rid">MS-22</span>schema 中存在但已不被使用的数据对象（死表/死列）<kbd class="k must">MUST</kbd>在 <code>DOMAIN.md</code> 显式标注为"保留未用"并说明<strong>为什么不删</strong>。<kbd class="k must NOT">MUST NOT</kbd>省略登记——省略会让对拍失败，而加豁免会让它消失在视野外。</p>
+</div>
+
+<p>典型的"为什么不删"：迁移已经跑过，删除需要写新迁移，而该迁移历史在受监管系统中是证据链的一部分。这类信息只能写在元语里——代码本身无法表达"这张表是有意留着的"。</p>
+
+<h4>19.5 生命周期</h4>
+
+<div class="tw"><table>
+<thead><tr><th>触发</th><th>动作</th><th>同提交</th></tr></thead>
+<tbody>
+<tr><td>加表 / 加列</td><td>在对应聚合切片加行 + 标注 INV</td><td><kbd class="k must">MUST</kbd></td></tr>
+<tr><td>加枚举 / 改枚举取值</td><td>改枚举全集表，<strong>保持顺序一致</strong></td><td><kbd class="k must">MUST</kbd></td></tr>
+<tr><td>删表</td><td>删行；若因迁移历史不能真删 → 转"保留未用"</td><td><kbd class="k must">MUST</kbd></td></tr>
+<tr><td>新增聚合</td><td>加 <code>##</code> 小节 + 更新 <code>AGENTS.md</code> 的切片指引</td><td><kbd class="k must">MUST</kbd></td></tr>
+<tr><td>发现故意的不一致</td><td>登记进松弛点表</td><td><kbd class="k must">MUST</kbd></td></tr>
+</tbody>
+</table></div>
+
+<h3 class="ch" id="ch20"><span class="num">Chapter 20</span>FLOWS.md<a class="anchor" href="#ch20">#</a></h3>
+
+<h4>20.1 职责与边界</h4>
+
+<p><code>FLOWS.md</code> 描述<strong>动态事实</strong>：每台状态机的状态集合、转移、触发入口、触发者、受约束的不变量、以及<strong>是否已实现</strong>。它是本规范中信息密度最高的元语——参考实现的经验是这本查出的问题最多。</p>
+
+<div class="rule">
+<p><span class="rid">MS-23</span><strong>凡有状态字段的数据对象都<kbd class="k must">MUST</kbd>登记一台状态机</strong>，不得只登记"主要的几条"。漏登记一台等于给智能体留一片无契约区，而它会在那片区域自由发挥。</p>
+</div>
+
+<h4>20.2 flow 块格式</h4>
+
+<pre><code>machine: &lt;对象&gt;.&lt;状态字段&gt;
+enum:    &lt;枚举名&gt;
+states:  [&lt;全部取值，须与 DOMAIN 一致&gt;]
+initial: &lt;插入时的初值&gt;
+- &lt;from&gt; → &lt;to&gt; | via: &lt;入口&gt; | by: &lt;触发者&gt; | inv: &lt;INV-n 或 -&gt; | impl: yes|no</code></pre>
+
+<div class="rule">
+<p><span class="rid">MS-24</span>每条转移行<kbd class="k must">MUST</kbd>五段齐全：<code>from → to</code> · <code>via</code>（入口：路由或调度器符号）· <code>by</code>（谁能触发）· <code>inv</code>（受哪条不变量约束，无则 <code>-</code>）· <code>impl</code>（是否已实现）。缺任一段<kbd class="k must">MUST</kbd>报红——<strong>不允许"以后补"</strong>。</p>
+</div>
+
+<div class="tw"><table>
+<thead><tr><th>段</th><th>为什么必需</th><th>缺了会怎样</th></tr></thead>
+<tbody>
+<tr><td><code>via</code></td><td>转移的唯一合法入口</td><td>智能体在第二个地方也写一次状态转移，绕过守卫</td></tr>
+<tr><td><code>by</code></td><td>权限判断的依据</td><td>无法判断某个角色调这个接口是否越权</td></tr>
+<tr><td><code>inv</code></td><td>改动时必须读哪条约束</td><td>改到合规路径而不知道踩了哪条线</td></tr>
+<tr><td><code>impl</code></td><td>区分"待办"与"死值"</td><td>把未实现的状态当作可依赖的行为</td></tr>
+</tbody>
+</table></div>
+
+<h4>20.3 impl 是状态级语义，不是转移级</h4>
+
+<div class="rule">
+<p><span class="rid">MS-25</span><code>impl</code> 的语义<kbd class="k must">MUST</kbd>是<strong>状态级</strong>：<code>impl: yes</code> 表示该<strong>目标态</strong>在代码中确有写入点；<code>impl: no</code> 表示该目标态<strong>没有</strong>任何写入点。校验器<kbd class="k must">MUST</kbd>显式检测同一目标态被同时声明 <code>yes</code> 与 <code>no</code> 的矛盾情形。</p>
+</div>
+
+<div class="note warn">
+<span class="lbl">Evidence · 一次语义假绿</span>
+<p>参考实现的校验器初版把 <code>impl</code> 当<strong>转移级</strong>语义。结果同一张表上 <code>A→B (impl: no)</code> 与 <code>C→B (impl: yes)</code> 互相矛盾却<strong>都判通过</strong>——因为逐条检查时两者各自"成立"。改成状态级语义并显式检测矛盾声明后才真正生效。</p>
+<p>结论写进规范：<strong>语义没想清楚的校验器会给出虚假的绿。</strong> 这是 <code>PS-3</code> 的第一类，也是最难发现的一类——因为校验器确实在运行，确实在检查，只是检查的东西比它声称的粗。</p>
+</div>
+
+<h4>20.4 校验器契约</h4>
+
+<pre><code>校验器 A　格式契约：四个头字段齐全 + 转移行五段齐全；解析空转 = 红
+校验器 B　states  ==  对应枚举取值集合                    （与 DOMAIN 一致）
+校验器 C　每条转移的 from / to  ∈  states
+校验器 D　impl 双向（MS-25，状态级）：
+            impl:yes 的目标态  →  代码中须存在写入点
+            impl:no  的目标态  →  代码中须不存在写入点
+            同一目标态被声明 yes 且 no  →  红
+校验器 E　via 可解析：路由须能在入口层定位；调度器符号须能定位
+校验器 F　impl:no 的状态须在“未实现处置”小节有条目 —— 不留悬空</code></pre>
+
+<div class="rule">
+<p><span class="rid">MS-26</span>标注 <code>impl: no</code> 的状态<kbd class="k must">MUST</kbd>在"未实现处置"小节逐条给出处置结论：<strong>待办</strong>（含归属阶段）、<strong>死值</strong>（含建议删除）、或<strong>有意保留</strong>（含理由）。悬空的未实现项<kbd class="k must">MUST</kbd>报红。</p>
+</div>
+
+<h4>20.5 这本元语的发现密度为何最高</h4>
+
+<div class="note evidence">
+<span class="lbl">Evidence · 一次补全查出五类问题</span>
+<p>参考实现补 <code>FLOWS.md</code> 时（14 台状态机 / 37 条已实现转移 / 22 条未实现），查出五类此前无人知道的问题：</p>
+<ol style="margin-bottom:0">
+<li><strong>指标无数据来源</strong>——某个状态字段没有任何代码写入，导致产品需求文档里列的一项成功指标<strong>根本做不出看板</strong>。</li>
+<li><strong>整台状态机零实现</strong>——某对象建出来后永远停在初始态，四个后续状态全是死值，进度统计无从统计。</li>
+<li><strong>生产环境不会发生的转移</strong>——依赖一个缺失的后台消费者，此前只存在于口头认知，现在被机器登记在册。</li>
+<li><strong>四个冗余枚举值建议删</strong>——各有具体理由（串行流程使中间态无观察价值、两步合并为一次同步调用等）。</li>
+<li><strong>接口响应的状态词汇与数据层枚举不同源</strong>——某接口返回一个数据层枚举中<strong>不存在</strong>的状态值，前端会误以为两者同源。</li>
+</ol>
+</div>
+
+<p>为什么密度最高：<code>DOMAIN</code> 对拍的是<strong>静态结构</strong>，而结构错了通常编译期就会暴露；<code>FLOWS</code> 对拍的是<strong>行为</strong>，而"某个状态没人写"这类缺陷不会让任何测试变红，只会让看板永远空着。<strong>行为层的缺失是沉默的</strong>，这正是需要机器登记的原因。</p>
+
+<h3 class="ch" id="ch21"><span class="num">Chapter 21</span>DECISIONS.md<a class="anchor" href="#ch21">#</a></h3>
+
+<h4>21.1 定位：登记册，不是论证书，也不是日志</h4>
+
+<div class="rule">
+<p><span class="rid">MS-27</span><code>DECISIONS.md</code> <kbd class="k must">MUST</kbd>是<strong>登记册</strong>：每条决策占一行，含 ID + 一句话议题 + 结论 + 出处。论证<kbd class="k must">MUST</kbd>留在出处元语，<kbd class="k must NOT">MUST NOT</kbd>复制进本册（<code>FP-1</code>）。本册<kbd class="k must NOT">MUST NOT</kbd>组织为按时间排列的日志。</p>
+</div>
+
+<div class="tw"><table>
+<thead><tr><th>三种形态</th><th>组织方式</th><th>为什么本规范选登记册</th></tr></thead>
+<tbody>
+<tr><td>论证书</td><td>每条决策一页完整论证</td><td>与出处元语重复 → 第二事实来源；且长到没人读</td></tr>
+<tr><td>日志（ADR 目录）</td><td>按时间编号，每条一文件，含"已被 ADR-N 取代"</td><td>要回答"当前结论是什么"须遍历全部条目并推演取代链</td></tr>
+<tr><td><strong>登记册</strong></td><td>按命名空间分表，每条一行，只放<strong>当前</strong>结论</td><td>一次查询即得当前结论；ID 可被代码引用并<strong>双向对拍</strong></td></tr>
+</tbody>
+</table></div>
+
+<p>选登记册的决定性理由是<strong>可对拍</strong>。日志形态无法回答"代码里这个 ID 是否有效"，而登记册可以：代码里出现的 ID 必须在册，在册但零引用的给出警告。这让决策从文档变成<strong>可验证的约束</strong>。</p>
+
+<h4>21.2 命名空间表：必须放在最前面</h4>
+
+<div class="rule">
+<p><span class="rid">MS-28</span><code>DECISIONS.md</code> <kbd class="k must">MUST</kbd>以<strong>命名空间表</strong>开篇，列出全部 ID 前缀、各自含义、论证出处、当前数量。命名空间<kbd class="k must NOT">MUST NOT</kbd>在视觉上互相混淆（<a href="#ch18">§18.4</a>）。</p>
+</div>
+
+<p>为什么它必须在最前面：智能体拿到一个 ID（如 <code>B-3</code>）时，第一个问题是"这是哪类东西、该去哪查"。如果要读完全文才能推断，它会去错的地方查，查不到后<strong>自行推断含义</strong>。命名空间表把这一步从推断变成查表。</p>
+
+<div class="tw"><table>
+<thead><tr><th>典型命名空间</th><th>含义</th><th>论证出处</th></tr></thead>
+<tbody>
+<tr><td>不变量</td><td>任何实现都不得违反的硬约束</td><td>不变量清单 / 测试清单</td></tr>
+<tr><td>架构决策</td><td>工程层不可逆选择</td><td><code>ARCHITECTURE.md</code></td></tr>
+<tr><td>边界规矩</td><td>模块/包之间的硬边界</td><td><code>ARCHITECTURE.md</code></td></tr>
+<tr><td>UI 反模式</td><td>呈现层禁止事项</td><td><code>DESIGN.md</code></td></tr>
+<tr><td>业务/技术决策点</td><td>需业务或架构拍板的选择</td><td>需求 / 深度设计文档</td></tr>
+</tbody>
+</table></div>
+
+<h4>21.3 三个必备特殊小节</h4>
+
+<h5>① 未决项唯一位置</h5>
+
+<div class="rule">
+<p><span class="rid">MS-29</span>未决项<kbd class="k must">MUST</kbd>只存在于本册的<strong>一个</strong>小节。其他文档<kbd class="k may">MAY</kbd>指向它，<kbd class="k must NOT">MUST NOT</kbd>各自维护未决清单。决出后<kbd class="k must">MUST</kbd>入册 + 销项，<strong>同一提交</strong>（<code>MS-12</code> ③）。每条未决项<kbd class="k must">MUST</kbd>写明"决出前禁止做什么"。</p>
+</div>
+
+<p>"唯一位置"是对 <code>MA-4</code> 的正面回答。散落的未决清单会产生三种故障：同一问题被反复讨论；已决的项在另一处仍显示未决；智能体基于过期的"未决"状态选择保守实现。</p>
+
+<h5>② 决策 ↔ 实现的已知偏离</h5>
+
+<div class="rule">
+<p><span class="rid">MS-30</span>在册结论与代码现状不一致时，本册<kbd class="k must">MUST</kbd>设"已知偏离"小节登记事实：ID · 在册结论 · 代码现状 · <strong>性质</strong>（已改主意 / 未实现 / 部分实现）。<kbd class="k must NOT">MUST NOT</kbd>在此小节修改决策结论——改结论须走重新拍板。</p>
+</div>
+
+<div class="note evidence">
+<span class="lbl">Evidence · 这张表的唯一目的</span>
+<p>参考实现登记了六处偏离，最典型的一条：登记册写着采用某队列库，代码实际用了另一种实现——这是实施时有意改的主意。文档里直接写明这张表的价值：<strong>智能体看到登记册与代码不一致时，不会自作主张去"修正"代码。</strong></p>
+<p>注意"性质"列的必要性：<em>已改主意</em> 意味着代码是对的、登记册待更新；<em>未实现</em> 意味着登记册是对的、代码待补。<strong>两者的修复方向完全相反</strong>，不标注性质等于不提供有效信息。</p>
+</div>
+
+<h5>③ 格式契约附录</h5>
+<p>见 <code>MS-8</code>。本册的特殊之处：ID <kbd class="k must">MUST</kbd>用反引号包裹（使 grep 可区分 ID 与普通文本），且子编号（如 <code>INV-3.2</code>）<kbd class="k must">MUST</kbd>按父编号查册。</p>
+
+<h4>21.4 校验器契约</h4>
+
+<pre><code>校验器 A　代码与元语中出现的 ID（词边界匹配）   ⊆  在册集合        【硬失败】
+          子编号按父编号查册
+校验器 B　在册但全仓零引用                     →  WARN（不红）
+          理由：纯业务决策可以不落代码
+校验器 C　本册与各元语中的相对路径链接         →  目标须存在
+校验器 D　格式契约先验：任一登记表解析为 0 行  =  红</code></pre>
+
+<div class="rule">
+<p><span class="rid">MS-31</span>校验器 B <kbd class="k must NOT">MUST NOT</kbd>硬失败。在册但零引用是<strong>合法</strong>状态——纯业务决策（如"复审周期取值"）可能不体现为任何代码标记。把它设为硬失败会迫使团队给业务决策强加代码标记，或把它们移出登记册，两者都更糟。</p>
+</div>
+
+<div class="note">
+<span class="lbl">一个真实的可追溯性缺口</span>
+<p>参考实现中，60 个在册 ID 有 23 个无任何代码引用，其中三条明显已落地却没打标记。在决策血缘被纳入验证包范围后，这成为<strong>合规缺口</strong>——无法从代码反查"这段实现依据哪条决策"。这解释了为什么校验器 B 存在（给出警告）却不硬失败（避免误伤纯业务决策）：<strong>它的作用是提供清单供人判断，不是自动裁决。</strong></p>
+</div>
+
+<h3 class="ch" id="ch22"><span class="num">Chapter 22</span>DEPLOY.md<a class="anchor" href="#ch22">#</a></h3>
+
+<h4>22.1 职责与三方对拍</h4>
+
+<p><code>DEPLOY.md</code> 是六本中唯一对拍<strong>代码之外</strong>的元语：它的对拍对象包括环境样例文件与编排文件。</p>
+
+<div class="rule">
+<p><span class="rid">MS-32</span>环境变量键位<kbd class="k must">MUST</kbd>做<strong>三方相等</strong>对拍：<code>DEPLOY.md</code> 登记 == 环境样例文件 == 代码读取点。任一方多键或少键均<kbd class="k must">MUST</kbd>报红。工具类变量（<code>NODE_ENV</code>/<code>CI</code>/<code>PATH</code> 等）<kbd class="k must">MUST</kbd>进显式忽略名单，不参与对拍。</p>
+</div>
+
+<figure><div class="svgbox">
+<svg viewBox="0 0 620 168" role="img" aria-label="env 键位三方对拍">
+  <rect x="222" y="12" width="176" height="40" rx="5" class="box-a"/>
+  <text x="310" y="30" class="lbl" text-anchor="middle" style="font-size:11.5px">DEPLOY.md §env 表</text>
+  <text x="310" y="45" class="sub" text-anchor="middle">权威登记（含 secret 标注）</text>
+
+  <rect x="20" y="106" width="176" height="40" rx="5" class="box"/>
+  <text x="108" y="124" class="lbl" text-anchor="middle" style="font-size:11.5px">环境样例文件</text>
+  <text x="108" y="139" class="sub" text-anchor="middle">只有键位，无真值</text>
+
+  <rect x="424" y="106" width="176" height="40" rx="5" class="box"/>
+  <text x="512" y="124" class="lbl" text-anchor="middle" style="font-size:11.5px">代码读取点</text>
+  <text x="512" y="139" class="sub" text-anchor="middle">全部扫描面（含前端构建）</text>
+
+  <path d="M 262 52 L 150 106" class="arw" stroke-dasharray="0" marker-start="url(#ah6s)" marker-end="url(#ah6)"/>
+  <path d="M 358 52 L 470 106" class="arw" marker-start="url(#ah6s)" marker-end="url(#ah6)"/>
+  <path d="M 196 126 L 424 126" class="arw" marker-start="url(#ah6s)" marker-end="url(#ah6)"/>
+  <text x="310" y="118" class="dim" text-anchor="middle">集合相等（三边）</text>
+  <text x="20" y="164" class="dim">任一边多键或少键 = 红。三边闭合使“漏一处”无处藏身。</text>
+  <defs>
+    <marker id="ah6" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--fg-mute)"/></marker>
+    <marker id="ah6s" markerWidth="8" markerHeight="8" refX="1" refY="4" orient="auto"><path d="M8,0 L0,4 L8,8 z" fill="var(--fg-mute)"/></marker>
+  </defs>
+</svg>
+</div><figcaption>图 22-1 · env 键位三方对拍。两方对拍无法发现"两方都漏了同一个键"。</figcaption></figure>
+
+<h4>22.2 扫描面：和检查逻辑一样重要</h4>
+
+<div class="rule">
+<p><span class="rid">MS-33</span>env 对拍的<strong>扫描面</strong><kbd class="k must">MUST</kbd>覆盖<strong>全部</strong>会读取环境变量的位置，包括前端构建配置、测试辅助代码与脚本。扫描面<kbd class="k must">MUST</kbd>在校验器中显式声明并<kbd class="k should">SHOULD</kbd>在格式契约附录中登记，以便审查其完整性。</p>
+</div>
+
+<div class="note warn">
+<span class="lbl">Evidence · 一个存在约两年的盲区</span>
+<p>参考实现中有一个环境变量被前端构建配置读取，却长期不在样例文件中登记。原因<strong>不是</strong>检查逻辑不严——检查器一直在跑、一直是绿的。原因是它的<strong>扫描面只覆盖了后端与两处测试目录，漏了前端目录</strong>。</p>
+<p>教训：<strong>检查器的扫描面和检查逻辑一样重要。面漏了，检查再严也照不到。</strong> 这是 <code>PS-3</code> 的第三类（覆盖假绿），也是最容易长期存活的一类——因为没有任何症状。</p>
+</div>
+
+<h4>22.3 必备结构</h4>
+
+<div class="tw"><table>
+<thead><tr><th>小节</th><th>段类型</th><th>内容</th><th>校验</th></tr></thead>
+<tbody>
+<tr><td>端口表</td><td>契约</td><td>端口 · 服务 · <strong>来源</strong>（env 键 / 编排文件 / 框架默认）· 说明</td><td>标注来源为编排文件的端口须在该文件出现</td></tr>
+<tr><td>本地依赖事实</td><td>契约</td><td>依赖服务的实际获取方式与监听地址</td><td><kbd class="k should">SHOULD</kbd> 可探测</td></tr>
+<tr><td>env 键位表</td><td><strong>契约</strong></td><td>每键五列：<strong>面 · 必需 · secret · 缺省 · 说明</strong></td><td>三方相等（<code>MS-32</code>）</td></tr>
+<tr><td>测试专用 env</td><td>契约</td><td>与部署面分开登记</td><td>同上</td></tr>
+<tr><td>生产未落地要求</td><td>契约</td><td>已知但尚未实施的生产环境要求</td><td>—</td></tr>
+<tr><td>忽略名单</td><td>契约</td><td>不参与对拍的工具类变量 + 理由</td><td>名单本身须非空可解析</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">MS-34</span>真实的连接串与密钥<kbd class="k must NOT">MUST NOT</kbd>出现在任何入库文件中，包括本元语与环境样例文件。二者<kbd class="k must">MUST</kbd>只登记<strong>键位与占位说明</strong>。<code>secret</code> 列<kbd class="k must">MUST</kbd>存在，使"哪些键是密钥"成为可查事实而非默认知识。</p>
+</div>
+
+<h4>22.4 环境事实的特殊价值</h4>
+
+<p><code>DEPLOY.md</code> 是唯一能记录"环境的坑"的元语，而这类坑造成的时间损耗通常最大——因为它们的症状与真实原因无关。</p>
+
+<div class="note evidence">
+<span class="lbl">Evidence · 症状与原因无关的一类故障</span>
+<p>参考实现记录了一个反复浪费时间的假象：容器编排把数据库端口绑到通配地址，而主机上的同类服务绑了更具体的回环地址；连接回环地址时<strong>主机那个实例赢</strong>。于是现象是"明明起了容器，却报数据库角色不存在"——报错实际来自主机实例。</p>
+<p>这类事实<strong>只能写在元语里</strong>：代码里看不出来，编排文件里看不出来，只有把"实际发生了什么"记录下来才能阻止下一个人（或智能体）重新踩一遍。这也是 <code>DEPLOY.md</code> 的"本地依赖事实"小节存在的理由。</p>
+</div>
+
+<h4>22.5 生命周期</h4>
+
+<div class="tw"><table>
+<thead><tr><th>触发</th><th>动作</th><th>顺序要求</th></tr></thead>
+<tbody>
+<tr><td>新增读取一个 env 键</td><td><strong>先改本元语</strong>，再改样例文件，再写代码</td><td><kbd class="k must">MUST</kbd> 本元语先行</td></tr>
+<tr><td>改端口</td><td>先改本元语 + 编排文件</td><td><kbd class="k must">MUST</kbd> 本元语先行</td></tr>
+<tr><td>删除一个 env 键</td><td>三方同时删</td><td>同一提交</td></tr>
+<tr><td>发现环境坑</td><td>写入"本地依赖事实"小节</td><td>越早越好</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">MS-35</span><code>DEPLOY.md</code> <kbd class="k must">MUST</kbd>在流程上<strong>先行</strong>：新增或修改环境依赖时先改本元语。理由：三方对拍在提交时才检查，而先改元语能让作者在写代码前就发现"这个键和已有的某个键重复"这类问题。<strong>元语先行把对拍从事后检查变成事前设计。</strong></p>
+</div>
+
+<h3 class="ch" id="ch23"><span class="num">Chapter 23</span>条件元语：AI.md 与 AGENT-OPS.md<a class="anchor" href="#ch23">#</a></h3>
+
+<div class="note">
+<span class="lbl">本章与 §27 的分工</span>
+<p>本章规范这两份文件<strong>作为元语</strong>的形态：结构、格式契约、校验器契约、生命周期、Owner。<a href="#ch27">§27</a> 规范它们所记录的<strong>内容模型</strong>：动作分级的语义、血缘字段的定义、护栏的判据。<strong>文件规范在此，模型规范在 §27</strong>——分开是为了让不采用编排面的项目也能只读本章落地 <code>AGENT-OPS.md</code>。</p>
+</div>
+
+<h4>23.1 AI.md — 治理产品里的 AI</h4>
+
+<p><strong>触发条件</strong>：产品交付面包含模型推理或生成能力。不满足时<kbd class="k must NOT">MUST NOT</kbd>创建（<code>MS-2</code>）。</p>
+
+<div class="tw"><table>
+<thead><tr><th>小节</th><th>段类型</th><th>内容</th><th>校验维度</th></tr></thead>
+<tbody>
+<tr><td>模型清单</td><td><strong>契约</strong></td><td>每个模型：标识 · 用途 · 调用点 · 降级目标</td><td>模型标识须在代码中可定位</td></tr>
+<tr><td>Prompt 资产表</td><td><strong>契约</strong></td><td>每份 prompt：位置 · 消费者 · 输入契约 · 输出契约</td><td>位置须存在；输出契约须有 parse 点</td></tr>
+<tr><td>不确定性边界</td><td><strong>契约</strong></td><td>模型输出<strong>不得</strong>直接决定什么（如不得单独决定权限、金额、医疗结论）</td><td>禁止面 grep</td></tr>
+<tr><td>降级策略</td><td><strong>契约</strong></td><td>模型不可用/超时/输出不合契约时的行为</td><td>降级分支须存在且有测试</td></tr>
+<tr><td>用户可见性</td><td>契约</td><td>何处须向用户标示"由 AI 生成"</td><td>UI grep</td></tr>
+<tr><td>评测集</td><td>契约</td><td>回归评测的数据集位置与阈值</td><td>数据集须存在</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">MS-36</span><code>AI.md</code> <kbd class="k must">MUST</kbd>登记<strong>不确定性边界</strong>：明确列出模型输出<kbd class="k must NOT">MUST NOT</kbd>单独决定的事项。该清单<kbd class="k must">MUST</kbd>可 grep 守护——即模型输出到这些决策点之间<kbd class="k must">MUST</kbd>存在确定性校验或人工确认。</p>
+</div>
+
+<p>这条是 <code>FINV-1</code> 在产品侧的镜像。<code>FINV-1</code> 说"开发过程中确定性的别交给模型"，<code>MS-36</code> 说"产品中关键决策别单独交给模型"。两者是同一原则的两个应用面，因此分居两本元语——治理对象不同（<code>MS-3</code>）。</p>
+
+<h4>23.2 AGENT-OPS.md — 治理写这个仓库的 agent</h4>
+
+<p><strong>触发条件</strong>：仓库代码由 coding agent 参与编写。</p>
+
+<div class="tw"><table>
+<thead><tr><th>小节</th><th>段类型</th><th>内容</th><th>模型规范</th></tr></thead>
+<tbody>
+<tr><td>为什么本仓需要这本</td><td>叙述</td><td>本项目特有的驱动力（合规要求 / 团队规模 / 风险面）</td><td>—</td></tr>
+<tr><td><strong>能力注册表</strong></td><td><strong>契约</strong></td><td>每个角色：id · 形态 · 允许的工具面 · 最高动作等级 · 是否需血缘</td><td><a href="#ch27">§27.1</a></td></tr>
+<tr><td><strong>动作分级</strong></td><td><strong>契约</strong></td><td><code>L0</code>–<code>L3</code> 四档，每档的路径面与策略</td><td><a href="#ch27">§27.2</a></td></tr>
+<tr><td><strong>禁令表</strong></td><td><strong>契约</strong></td><td><code>L3</code> 各条：禁令 · 为什么放行也不行 · 机器守护</td><td><a href="#ch27">§27.3</a></td></tr>
+<tr><td><strong>血缘字段表</strong></td><td><strong>契约</strong></td><td>每个必填字段 + 合规属性对应</td><td><a href="#ch27">§27.4</a></td></tr>
+<tr><td><strong>护栏</strong></td><td><strong>契约</strong></td><td>迭代上限 · 预算 · 超限行为</td><td><a href="#ch27">§27.5</a></td></tr>
+<tr><td><strong>硬规矩</strong></td><td><strong>契约</strong></td><td>违反 = bug 的操作性规则，每条带理由</td><td>§23.3</td></tr>
+<tr><td><strong>豁免表</strong></td><td><strong>契约</strong></td><td>无机器守护的约束 + 理由 + 失效条件（<code>FP-7</code>）</td><td>§23.4</td></tr>
+<tr><td>格式契约附录</td><td>契约</td><td>解析规则 + 兜底</td><td><code>MS-8</code></td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">MS-37</span>能力注册表<kbd class="k must">MUST</kbd>是<strong>闭集</strong>：只登记<strong>已存在</strong>的角色形态。尚未落地的角色<kbd class="k must NOT">MUST NOT</kbd>预登记（<code>FP-6</code>）。新增角色 = 改本表 + 落代码，<strong>同一提交</strong>。</p>
+</div>
+
+<div class="rule">
+<p><span class="rid">MS-38</span>动作分级表中声明的路径面<kbd class="k must">MUST</kbd>能匹配到仓库中真实存在的路径。指向不存在路径的条目<kbd class="k must">MUST</kbd>报红——<strong>这是防止分级表随目录演进而腐烂的唯一有效手段</strong>。</p>
+</div>
+
+<h4>23.3 硬规矩：五条通用条目</h4>
+
+<p>以下五条<kbd class="k should">SHOULD</kbd>出现在每个采用 <code>AGENT-OPS.md</code> 的项目中。它们是从真实事故反推出来的，不是从原则演绎出来的：</p>
+
+<div class="tw"><table>
+<thead><tr><th>规矩</th><th>内容</th><th>反推自哪类事故</th></tr></thead>
+<tbody>
+<tr><td>确定性优先</td><td>能用确定性规则表达的，禁止交给模型</td><td><code>FINV-1</code></td></tr>
+<tr><td><strong>冲突即停</strong></td><td>元语说的和代码做的不一致时，<strong>停下说明冲突</strong>，不要单方面改任一侧</td><td>智能体"修正"了一处有意偏离，破坏已定决策</td></tr>
+<tr><td>治理不自动改</td><td>校验器无 <code>--fix</code></td><td><code>FP-5</code></td></tr>
+<tr><td><strong>先判归属</strong></td><td>看到测试红，先在干净基线上跑一遍做归属判断，再动手</td><td>仓库存在先于当前工作的失败；误认领引出错误修复</td></tr>
+<tr><td><strong>读否定分支</strong></td><td>合规路径的改动，必须逐条读守卫判据的<strong>否定分支</strong></td><td>一处守卫从 <code>!perm ||</code> 改为 <code>perm &amp;&amp;</code>，顺序未变但 fail-closed 变 fail-open（<a href="#ch4">§4</a> <code>FP-4</code>）</td></tr>
+</tbody>
+</table></div>
+
+<div class="note">
+<span class="lbl">为什么"先判归属"值得写成硬规矩</span>
+<p>它对应一个智能体特有的失效模式：智能体默认<strong>自己是唯一变量</strong>——看到红就假设是自己改坏的，于是开始修一个它没有造成的问题。人类工程师有"这个测试一直是红的"这类背景知识，智能体没有。<strong>缺少的不是能力，是历史</strong>，而历史只能由元语或流程提供。</p>
+</div>
+
+<h4>23.4 豁免表：诚实的机器化</h4>
+
+<div class="rule">
+<p><span class="rid">MS-39</span>无机器守护的约束<kbd class="k must">MUST</kbd>在豁免表在册，含：约束 id · 为什么无法机器化 · 失效条件（什么情况下这条豁免不再需要）。校验器<kbd class="k must">MUST</kbd>检测"禁令表中标记为无守护但未在豁免表在册"的条目并报红。</p>
+</div>
+
+<p>这是把 <code>FP-7</code>（诚实缺口）从美德变成可执行检查的具体机制：<strong>你可以有挡不住的规则，但你不能不承认它挡不住</strong>。校验器不检查规则是否被遵守（它做不到），而是检查<strong>你是否诚实地登记了它做不到</strong>。</p>
+
+<div class="note evidence">
+<span class="lbl">Evidence · 两条在册的诚实缺口</span>
+<p>参考实现的豁免表登记了两条：① 某条禁令（agent 自行推送）<strong>无机器守护</strong>，因为本地凭据层面无法区分执行者；② 护栏阈值<strong>无运行时强制点</strong>，因为尚无编排面，只能事后从血缘记录看出越界。</p>
+<p>文档里直接写着理由：<strong>登记一条挡不住的禁令，比假装它被挡住要好——读者由此知道该靠人盯，而不是误以为有闸门。</strong></p>
+</div>
+
+<h4>23.5 两本条件元语的对比</h4>
+
+<div class="tw"><table>
+<thead><tr><th></th><th><code>AI.md</code></th><th><code>AGENT-OPS.md</code></th></tr></thead>
+<tbody>
+<tr><td>治理对象</td><td>产品里的 AI</td><td>写这个仓库的 agent</td></tr>
+<tr><td>读者</td><td>产品与研发团队</td><td>coding agent 本身 + 放行人</td></tr>
+<tr><td>违规后果</td><td>产品对用户失信</td><td>开发过程不可信 / 不可追溯</td></tr>
+<tr><td>核心机制</td><td>不确定性边界 + 降级策略</td><td>动作分级 + 血缘 + 禁令</td></tr>
+<tr><td>可否合并</td><td colspan="2"><kbd class="k must NOT">MUST NOT</kbd>（<code>MS-3</code>）</td></tr>
+</tbody>
+</table></div>
+
+<h3 class="ch" id="ch24"><span class="num">Chapter 24</span>AGENTS.md · 入口指针<a class="anchor" href="#ch24">#</a></h3>
+
+<h4>24.1 定位回顾</h4>
+
+<p><code>AGENTS.md</code> 不是元语（<code>FR-8</code>）。它是<strong>目录与阅读规则</strong>，是唯一被每次加载的文件。它的设计约束因此与元语完全不同：元语优化<strong>准确性</strong>，<code>AGENTS.md</code> 优化<strong>导航效率</strong>。</p>
+
+<h4>24.2 必备结构</h4>
+
+<div class="tw"><table>
+<thead><tr><th>#</th><th>小节</th><th>内容</th><th>约束</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>元语指针</td><td>每本元语一行：链接 + 一句话职责</td><td><kbd class="k must NOT">MUST NOT</kbd>复制其内容</td></tr>
+<tr><td>2</td><td><strong>必读规则</strong></td><td>改哪类代码前必读哪本的哪节 + 该注意什么坑</td><td><kbd class="k must">MUST</kbd>可执行，不写"请仔细阅读"</td></tr>
+<tr><td>3</td><td>项目一句话</td><td>是什么系统 + 当前进展阶段</td><td><kbd class="k must NOT">MUST NOT</kbd>写数字（<code>MA-1</code>）</td></tr>
+<tr><td>4</td><td>技术栈锁定</td><td>已选定的栈 + <strong>禁止引入未列出的同类替代品</strong></td><td>—</td></tr>
+<tr><td>5</td><td>仓库地图</td><td>每个顶层目录一句话 + 硬边界摘要</td><td>边界详情指向 <code>ARCHITECTURE</code></td></tr>
+<tr><td>6</td><td>标准工作流</td><td>常见任务的动作序列（含"黄金纵切"参照目录）</td><td>—</td></tr>
+<tr><td>7</td><td>硬规矩 / 禁止行为</td><td>违反 = bug 的清单</td><td>每条<kbd class="k should">SHOULD</kbd>可 grep</td></tr>
+<tr><td>8</td><td>命令</td><td>可复制执行的命令清单</td><td><kbd class="k must">MUST</kbd>真实可跑</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">MS-40</span><code>AGENTS.md</code> <kbd class="k should">SHOULD</kbd>控制在 100 行以内。超出时<kbd class="k must">MUST</kbd>把内容<strong>下沉到元语</strong>，<kbd class="k must NOT">MUST NOT</kbd>通过压缩措辞解决——超长通常意味着一手事实混了进来（违反 <code>FR-8</code>）。</p>
+</div>
+
+<h4>24.3 必读规则：本文件最有价值的一节</h4>
+
+<p>必读规则把"该读什么"从智能体的判断变成<strong>查表</strong>。有效的必读规则包含三部分：</p>
+
+<pre><code>- **&lt;元语名&gt;** — 改 &lt;哪类代码&gt; 前，**按&lt;切片依据&gt;读对应小节**（勿全文加载）。
+  &lt;要同步什么&gt;。&lt;该注意的陷阱&gt;。</code></pre>
+
+<div class="tw"><table>
+<thead><tr><th>部分</th><th>作用</th><th>反例</th></tr></thead>
+<tbody>
+<tr><td>触发条件</td><td>让智能体知道<strong>什么时候</strong>要读</td><td>"请熟悉项目文档"——无触发点，等于没写</td></tr>
+<tr><td>切片指引</td><td>避免全文加载（<code>MS-9</code>）</td><td>"阅读 DOMAIN.md"——300 行全进上下文</td></tr>
+<tr><td><strong>陷阱提示</strong></td><td>指出该元语特有的、容易误判的地方</td><td>省略 → 智能体把松弛点当 bug 修</td></tr>
+</tbody>
+</table></div>
+
+<p>第三部分最容易被省略，也最有价值。有效的陷阱提示形如："某节记录了故意的松弛点——那些不是 bug，别顺手修"、"某表记录了决策与实现的已知偏离——读到不一致先查这张表，别自作主张修正代码"、"某字段是<strong>状态级</strong>语义，不是转移级"。<strong>这些是让智能体避免"看起来正确的错误改动"的关键信息</strong>（<a href="#ch16">§16.6</a>）。</p>
+
+<h4>24.4 取代声明</h4>
+
+<div class="rule">
+<p><span class="rid">MS-41</span>当 <code>AGENTS.md</code> 的内容发生结构性变化（如从空脚手架版本升级为完整版），<kbd class="k must">MUST</kbd>写明<strong>取代声明</strong>，指出被取代版本的日期与性质。同时<kbd class="k must">MUST</kbd>声明"与旧文档冲突以元语为准，<strong>冲突时停下说明，不要悄悄改</strong>"。</p>
+</div>
+
+<h4>24.5 校验器契约</h4>
+
+<pre><code>校验器 A　全部元语链接可解析（目标文件存在）
+校验器 B　声明存在的元语确实存在；存在的元语都被指向（双向）
+校验器 C　命令清单中的命令在包管理配置中可找到
+校验器 D　本文件中不出现数字化的规模断言（模块数 / 文件行数）   【MA-1】
+校验器 E　本文件不含契约段（无被其他校验器解析的表格）        【FR-8】</code></pre>
+
+<p>校验器 E 值得说明：它检查的是 <code>AGENTS.md</code> <strong>没有</strong>越界成为元语。实现方式是确认其他校验器的解析目标都不落在本文件内。这是一个"检查某物不存在"的校验器，容易被遗漏，但它守护的是 <code>FR-8</code> 这条结构性约束。</p>
+
+<h3 class="ch" id="ch25"><span class="num">Chapter 25</span>校验器契约与漂移经济学<a class="anchor" href="#ch25">#</a></h3>
+
+<p class="lead">元语的价值全部依赖校验器。本章定义校验器<strong>本身</strong>的规范——因为一个写错的校验器比没有校验器更危险（<code>PS-3</code>）。</p>
+
+<h4>25.1 校验器的七条契约</h4>
+
+<div class="rule">
+<p><span class="rid">VC-1</span><strong>确定性</strong>　校验器<kbd class="k must">MUST</kbd>是确定性程序，<kbd class="k must NOT">MUST NOT</kbd>调用模型。相同输入<kbd class="k must">MUST</kbd>产生相同输出（<code>FINV-1</code>）。</p>
+</div>
+
+<div class="rule">
+<p><span class="rid">VC-2</span><strong>只诊断</strong>　<kbd class="k must NOT">MUST NOT</kbd>提供 <code>--fix</code>。传入修复类参数<kbd class="k must">MUST</kbd>以非零码退出并说明理由（<code>FP-5</code>）。</p>
+</div>
+
+<div class="rule">
+<p><span class="rid">VC-3</span><strong>格式先验</strong>　<kbd class="k must">MUST</kbd>先校验格式契约再校验内容。任一解析目标解析为 0 行<kbd class="k must">MUST</kbd>判为失败，<kbd class="k must NOT">MUST NOT</kbd>判为"无违规"（<code>MS-8</code>）。</p>
+</div>
+
+<div class="rule">
+<p><span class="rid">VC-4</span><strong>双向</strong>　对拍<kbd class="k must">MUST</kbd>双向：文档缺项与文档死项均报红。单向子集检查<kbd class="k must NOT">MUST NOT</kbd>计为对拍。</p>
+</div>
+
+<div class="rule">
+<p><span class="rid">VC-5</span><strong>面向工作区</strong>　<kbd class="k must">MUST</kbd>检查即将提交的内容（工作区 + 暂存区），<kbd class="k must NOT">MUST NOT</kbd>只检查已提交历史（<code>FINV-6</code>）。</p>
+</div>
+
+<div class="rule">
+<p><span class="rid">VC-6</span><strong>扫描面显式</strong>　<kbd class="k must">MUST</kbd>在代码中显式声明扫描面，并<kbd class="k should">SHOULD</kbd>在元语的格式契约附录中登记，使扫描面的完整性可被审查（<code>MS-33</code>）。</p>
+</div>
+
+<div class="rule">
+<p><span class="rid">VC-7</span><strong>负向验证</strong>　<kbd class="k must">MUST</kbd>随附负向验证记录：构造应失败的输入 → 确认失败 → 回滚 → 确认通过。未经负向验证的校验器<kbd class="k must NOT">MUST NOT</kbd>计入一致性证据（<code>FR-3</code>）。</p>
+</div>
+
+<h4>25.2 对拍的四种形态</h4>
+
+<div class="tw"><table>
+<thead><tr><th>形态</th><th>比较</th><th>适用</th><th>陷阱</th></tr></thead>
+<tbody>
+<tr><td><strong>集合相等</strong></td><td>文档集合 == 代码集合</td><td>表名、模块名、env 键</td><td>写成子集检查 → 放过死条目</td></tr>
+<tr><td><strong>有序相等</strong></td><td>文档序列 == 代码序列</td><td>枚举取值（<code>MS-20</code>）</td><td>当成集合 → 放过顺序变更引起的语义翻转</td></tr>
+<tr><td><strong>引用可解析</strong></td><td>文档中的引用 → 目标存在</td><td>链接、<code>路径#符号</code>、路由、调度器</td><td>只查文件存在，不查符号存在</td></tr>
+<tr><td><strong>双向存在性</strong></td><td>声明"已实现" ↔ 代码有落点<br>声明"未实现" ↔ 代码无落点</td><td>状态机 <code>impl</code>（<code>MS-25</code>）</td><td>语义粒度错位 → 语义假绿</td></tr>
+</tbody>
+</table></div>
+
+<h4>25.3 负向验证协议</h4>
+
+<div class="rule">
+<p><span class="rid">VC-8</span>负向验证<kbd class="k must">MUST</kbd>覆盖<strong>每一条</strong>检查维度，而非每个校验器一次。一个含五条检查维度的校验器<kbd class="k must">MUST</kbd>有五组负向验证。</p>
+</div>
+
+<pre><code>对每条检查维度 d:
+  1. 在工作区注入违反 d 的最小改动
+  2. 运行默认测试命令  →  MUST 红，且错误消息 MUST 指出 d 与位置
+  3. 回滚改动
+  4. 再次运行           →  MUST 绿
+  5. 记录：维度 · 注入内容 · 观察到的消息</code></pre>
+
+<p>第 2 步的"错误消息须指出位置"不是附加要求。一个报红但不说哪里错的校验器，会让智能体开始<strong>随机试探</strong>——它会改一处、跑一次、再改一处，最终可能通过修改元语来消除报错，恰好绕过了对拍的意义。</p>
+
+<h4>25.4 扫描面的完整性</h4>
+
+<p>扫描面缺陷是最长寿的一类缺陷，因为它无症状（<a href="#ch22">§22.2</a>）。本规范要求两条对策：</p>
+
+<div class="tw"><table>
+<thead><tr><th>对策</th><th>做法</th><th>能发现什么</th></tr></thead>
+<tbody>
+<tr><td>显式声明</td><td>扫描面写成常量数组而非散落的 glob</td><td>审查时能一眼看全</td></tr>
+<tr><td><strong>反向枚举</strong></td><td><kbd class="k should">SHOULD</kbd>额外做一次全仓扫描，把命中但不在扫描面内的位置<strong>列为警告</strong></td><td>"有个地方在读 env 但不在我的检查范围内"</td></tr>
+</tbody>
+</table></div>
+
+<p>反向枚举是把"我不知道我不知道什么"变成"我知道有个地方我没查"。它的输出是警告而非失败——因为可能确实有合法的例外——但它让例外<strong>浮出水面</strong>。</p>
+
+<h4>25.5 闸门位置：反馈延迟是漂移的主因</h4>
+
+<div class="rule">
+<p><span class="rid">VC-9</span>全部校验器<kbd class="k must">MUST</kbd>挂进项目的<strong>默认测试命令</strong>，而不只是 CI 的独立任务。CI <kbd class="k should">SHOULD</kbd>保留独立任务作双保险。校验器<kbd class="k should">SHOULD</kbd>在测试套件<strong>之前</strong>执行——它通常是秒级的，先跑能让快速失败更快。</p>
+</div>
+
+<p>理由是行为经济学而非工程洁癖：智能体在本地跑测试时就该看到治理红，而不是提交后等 CI 才知道。<strong>反馈延迟是无人值守场景下漂移累积的主因</strong>——延迟越长，被发现时已经叠加的错误改动越多。</p>
+
+<div class="rule inv">
+<p><span class="rid">FINV-8</span>承载闸门的命令<kbd class="k must NOT">MUST NOT</kbd>长期处于失败状态。已知的、先于当前工作存在的失败<kbd class="k must">MUST</kbd>被隔离（修复、跳过并给出明确消息、或显式登记为已知失败清单）。</p>
+</div>
+
+<div class="note warn">
+<span class="lbl">为什么这条是不变量</span>
+<p><strong>闸门挂进一个长期红的命令等于没挂</strong>——智能体（和人）会学到"红是常态"，然后停止阅读错误消息。这与"摆设规则"是同一种病：规则存在但无人执行，且它的存在还提供了虚假的安全感。</p>
+<p>参考实现在闸门内移后立刻遇到这个问题：目标命令在当时的提交上本来就是红的（三个先于该工作存在的原因）。处置方式是逐条定位、修掉可修的、给不可修的加明确的跳过消息——<strong>而不是接受"红是常态"</strong>。</p>
+</div>
+
+<h4>25.6 无法机器化时的规范做法</h4>
+
+<p>有些约束确实无法机器守护。本规范不要求假装能守住，而要求<strong>诚实地处理</strong>：</p>
+
+<pre><code>1. 判断是否真的无法机器化 —— 多数“无法”其实是“扫描面不够”或“语义没想清楚”
+2. 若确实无法：
+   a. 在禁令/规矩表的“机器守护”列显式写明「仅文档约束」+ 一句话原因
+   b. 在豁免表在册：约束 id · 无法机器化的原因 · 失效条件
+   c. 校验器检测「标记无守护但未在豁免表在册」→ 红          【MS-39】
+3. 失效条件成立时（如启用了某项基础设施能力）→ 补守护 + 销豁免，同一提交</code></pre>
+
+<p>第 1 步值得强调。本规范收集的三次假绿中，<strong>没有一次</strong>是真的无法机器化——两次是扫描面/时点问题，一次是语义粒度问题。"这个没法自动检查"应当被默认怀疑。</p>
+
+<h4>25.7 漂移经济学与度量</h4>
+
+<div class="tw"><table>
+<thead><tr><th>指标</th><th>定义</th><th>读法</th></tr></thead>
+<tbody>
+<tr><td><strong>漂移拦截率</strong></td><td>校验器捕获的漂移数 ÷ 总提交数</td><td><strong>长期为 0 说明校验器覆盖不足，不说明没有漂移</strong></td></tr>
+<tr><td><strong>幻觉率</strong></td><td>血缘中声明触及某约束、但实际改动不符的比例</td><td>最直接的质量信号；也是合规风险信号</td></tr>
+<tr><td>任务成功率</td><td>无人工干预完成的任务比例</td><td>自主性趋势。单独看会诱导降低任务难度</td></tr>
+<tr><td>闸门拦截分布</td><td>各级闸门（校验器 / Reviewer / 人工）各拦住多少</td><td>某级长期为 0 → 该级形同虚设或位置错了</td></tr>
+<tr><td>单任务成本</td><td>token + 计算分钟</td><td><strong>须与成功率一起看</strong>，单看会诱导放弃困难任务</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">VC-10</span>度量<kbd class="k must NOT">MUST NOT</kbd>被设为优化目标。特别地，"漂移拦截率"下降<kbd class="k must NOT">MUST NOT</kbd>被解读为质量提升——它同样可能意味着校验器退化或扫描面收缩。指标变化<kbd class="k must">MUST</kbd>结合<strong>校验器覆盖面的变更历史</strong>解读。</p>
+</div>
+
+<h5>漂移的成本曲线</h5>
+
+<figure><div class="svgbox">
+<svg viewBox="0 0 620 190" role="img" aria-label="漂移发现时点与修复成本的关系">
+  <line x1="60" y1="150" x2="580" y2="150" stroke="var(--line)" stroke-width="1.5"/>
+  <line x1="60" y1="150" x2="60" y2="20" stroke="var(--line)" stroke-width="1.5"/>
+  <text x="46" y="26" class="dim" text-anchor="end">高</text>
+  <text x="46" y="152" class="dim" text-anchor="end">低</text>
+  <text x="18" y="90" class="dim" text-anchor="middle" transform="rotate(-90 18 90)">修复成本</text>
+
+  <path d="M 60 144 Q 180 138 250 118 Q 340 90 420 56 Q 500 26 570 18"
+        fill="none" stroke="var(--must)" stroke-width="2.5"/>
+
+  <line x1="150" y1="150" x2="150" y2="30" stroke="var(--line-soft)" stroke-dasharray="3,3"/>
+  <line x1="250" y1="150" x2="250" y2="30" stroke="var(--line-soft)" stroke-dasharray="3,3"/>
+  <line x1="420" y1="150" x2="420" y2="30" stroke="var(--line-soft)" stroke-dasharray="3,3"/>
+
+  <text x="105" y="168" class="dim" text-anchor="middle">写代码时</text>
+  <text x="200" y="168" class="dim" text-anchor="middle">本地测试</text>
+  <text x="335" y="168" class="dim" text-anchor="middle">CI</text>
+  <text x="500" y="168" class="dim" text-anchor="middle">上线后 / 审计时</text>
+
+  <circle cx="105" cy="142" r="4" fill="var(--may)"/>
+  <text x="105" y="132" class="dim" text-anchor="middle" style="fill:var(--may)">元语先行</text>
+  <circle cx="200" cy="126" r="4" fill="var(--may)"/>
+  <text x="200" y="116" class="dim" text-anchor="middle" style="fill:var(--may)">VC-9 闸门在此</text>
+  <circle cx="335" cy="92" r="4" fill="var(--should)"/>
+  <circle cx="500" cy="26" r="4" fill="var(--must)"/>
+  <text x="500" y="44" class="dim" text-anchor="middle" style="fill:var(--must)">已叠加多轮错误改动</text>
+</svg>
+</div><figcaption>图 25-1 · 漂移发现时点与修复成本。VC-9 与"元语先行"（MS-35）把发现点左移。</figcaption></figure>
+
+<p>成本曲线是超线性的，原因不是修复本身变难，而是<strong>基于错误事实产生的下游改动数量随时间增长</strong>。这解释了本规范两处看似繁琐的要求：<code>VC-9</code>（闸门内移到本地）与 <code>MS-35</code>（元语先行）。二者都是把发现点尽量左移，而左移一步的收益远大于把校验器写得更聪明。</p>
+
+<h4>25.8 校验器套件的组织</h4>
+
+<div class="tw"><table>
+<thead><tr><th>要求</th><th>做法</th></tr></thead>
+<tbody>
+<tr><td>聚合入口</td><td>单一命令跑全部校验器，逐条输出结果</td></tr>
+<tr><td>秒级</td><td>全套<kbd class="k should">SHOULD</kbd>在数秒内完成——慢闸门会被绕过</td></tr>
+<tr><td>独立可跑</td><td>每个校验器<kbd class="k must">MUST</kbd>可单独执行，便于定位与负向验证</td></tr>
+<tr><td>共享解析层</td><td>markdown 表格/代码块解析<kbd class="k should">SHOULD</kbd>抽公共模块——<strong>解析不一致会导致同一份文档在不同校验器眼中不同</strong></td></tr>
+<tr><td>退出码</td><td>0 = 全绿；非 0 = 有失败。警告<kbd class="k must NOT">MUST NOT</kbd>影响退出码</td></tr>
+</tbody>
+</table></div>
+
+<!-- ═══════════════════════ PART IV ═══════════════════════ -->
+
+<div class="part-head" id="partIV">
+  <div class="kicker">Part IV</div>
+  <h2>Agent Architecture · 智能体架构</h2>
+  <p>智能体的模型、动作分级、血缘要求，以及每个角色的职责契约。<a href="#ch26">§26</a>–<a href="#ch27">§27</a> 为规范性内容（Part III 多处依赖）；<a href="#ch28">§28</a>–<a href="#ch34">§34</a> 已定义范围与角色模板，条款待补。</p>
+</div>
+
+<h3 class="ch" id="ch26"><span class="num">Chapter 26</span>智能体模型与生命周期<a class="anchor" href="#ch26">#</a></h3>
+
+<h4>26.1 智能体的定义</h4>
+
+<div class="rule">
+<p><span class="rid">AG-1</span>本规范中的<strong>智能体</strong>是一个四元组：<code>(角色, 知识切片, 工具面, 动作等级上限)</code>。四项<kbd class="k must">MUST</kbd>全部在能力注册表在册（<code>MS-37</code>）。<kbd class="k must NOT">MUST NOT</kbd>存在"临时提升权限"或"运行时扩展工具面"的机制。</p>
+</div>
+
+<p>把工具面与动作等级写进定义，而不是作为运行时参数，是本规范与通用 agent 框架的关键差异（<a href="#ch10">§10.2</a>）。一个智能体<strong>能做什么</strong>在它被创建之前就已确定并可审计。</p>
+
+<h4>26.2 生命周期</h4>
+
+<figure><div class="svgbox">
+<svg viewBox="0 0 700 132" role="img" aria-label="智能体生命周期七阶段">
+  <g font-size="11">
+  <rect x="8" y="34" width="88" height="40" rx="4" class="box-a"/><text x="52" y="52" class="lbl" text-anchor="middle" style="font-size:10.5px">Instantiate</text><text x="52" y="66" class="sub" text-anchor="middle">按注册表</text>
+  <rect x="106" y="34" width="88" height="40" rx="4" class="box"/><text x="150" y="52" class="lbl" text-anchor="middle" style="font-size:10.5px">Load</text><text x="150" y="66" class="sub" text-anchor="middle">知识切片</text>
+  <rect x="204" y="34" width="88" height="40" rx="4" class="box"/><text x="248" y="52" class="lbl" text-anchor="middle" style="font-size:10.5px">Execute</text><text x="248" y="66" class="sub" text-anchor="middle">非确定</text>
+  <rect x="302" y="34" width="88" height="40" rx="4" class="box"/><text x="346" y="52" class="lbl" text-anchor="middle" style="font-size:10.5px">Gate</text><text x="346" y="66" class="sub" text-anchor="middle">确定性闸门</text>
+  <rect x="400" y="34" width="88" height="40" rx="4" class="box"/><text x="444" y="52" class="lbl" text-anchor="middle" style="font-size:10.5px">Review</text><text x="444" y="66" class="sub" text-anchor="middle">独立审查</text>
+  <rect x="498" y="34" width="88" height="40" rx="4" class="box"/><text x="542" y="52" class="lbl" text-anchor="middle" style="font-size:10.5px">Release</text><text x="542" y="66" class="sub" text-anchor="middle">人工放行</text>
+  <rect x="596" y="34" width="96" height="40" rx="4" class="box-a"/><text x="644" y="52" class="lbl" text-anchor="middle" style="font-size:10.5px">Record</text><text x="644" y="66" class="sub" text-anchor="middle">血缘落盘</text>
+  </g>
+  <path d="M 96 54 L 104 54" class="arw" marker-end="url(#ah7)"/>
+  <path d="M 194 54 L 202 54" class="arw" marker-end="url(#ah7)"/>
+  <path d="M 292 54 L 300 54" class="arw" marker-end="url(#ah7)"/>
+  <path d="M 390 54 L 398 54" class="arw" marker-end="url(#ah7)"/>
+  <path d="M 488 54 L 496 54" class="arw" marker-end="url(#ah7)"/>
+  <path d="M 586 54 L 594 54" class="arw" marker-end="url(#ah7)"/>
+  <path d="M 346 74 L 346 96 L 248 96 L 248 74" class="arw" stroke-dasharray="3,3" marker-end="url(#ah7)"/>
+  <text x="297" y="110" class="dim" text-anchor="middle">闸门失败 → 迭代（计入护栏上限）</text>
+  <text x="8" y="22" class="dim">非确定性只存在于 Execute 内；其余六阶段全部确定性（§5.4）</text>
+  <defs><marker id="ah7" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--fg-mute)"/></marker></defs>
+</svg>
+</div><figcaption>图 26-1 · 智能体生命周期。Record 阶段无条件执行，包括失败与中止的会话。</figcaption></figure>
+
+<div class="rule">
+<p><span class="rid">AG-2</span>Record 阶段<kbd class="k must">MUST</kbd>无条件执行，包括会话失败、超护栏中止、人工取消的情形。<strong>只记录成功会话的血缘是有偏采样</strong>，会使幻觉率与成功率指标失去意义。</p>
+</div>
+
+<h4>26.3 无状态原则</h4>
+
+<div class="rule">
+<p><span class="rid">AG-3</span>智能体<kbd class="k must NOT">MUST NOT</kbd>跨会话持有项目知识。每次实例化<kbd class="k must">MUST</kbd>从元语重新加载。跨会话可携带的只有：任务状态（typed，<a href="#ch13">§13.3</a>）、血缘引用、以及运行时的 checkpoint（<a href="#ch38">§38</a>）。</p>
+</div>
+
+<p>"Agent Memory" 在本规范中<strong>不是</strong>知识存储。它只允许存放两类内容：① 指向元语的语义引用；② 本次任务的中间状态。<strong>把项目事实存进 agent memory 会立刻重建 <code>PS-1</code></strong>——不同智能体的 memory 会分叉，而分叉不可检测。</p>
+
+<h3 class="ch" id="ch27"><span class="num">Chapter 27</span>能力注册表与动作分级<a class="anchor" href="#ch27">#</a></h3>
+
+<p class="lead">本章定义 <code>AGENT-OPS.md</code> 记录的内容模型（文件形态见 <a href="#ch23">§23.2</a>）。这是一致性等级 <code>C2</code> 的核心要求。</p>
+
+<h4>27.1 能力注册表</h4>
+
+<div class="tw"><table>
+<thead><tr><th>列</th><th>含义</th><th>约束</th></tr></thead>
+<tbody>
+<tr><td>角色 id</td><td>全局唯一标识</td><td>反引号包裹，可 grep</td></tr>
+<tr><td>形态</td><td>单 agent 串行 / Supervisor 编排 / 并行 worker</td><td>须与实际实现一致</td></tr>
+<tr><td>允许的工具面</td><td>该角色可调用的工具集合</td><td><kbd class="k must">MUST</kbd>是闭集；经 MCP 授权（<a href="#ch39">§39</a>）</td></tr>
+<tr><td>最高动作等级</td><td><code>L0</code>–<code>L2</code></td><td><kbd class="k must NOT">MUST NOT</kbd>为 <code>L3</code>（<code>L3</code> 无放行路径）</td></tr>
+<tr><td>血缘</td><td>是否必须落血缘</td><td><code>L1</code> 以上<kbd class="k must">MUST</kbd>为"必须"</td></tr>
+</tbody>
+</table></div>
+
+<h4>27.2 动作分级</h4>
+
+<div class="rule">
+<p><span class="rid">AG-4</span>动作分级<kbd class="k must">MUST</kbd>按<strong>改动的可逆性与影响面</strong>划分，<kbd class="k must NOT">MUST NOT</kbd>按改动规模（行数、文件数）划分。分级的载体<kbd class="k must">MUST</kbd>是<strong>路径面</strong>，使归级可由机器判定而非人工判断。</p>
+</div>
+
+<div class="tw"><table>
+<thead><tr><th>等级</th><th>典型范围</th><th>策略</th><th>血缘</th></tr></thead>
+<tbody>
+<tr><td><code>L0-readonly</code></td><td>读文件 · 跑检查命令 · 查版本历史 · 只读查询</td><td>智能体自主</td><td>可选</td></tr>
+<tr><td><code>L1-low-write</code></td><td>非契约面代码 · 测试 · 文档的<strong>叙述段</strong>（<code>MS-7</code>）</td><td>智能体自主 + 事后审计</td><td><kbd class="k must">MUST</kbd></td></tr>
+<tr><td><code>L2-high-write</code></td><td>契约层 · 数据层 · 合规敏感模块 · 元语的<strong>契约段</strong> · CI 配置 · 治理脚本 · 向受保护分支推送</td><td><strong>强制人工放行</strong></td><td><kbd class="k must">MUST</kbd>含放行人</td></tr>
+<tr><td><code>L3-forbidden</code></td><td>见 §27.3</td><td><strong>不设放行路径</strong></td><td>—</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">AG-5</span>"按规模分级"<kbd class="k must NOT">MUST NOT</kbd>被采用。理由：一个字符的改动可以把 fail-closed 翻转成 fail-open（<a href="#ch4">§4</a> <code>FP-4</code> 的 Evidence），而重构一千行测试可能零风险。<strong>规模与风险无相关性</strong>。</p>
+</div>
+
+<h4>27.3 L3 禁令的判据</h4>
+
+<div class="rule">
+<p><span class="rid">AG-6</span>一条约束归入 <code>L3</code> 的<strong>充分必要条件</strong>是：<em>即使有人批准，该动作本身仍然违规，或造成不可逆的证据损坏</em>。满足此判据的<kbd class="k must NOT">MUST NOT</kbd>提供放行路径；不满足的<kbd class="k must NOT">MUST NOT</kbd>放进 <code>L3</code>（应归 <code>L2</code>）。</p>
+</div>
+
+<div class="note">
+<span class="lbl">判据的实际作用：把流程偏好赶出 L3</span>
+<p>参考实现最初把"不在主分支直接提交"写为禁令，后来发现它与该仓库<strong>全部历史矛盾</strong>——这是一条无人遵守的摆设规则。按 <code>AG-6</code> 重判：直推主分支是<strong>流程偏好</strong>，不是"放行也不合规"的动作，因此归 <code>L2</code>（须人放行）而非 <code>L3</code>。</p>
+<p>摆设规则的危害与假绿同构：它存在、被写进文档、但从不生效，同时让人以为该风险已被覆盖。<code>AG-6</code> 的价值在于提供一个能<strong>把它们识别出来</strong>的判据。</p>
+</div>
+
+<div class="tw"><table>
+<thead><tr><th>典型 <code>L3</code> 禁令</th><th>为什么放行也不行</th></tr></thead>
+<tbody>
+<tr><td>修改<strong>已应用</strong>的数据迁移</td><td>迁移历史是"系统曾是什么样"的证据；改它等于伪造历史。修 bug 只能出新迁移</td></tr>
+<tr><td>削弱审计不可删守护</td><td>直接违反产品对客户与检查方的核心承诺</td></tr>
+<tr><td>给不变量测试加跳过标记或删断言</td><td>让守护形同虚设却仍显示绿——<strong>假绿比没测试更危险</strong></td></tr>
+<tr><td>修改或删除已有血缘记录</td><td>血缘是受监管记录；事后可改就等于没有（<code>FINV-7</code>）</td></tr>
+<tr><td>把真实密钥写进入库文件</td><td>不可撤回（历史永在）</td></tr>
+</tbody>
+</table></div>
+
+<h4>27.4 决策血缘</h4>
+
+<div class="rule inv">
+<p><span class="rid">FINV-7</span>血缘记录<kbd class="k must">MUST</kbd>是 append-only：已写入的记录<kbd class="k must NOT">MUST NOT</kbd>被修改或删除。此约束<kbd class="k must">MUST</kbd>由存储层强制，<kbd class="k must NOT">MUST NOT</kbd>仅靠约定——<strong>血缘事后可改就等于没有血缘</strong>。</p>
+</div>
+
+<div class="rule">
+<p><span class="rid">AG-7</span>每次智能体会话<kbd class="k must">MUST</kbd>产生<strong>一份</strong>血缘记录。记录写错时<kbd class="k must">MUST</kbd>新增一条<strong>更正记录</strong>指向原记录，<kbd class="k must NOT">MUST NOT</kbd>修改原件（<code>FINV-7</code>）。</p>
+</div>
+
+<div class="tw"><table>
+<thead><tr><th>字段</th><th>含义</th><th>合规属性</th></tr></thead>
+<tbody>
+<tr><td><code>run_id</code></td><td>全局唯一标识</td><td>—</td></tr>
+<tr><td><code>started_at</code> / <code>ended_at</code></td><td>UTC 时间戳</td><td><em>同步</em>——禁事后补录；补录须显式标记并说明原因</td></tr>
+<tr><td><code>agent</code></td><td>角色 id（须在册）+ 模型标识</td><td><em>可归属</em></td></tr>
+<tr><td><code>goal</code></td><td>一句话目标陈述</td><td>—</td></tr>
+<tr><td><code>action_level</code></td><td>本次触及的最高等级</td><td>—</td></tr>
+<tr><td><code>files</code></td><td>触及文件路径数组</td><td><em>可追溯</em></td></tr>
+<tr><td><code>declares</code></td><td>声明触及的约束 ID（<kbd class="k must">MUST</kbd>在登记册在册）</td><td><em>准确</em>——与实际改动不符即"幻觉"</td></tr>
+<tr><td><code>gates</code></td><td>各闸门结果</td><td>—</td></tr>
+<tr><td><code>human_release</code></td><td><code>L2</code> 必填：放行人 + 方式</td><td><em>可归属</em></td></tr>
+<tr><td><code>iterations</code></td><td>迭代轮数</td><td>护栏判据</td></tr>
+<tr><td><code>cost</code></td><td>token / 计算分钟；未知填 <code>null</code> <strong>而非 0</strong></td><td><em>准确</em></td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">AG-8</span>未知的度量值<kbd class="k must">MUST</kbd>记为空值，<kbd class="k must NOT">MUST NOT</kbd>记为 0。<strong>0 是一个断言（"没有花费"），空值是一个事实（"未测量"）</strong>——二者混淆会污染成本度量。</p>
+</div>
+
+<div class="rule">
+<p><span class="rid">AG-9</span><code>files</code> 中出现 <code>L2</code> 路径面时，<code>human_release</code> <kbd class="k must NOT">MUST NOT</kbd>为空。校验器<kbd class="k must">MUST</kbd>强制此关联——这把"必须声明触及哪条约束"从君子协定变成机器闸门。</p>
+</div>
+
+<h4>27.5 护栏</h4>
+
+<div class="tw"><table>
+<thead><tr><th>护栏</th><th>要求</th><th>超限行为</th></tr></thead>
+<tbody>
+<tr><td>单任务迭代上限</td><td><kbd class="k must">MUST</kbd>在册</td><td><strong>升级给人，不静默重试</strong></td></tr>
+<tr><td>单任务 token 预算</td><td><code>C4</code> 起 <kbd class="k must">MUST</kbd></td><td>中止 + 落血缘</td></tr>
+<tr><td>单任务计算分钟预算</td><td><code>C4</code> 起 <kbd class="k must">MUST</kbd></td><td>中止 + 落血缘</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">AG-10</span>护栏阈值<kbd class="k must">MUST</kbd>在编排面上线<strong>之前</strong>确定并在册，即使当时尚无运行时强制点。无强制点的事实<kbd class="k must">MUST</kbd>登记在豁免表（<code>MS-39</code>）。理由：先定阈值可避免上线时临时拍数字，且符合 <code>FG-6</code>（治理与自主性同步交付）。</p>
+</div>
+
+<h4>27.6 待补条款</h4>
+
+<div class="stub">
+<span class="lbl">Scope · 本章待补</span>
+<p><strong>①</strong> 动作等级的<strong>自动归级算法</strong>：给定一组改动路径，判定最高等级的确定性规则（含通配符优先级与冲突处理）。<strong>②</strong> 跨项目的等级映射：同一角色在不同一致性等级项目中的上限差异。<strong>③</strong> 血缘记录的保留期限与归档策略（与项目的留存要求关联，属项目 <code>DECISIONS.md</code>）。</p>
+</div>
+
+<h3 class="ch" id="ch28"><span class="num">Chapter 28</span>Supervisor Agent<a class="anchor" href="#ch28">#</a></h3>
+
+<h4>28.1 角色契约模板</h4>
+
+<p><a href="#ch28">§28</a>–<a href="#ch33">§33</a> 的每个角色<kbd class="k must">MUST</kbd>按同一模板定义。模板本身是规范性的：</p>
+
+<div class="tw"><table>
+<thead><tr><th>#</th><th>项</th><th>要求</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><strong>职责</strong></td><td>一句话。<kbd class="k must NOT">MUST NOT</kbd>与其他角色重叠</td></tr>
+<tr><td>2</td><td><strong>输入</strong></td><td>typed 任务状态 + 声明需要的知识切片</td></tr>
+<tr><td>3</td><td><strong>输出</strong></td><td>typed，<kbd class="k must">MUST</kbd>可 parse；parse 失败即中断（<code>FR-14</code>）</td></tr>
+<tr><td>4</td><td><strong>Prompt 契约</strong></td><td>结构与变量位（内容规范见 <a href="#apxE">附录 E</a>）</td></tr>
+<tr><td>5</td><td><strong>动作等级上限</strong></td><td><code>L0</code>–<code>L2</code></td></tr>
+<tr><td>6</td><td><strong>工具面</strong></td><td>闭集，经 MCP 授权</td></tr>
+<tr><td>7</td><td><strong>禁止事项</strong></td><td>该角色特有的禁令</td></tr>
+<tr><td>8</td><td><strong>Memory</strong></td><td><kbd class="k must">MUST</kbd>符合 <code>AG-3</code>（不存项目事实）</td></tr>
+<tr><td>9</td><td><strong>Review Checklist</strong></td><td>该角色产出被审查时的检查项</td></tr>
+</tbody>
+</table></div>
+
+<h4>28.2 Supervisor 的已定条款</h4>
+
+<div class="rule">
+<p><span class="rid">AG-11</span>Supervisor <kbd class="k must">MUST</kbd>是<strong>唯一决策者</strong>：任务拆分、路由、合成、失败重派均由它裁决。Worker <kbd class="k must NOT">MUST NOT</kbd> import 其他 Worker——此约束<kbd class="k must">MUST</kbd>由约定测试守护，而非仅靠 prompt 约定。</p>
+</div>
+
+<div class="rule">
+<p><span class="rid">AG-12</span>Worker <kbd class="k must NOT">MUST NOT</kbd> import 任何能触达 <code>L2</code>/<code>L3</code> 动作的客户端。<strong>放行权不下放</strong>——这同样由 import 边界测试守护。</p>
+</div>
+
+<div class="stub">
+<span class="lbl">Scope · 本章待补</span>
+<p>Supervisor 的完整契约（模板九项）· 任务拆分的粒度判据 · 路由决策的确定性部分与非确定性部分的分界 · 失败重派的次数与降级策略 · 与护栏（<code>AG-10</code>）的交互。<strong>依赖</strong>：<a href="#ch41">§41</a> 工作流模型定稿。</p>
+</div>
+
+<h3 class="ch" id="ch29"><span class="num">Chapter 29</span>Spec Agent<a class="anchor" href="#ch29">#</a></h3>
+<div class="stub">
+<span class="lbl">Scope</span>
+<p><strong>职责</strong>：读元语与需求，产出 typed 任务卡（含该触及哪条不变量）。<strong>关键约束</strong>：任务卡中的项目事实<kbd class="k must">MUST</kbd>用语义引用（<code>FR-17</code>），<kbd class="k must NOT">MUST NOT</kbd>内联摘要。<strong>动作等级</strong>：<code>L0</code>。<strong>待补</strong>：任务卡 schema · 不变量声明的推导规则 · 需求歧义时的升级路径。</p>
+</div>
+
+<h3 class="ch" id="ch30"><span class="num">Chapter 30</span>Impl Agent<a class="anchor" href="#ch30">#</a></h3>
+<div class="stub">
+<span class="lbl">Scope</span>
+<p><strong>职责</strong>：按"黄金纵切"（项目中已验证的参照实现目录）完成实现。<strong>关键约束</strong>：<kbd class="k must">MUST</kbd>先读邻近文件仿照，<kbd class="k must NOT">MUST NOT</kbd>凭记忆写；触及 <code>L2</code> 面时<kbd class="k must">MUST</kbd>显式声明触及的不变量。<strong>动作等级</strong>：<code>L2</code>（须放行）。<strong>待补</strong>：黄金纵切的选取与登记规则 · 邻近文件的判定 · 与 Test Agent 的交接契约。</p>
+</div>
+
+<h3 class="ch" id="ch31"><span class="num">Chapter 31</span>Test Agent<a class="anchor" href="#ch31">#</a></h3>
+<div class="stub">
+<span class="lbl">Scope</span>
+<p><strong>职责</strong>：先写不变量与契约测试，再交给 Impl。<strong>关键约束</strong>：<kbd class="k must NOT">MUST NOT</kbd>为使测试通过而放宽断言；给不变量测试加跳过标记属 <code>L3</code> 禁令（§27.3）。<strong>动作等级</strong>：<code>L1</code>。<strong>待补</strong>：测试先行的交接时序 · 负向验证（<code>VC-7</code>）在角色层的落点 · 与既有失败的归属判断（<a href="#ch23">§23.3</a> "先判归属"）。</p>
+</div>
+
+<h3 class="ch" id="ch32"><span class="num">Chapter 32</span>Reviewer Agent<a class="anchor" href="#ch32">#</a></h3>
+<div class="stub">
+<span class="lbl">Scope</span>
+<p><strong>职责</strong>：独立审查改动，作为进入人工放行前的质量闸门。<strong>关键约束</strong>：<kbd class="k must">MUST</kbd>与产出方是不同实例；<kbd class="k must NOT">MUST NOT</kbd>持有产出方的会话上下文（否则退化为自我审查）；合规路径的审查<kbd class="k must">MUST</kbd>逐条读守卫判据的<strong>否定分支</strong>（<code>FP-4</code>）。<strong>动作等级</strong>：<code>L0</code>。<strong>待补</strong>：审查清单的生成规则（按触及的路径面与不变量派生）· 打回与放行的判据 · 与确定性闸门的顺序（校验器<kbd class="k must">MUST</kbd>先于 Reviewer，理由见 <code>FINV-1</code>）。</p>
+</div>
+
+<h3 class="ch" id="ch33"><span class="num">Chapter 33</span>Guard Agent<a class="anchor" href="#ch33">#</a></h3>
+<div class="stub">
+<span class="lbl">Scope</span>
+<p><strong>职责</strong>：监控其他智能体的越权、漂移与成本，触发升级。<strong>关键约束</strong>：Guard 本身<kbd class="k must">MUST</kbd>为 <code>L0</code>；它的判断依据<kbd class="k must">MUST</kbd>尽可能来自确定性信号（血缘字段、闸门结果、计量数据），<kbd class="k must NOT">MUST NOT</kbd>用模型判断"这个改动看起来是否越权"——越权判定是路径面匹配，属确定性规则（<code>FINV-1</code>）。<strong>待补</strong>：升级路径与通知契约 · 护栏运行时强制点的实现（<code>C4</code> 要求）· 与豁免表的交互。</p>
+</div>
+
+<h3 class="ch" id="ch34"><span class="num">Chapter 34</span>禁止智能体化的面<a class="anchor" href="#ch34">#</a></h3>
+
+<p class="lead">本章是 <code>FINV-1</code> 的操作化清单。它规定哪些能力<kbd class="k must NOT">MUST NOT</kbd>被实现为智能体。</p>
+
+<div class="rule">
+<p><span class="rid">AG-13</span>以下面<kbd class="k must NOT">MUST NOT</kbd>实现为智能体，<kbd class="k must">MUST</kbd>保持确定性实现：<strong>①</strong> 元语校验器；<strong>②</strong> 类型检查与静态检查；<strong>③</strong> 迁移生成；<strong>④</strong> 不变量的运行时校验（如互斥关系、唯一性、哈希链）；<strong>⑤</strong> 动作等级的归级判定；<strong>⑥</strong> 预算与迭代护栏的计数。</p>
+</div>
+
+<h4>34.1 判据</h4>
+
+<div class="tw"><table>
+<thead><tr><th>问题</th><th>是 → 禁止智能体化</th></tr></thead>
+<tbody>
+<tr><td>该判断能否写成规则（含查表、集合运算、模式匹配）？</td><td>能 → 禁止</td></tr>
+<tr><td>相同输入是否必须产生相同输出？</td><td>是 → 禁止</td></tr>
+<tr><td>该判断的<strong>错误</strong>是否会导致假绿？</td><td>是 → 禁止（模型的错误不可复现，无法回归）</td></tr>
+<tr><td>该判断是否构成合规证据？</td><td>是 → 禁止（不可验证的证据不是证据）</td></tr>
+</tbody>
+</table></div>
+
+<h4>34.2 为什么这条必须是不变量</h4>
+
+<p>把确定性检查做成智能体，会同时失去三样东西：<strong>可复现性</strong>（同一输入两次结果可能不同）、<strong>可验证性</strong>（无法对检查器本身做负向验证）、<strong>可解释性</strong>（无法回答"为什么这次判通过"）。而这三样恰好是整个一致性体系的地基。</p>
+
+<div class="note warn">
+<span class="lbl">一个诱人但错误的方向</span>
+<p>"让一个 Reviewer Agent 去检查文档与代码是否一致"听起来比写十三个校验器省事得多。但这样做的结果是：漂移检测本身变成了一个会产生幻觉的过程——<strong>它可能报告不存在的漂移，也可能漏掉真实的漂移，且两种错误都无法被系统地发现</strong>。校验器可以被负向验证，模型判断不能。</p>
+</div>
+
+<!-- ═══════════════════════ PART V ═══════════════════════ -->
+
+<div class="part-head" id="partV">
+  <div class="kicker">Part V</div>
+  <h2>Runtime · 运行时</h2>
+  <p>运行时抽象接口、Claude Agent SDK 绑定、会话与检查点机制、工具面与替换协议。<a href="#ch35">§35</a> 为规范性内容（<code>FINV-5</code>/<code>FG-5</code> 依赖）；其余章节已定范围。</p>
+</div>
+
+<h3 class="ch" id="ch35"><span class="num">Chapter 35</span>运行时抽象接口<a class="anchor" href="#ch35">#</a></h3>
+
+<div class="rule">
+<p><span class="rid">RT-1</span>工厂层与运行时之间<kbd class="k must">MUST</kbd>只有一个接口文件。该文件<kbd class="k must NOT">MUST NOT</kbd> import 任何厂商 SDK 类型。全部厂商适配<kbd class="k must">MUST</kbd>位于 <code>runtime/&lt;vendor&gt;/</code> 内并实现该接口。</p>
+</div>
+
+<h4>35.1 接口方法</h4>
+
+<div class="tw"><table>
+<thead><tr><th>方法</th><th>语义</th><th>确定性要求</th></tr></thead>
+<tbody>
+<tr><td><code>run(activity)</code></td><td>执行一次活动，返回 typed 结果</td><td>结果<kbd class="k must">MUST</kbd>可 parse；parse 失败即中断</td></tr>
+<tr><td><code>handoff(from, to, state)</code></td><td>把 typed 状态交给另一角色</td><td>state <kbd class="k must NOT">MUST NOT</kbd>含自由文本形式的项目事实（<code>FR-17</code>）</td></tr>
+<tr><td><code>resume(checkpoint)</code></td><td>从检查点恢复</td><td>恢复后<kbd class="k must">MUST</kbd>能继续通过后续闸门</td></tr>
+<tr><td><code>cancel(runId, reason)</code></td><td>中止并落血缘</td><td><kbd class="k must">MUST</kbd>触发 Record 阶段（<code>AG-2</code>）</td></tr>
+<tr><td><code>checkpoint(runId)</code></td><td>写检查点</td><td>—</td></tr>
+<tr><td><code>meter(runId)</code></td><td>返回 token 与时长计量</td><td>未知<kbd class="k must">MUST</kbd>返回空值而非 0（<code>AG-8</code>）</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">RT-2</span>接口<kbd class="k must NOT">MUST NOT</kbd>暴露"让智能体自行决定下一步"的方法。推进由工作流裁决（<code>FG-3</code>）；运行时只负责<strong>执行被指定的活动</strong>。</p>
+</div>
+
+<div class="stub">
+<span class="lbl">Scope · 本章待补</span>
+<p>完整类型签名 · 错误分类（可重试 / 不可重试 / 须升级）· 流式输出的契约 · 并发与隔离要求 · 接口版本演进规则。</p>
+</div>
+
+<h3 class="ch" id="ch36"><span class="num">Chapter 36</span>Claude Agent SDK 绑定<a class="anchor" href="#ch36">#</a></h3>
+<div class="stub">
+<span class="lbl">Scope</span>
+<p>选型理由与替代方案否决记录已定稿于 <a href="#ch10">§10.2</a>（<code>FADR-1</code>），本章不重复。<strong>待补</strong>：SDK 概念到 <code>RT-1</code> 接口的逐项映射（Agent / Session / SubAgent / Tool / Streaming）· 工具面经 MCP 收窄的具体配置 · 计量数据的获取路径 · SDK 能力缺口与补偿方案 · 版本升级的兼容性检查清单。</p>
+</div>
+
+<h3 class="ch" id="ch37"><span class="num">Chapter 37</span>Session / Handoff / SubAgent<a class="anchor" href="#ch37">#</a></h3>
+<div class="stub">
+<span class="lbl">Scope</span>
+<p>会话边界与知识切片的对应关系 · Handoff 时的 typed state 契约 · SubAgent 与独立 Agent 实例的选用判据（关键：SubAgent 共享父上下文，会破坏 Reviewer 的独立性要求，见 <a href="#ch32">§32</a>）· 上下文预算的分配策略。</p>
+</div>
+
+<h3 class="ch" id="ch38"><span class="num">Chapter 38</span>Checkpoint 与恢复<a class="anchor" href="#ch38">#</a></h3>
+<div class="stub">
+<span class="lbl">Scope</span>
+<p>检查点的写入时机（<kbd class="k should">SHOULD</kbd>在每次闸门前后）· 检查点内容与血缘记录的关系（<strong>两者不同</strong>：检查点用于恢复执行，血缘用于事后审计，<a href="#ch5">§5.4</a>）· 恢复后的闸门重跑要求 · 检查点的保留期限。</p>
+</div>
+
+<h3 class="ch" id="ch39"><span class="num">Chapter 39</span>工具面与 MCP<a class="anchor" href="#ch39">#</a></h3>
+
+<div class="rule">
+<p><span class="rid">RT-3</span>智能体的工具调用<kbd class="k must">MUST</kbd>经 MCP 或等价的<strong>可声明能力面</strong>进行。工具面的收窄<kbd class="k must NOT">MUST NOT</kbd>依赖 prompt 中的自然语言约束。</p>
+</div>
+
+<p>理由是可验证性：写在 prompt 里的"请不要修改迁移文件"是不可验证的；而 MCP server <strong>不暴露</strong>该能力是可验证的。<strong>智能体能做什么由 server 暴露什么决定</strong>——这比约定可靠一个量级，且它把工具面变成了可审计的接口。</p>
+
+<div class="stub">
+<span class="lbl">Scope · 本章待补</span>
+<p>角色 × 工具面授权矩阵的 schema · 校验器 / 不变量测试 / schema 差异 / 状态机查询暴露为 MCP server 的接口定义 · 工具调用的血缘落点 · 只读与写入工具的分离规则。</p>
+</div>
+
+<h3 class="ch" id="ch40"><span class="num">Chapter 40</span>运行时替换协议<a class="anchor" href="#ch40">#</a></h3>
+
+<div class="rule">
+<p><span class="rid">RT-4</span>新增运行时绑定<kbd class="k must">MUST</kbd>提交<strong>替换证明</strong>：在切换绑定的提交中，<code>factory/</code> 与项目元语的改动<kbd class="k must">MUST</kbd>为零（<code>FINV-5</code>）。非零改动<kbd class="k must">MUST</kbd>被视为职责泄漏并修复，<kbd class="k must NOT">MUST NOT</kbd>作为例外接受。</p>
+</div>
+
+<div class="stub">
+<span class="lbl">Scope · 本章待补</span>
+<p>一致性测试套件（同一活动在不同运行时上须产生等价的 typed 结果与闸门判定）· 能力缺口的声明格式 · 多运行时并存时的路由规则 · 迁移期的双跑校验。</p>
+</div>
+
+<!-- ═══════════════════════ PART VI ═══════════════════════ -->
+
+<div class="part-head" id="partVI">
+  <div class="kicker">Part VI</div>
+  <h2>Workflow · 工作流</h2>
+  <p>工作流模型与六类工作流的阶段序列。<a href="#ch41">§41</a> 为规范性内容；<a href="#ch42">§42</a>–<a href="#ch47">§47</a> 已定阶段序列与闸门位置，时序细节与异常分支待补。</p>
+</div>
+
+<h3 class="ch" id="ch41"><span class="num">Chapter 41</span>工作流模型<a class="anchor" href="#ch41">#</a></h3>
+
+<h4>41.1 三层结构</h4>
+
+<div class="tw"><table>
+<thead><tr><th>层</th><th>确定性</th><th>内容</th><th>可重放</th></tr></thead>
+<tbody>
+<tr><td><strong>Workflow</strong></td><td><kbd class="k must">MUST</kbd> 确定性</td><td>阶段序列、推进条件、闸门位置、失败路由</td><td>是</td></tr>
+<tr><td><strong>Gate</strong></td><td><kbd class="k must">MUST</kbd> 确定性</td><td>校验器、类型检查、测试、动作等级判定</td><td>是</td></tr>
+<tr><td><strong>Activity</strong></td><td><kbd class="k may">MAY</kbd> 非确定</td><td>智能体执行的具体工作</td><td>否（但输入输出可重放）</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule inv">
+<p><span class="rid">FINV-9</span>非确定性<kbd class="k must">MUST</kbd>被隔离在 Activity 内部。阶段之间的<strong>推进条件</strong><kbd class="k must">MUST</kbd>是确定性的，<kbd class="k must NOT">MUST NOT</kbd>由模型判断"是否可以进入下一步"。违反此条会使整条工作流不可重放，<code>PS-4</code>（无法归属）无解。</p>
+</div>
+
+<h4>41.2 事件与推进</h4>
+
+<div class="rule">
+<p><span class="rid">WF-1</span>工作流的每次推进<kbd class="k must">MUST</kbd>由显式事件触发并持久化。事件序列<kbd class="k must">MUST</kbd>足以重建工作流当前状态——重启编排进程后<kbd class="k must">MUST</kbd>能从最后一个事件恢复，<kbd class="k must NOT">MUST NOT</kbd>重做已完成的活动（<code>FG-3</code>）。</p>
+</div>
+
+<h4>41.3 每类工作流的必备要素</h4>
+
+<div class="rule">
+<p><span class="rid">WF-2</span>每类工作流<kbd class="k must">MUST</kbd>定义六项：<strong>①</strong> 触发条件；<strong>②</strong> 阶段序列；<strong>③</strong> 每阶段的角色与动作等级；<strong>④</strong> 闸门位置与判据；<strong>⑤</strong> 失败路由（打回到哪个阶段）；<strong>⑥</strong> 终止条件（含放弃路径）。缺 <strong>⑤⑥</strong> 的工作流定义<kbd class="k must NOT">MUST NOT</kbd>被接受——<strong>没有失败路径的流程会在第一次失败时变成人工救火</strong>。</p>
+</div>
+
+<h4>41.4 闸门的顺序规则</h4>
+
+<div class="rule">
+<p><span class="rid">WF-3</span>同一阶段存在多个闸门时，顺序<kbd class="k must">MUST</kbd>为：<strong>确定性闸门 → Reviewer 闸门 → 人工放行</strong>。确定性闸门<kbd class="k must NOT">MUST NOT</kbd>排在模型判断之后——让模型去审查一个连类型检查都没过的改动是纯粹的浪费，且会产生关于"它本来就不该存在的代码"的意见。</p>
+</div>
+
+<h3 class="ch" id="ch42"><span class="num">Chapter 42</span>需求开发工作流<a class="anchor" href="#ch42">#</a></h3>
+
+<figure><div class="svgbox">
+<svg viewBox="0 0 700 168" role="img" aria-label="需求开发工作流阶段序列">
+  <g font-size="10.5">
+  <rect x="6" y="52" width="76" height="36" rx="4" class="box"/><text x="44" y="68" class="lbl" text-anchor="middle" style="font-size:10px">Issue</text><text x="44" y="80" class="sub" text-anchor="middle">人 · 触发</text>
+  <rect x="94" y="52" width="76" height="36" rx="4" class="box-a"/><text x="132" y="68" class="lbl" text-anchor="middle" style="font-size:10px">Spec</text><text x="132" y="80" class="sub" text-anchor="middle">L0 · 任务卡</text>
+  <rect x="182" y="52" width="76" height="36" rx="4" class="box-a"/><text x="220" y="68" class="lbl" text-anchor="middle" style="font-size:10px">Test</text><text x="220" y="80" class="sub" text-anchor="middle">L1 · 先写测试</text>
+  <rect x="270" y="52" width="76" height="36" rx="4" class="box-a"/><text x="308" y="68" class="lbl" text-anchor="middle" style="font-size:10px">Impl</text><text x="308" y="80" class="sub" text-anchor="middle">L2 · 实现</text>
+  <rect x="358" y="52" width="76" height="36" rx="4" class="box"/><text x="396" y="68" class="lbl" text-anchor="middle" style="font-size:10px">Gates</text><text x="396" y="80" class="sub" text-anchor="middle">确定性</text>
+  <rect x="446" y="52" width="76" height="36" rx="4" class="box-a"/><text x="484" y="68" class="lbl" text-anchor="middle" style="font-size:10px">Review</text><text x="484" y="80" class="sub" text-anchor="middle">L0 · 独立</text>
+  <rect x="534" y="52" width="76" height="36" rx="4" class="box"/><text x="572" y="68" class="lbl" text-anchor="middle" style="font-size:10px">Release</text><text x="572" y="80" class="sub" text-anchor="middle">人 · 放行</text>
+  <rect x="622" y="52" width="72" height="36" rx="4" class="box"/><text x="658" y="68" class="lbl" text-anchor="middle" style="font-size:10px">Deploy</text><text x="658" y="80" class="sub" text-anchor="middle">L1</text>
+  </g>
+  <g class="arw">
+  <path d="M 82 70 L 92 70" marker-end="url(#ah8)"/><path d="M 170 70 L 180 70" marker-end="url(#ah8)"/>
+  <path d="M 258 70 L 268 70" marker-end="url(#ah8)"/><path d="M 346 70 L 356 70" marker-end="url(#ah8)"/>
+  <path d="M 434 70 L 444 70" marker-end="url(#ah8)"/><path d="M 522 70 L 532 70" marker-end="url(#ah8)"/>
+  <path d="M 610 70 L 620 70" marker-end="url(#ah8)"/>
+  </g>
+  <path d="M 396 88 L 396 116 L 308 116 L 308 88" class="arw" stroke-dasharray="3,3" marker-end="url(#ah8)"/>
+  <path d="M 484 88 L 484 134 L 308 134 L 308 88" class="arw" stroke-dasharray="3,3" marker-end="url(#ah8)"/>
+  <text x="352" y="130" class="dim" text-anchor="middle">闸门失败 → 回 Impl（计入迭代护栏）</text>
+  <text x="396" y="152" class="dim" text-anchor="middle">Reviewer 打回 → 回 Impl</text>
+  <text x="6" y="36" class="dim">确定性闸门先于 Reviewer（WF-3）· Test 先于 Impl · 血缘在每个 L1+ 阶段落盘</text>
+  <defs><marker id="ah8" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="var(--fg-mute)"/></marker></defs>
+</svg>
+</div><figcaption>图 42-1 · 需求开发工作流</figcaption></figure>
+
+<div class="stub">
+<span class="lbl">Scope · 待补</span>
+<p>各阶段的 typed 输入输出 schema · Spec 阶段的需求歧义升级路径 · Test 先行的交接判据（"测试写到什么程度才算可以交给 Impl"）· 迭代计数与护栏交互 · 放弃路径（需求被撤销时的清理）。<strong>已定</strong>：阶段序列 · 闸门位置（<code>WF-3</code>）· 各阶段动作等级。</p>
+</div>
+
+<h3 class="ch" id="ch43"><span class="num">Chapter 43</span>缺陷修复工作流<a class="anchor" href="#ch43">#</a></h3>
+
+<figure><div class="svgbox">
+<svg viewBox="0 0 700 122" role="img" aria-label="缺陷修复工作流阶段序列">
+  <g font-size="10.5">
+  <rect x="6" y="40" width="82" height="36" rx="4" class="box"/><text x="47" y="56" class="lbl" text-anchor="middle" style="font-size:10px">Issue</text><text x="47" y="68" class="sub" text-anchor="middle">人 · 报告</text>
+  <rect x="100" y="40" width="96" height="36" rx="4" class="box-a"/><text x="148" y="56" class="lbl" text-anchor="middle" style="font-size:10px">Attribute</text><text x="148" y="68" class="sub" text-anchor="middle">L0 · 基线归属</text>
+  <rect x="208" y="40" width="96" height="36" rx="4" class="box-a"/><text x="256" y="56" class="lbl" text-anchor="middle" style="font-size:10px">Reproduce</text><text x="256" y="68" class="sub" text-anchor="middle">L1 · 失败测试</text>
+  <rect x="316" y="40" width="82" height="36" rx="4" class="box-a"/><text x="357" y="56" class="lbl" text-anchor="middle" style="font-size:10px">Root Cause</text><text x="357" y="68" class="sub" text-anchor="middle">L0</text>
+  <rect x="410" y="40" width="72" height="36" rx="4" class="box-a"/><text x="446" y="56" class="lbl" text-anchor="middle" style="font-size:10px">Fix</text><text x="446" y="68" class="sub" text-anchor="middle">L1/L2</text>
+  <rect x="494" y="40" width="96" height="36" rx="4" class="box"/><text x="542" y="56" class="lbl" text-anchor="middle" style="font-size:10px">Regression</text><text x="542" y="68" class="sub" text-anchor="middle">全量闸门</text>
+  <rect x="602" y="40" width="92" height="36" rx="4" class="box"/><text x="648" y="56" class="lbl" text-anchor="middle" style="font-size:10px">Review→Release</text>
+  </g>
+  <g class="arw">
+  <path d="M 88 58 L 98 58" marker-end="url(#ah8)"/><path d="M 196 58 L 206 58" marker-end="url(#ah8)"/>
+  <path d="M 304 58 L 314 58" marker-end="url(#ah8)"/><path d="M 398 58 L 408 58" marker-end="url(#ah8)"/>
+  <path d="M 482 58 L 492 58" marker-end="url(#ah8)"/><path d="M 590 58 L 600 58" marker-end="url(#ah8)"/>
+  </g>
+  <text x="6" y="24" class="dim">与需求开发的两处差异：① 增加 Attribute 阶段（先判归属）② Reproduce 产出的失败测试是 Fix 的验收条件</text>
+  <text x="6" y="106" class="dim" style="fill:var(--must)">硬约束：无根因不得进入 Fix —— 症状消失不等于缺陷修复</text>
+</svg>
+</div><figcaption>图 43-1 · 缺陷修复工作流</figcaption></figure>
+
+<div class="rule">
+<p><span class="rid">WF-4</span>缺陷修复<kbd class="k must">MUST</kbd>包含独立的 <strong>Attribute</strong> 阶段：在干净基线上确认该失败是否由当前工作引入。理由见 <a href="#ch23">§23.3</a>——智能体默认假设自己是唯一变量，会去修一个它没有造成的问题。</p>
+</div>
+
+<div class="rule">
+<p><span class="rid">WF-5</span>Reproduce 阶段<kbd class="k must">MUST</kbd>产出一个<strong>失败的测试</strong>，该测试<kbd class="k must">MUST</kbd>成为 Fix 的验收条件。<kbd class="k must NOT">MUST NOT</kbd>在无失败测试的情况下进入 Fix——否则无法区分"修好了"与"症状暂时不出现了"。</p>
+</div>
+
+<div class="stub">
+<span class="lbl">Scope · 待补</span>
+<p>根因判据（什么算"找到了根因"）· 无法复现时的路径 · 与既有已知失败清单（<code>FINV-8</code>）的交互 · 缺陷是否需要新增不变量的判断规则。</p>
+</div>
+
+<h3 class="ch" id="ch44"><span class="num">Chapter 44</span>热修复工作流<a class="anchor" href="#ch44">#</a></h3>
+<div class="stub">
+<span class="lbl">Scope</span>
+<p><strong>阶段</strong>：Incident → Contain → Minimal Fix → Gates（不可裁剪的子集）→ 人工放行 → Deploy → <strong>补做</strong>（回填测试与根因分析）。<strong>已定的硬约束</strong>：<code>L3</code> 禁令在热修复中<kbd class="k must NOT">MUST NOT</kbd>放宽；人工放行<kbd class="k must NOT">MUST NOT</kbd>省略；可裁剪的只有<strong>非闸门</strong>阶段。<strong>待补</strong>：哪些闸门属不可裁剪子集 · 补做阶段的时限与强制机制 · 与变更控制流程的对接。</p>
+</div>
+
+<h3 class="ch" id="ch45"><span class="num">Chapter 45</span>发布工作流<a class="anchor" href="#ch45">#</a></h3>
+<div class="stub">
+<span class="lbl">Scope</span>
+<p><strong>阶段</strong>：Freeze → 全量闸门 → 变更清单生成 → 人工放行 → Deploy → 验证 → 血缘归档。<strong>待补</strong>：变更清单从血缘记录生成的规则（<strong>这是把血缘变成交付物的关键环节</strong>）· 回滚判据与路径 · 版本号与提交标识的对应（<code>MS-11</code>）· 受监管场景下与验证包的对接。</p>
+</div>
+
+<h3 class="ch" id="ch46"><span class="num">Chapter 46</span>重构工作流<a class="anchor" href="#ch46">#</a></h3>
+<div class="stub">
+<span class="lbl">Scope</span>
+<p><strong>特有约束</strong>：重构的定义是"行为不变"，因此本工作流<kbd class="k must">MUST</kbd>以<strong>闸门全绿且无新增/修改断言</strong>为验收条件——修改了断言的改动不是重构。<strong>待补</strong>：元语契约段在重构中的处理（重构<kbd class="k should">SHOULD NOT</kbd>触及契约段；触及即说明它不是重构）· 大规模重构的分批与检查点策略 · 与性能变更的区分。</p>
+</div>
+
+<h3 class="ch" id="ch47"><span class="num">Chapter 47</span>研究工作流<a class="anchor" href="#ch47">#</a></h3>
+<div class="stub">
+<span class="lbl">Scope</span>
+<p><strong>特有约束</strong>：研究工作流的产出<kbd class="k must">MUST</kbd>是<strong>决策候选与依据</strong>，<kbd class="k must NOT">MUST NOT</kbd>直接是代码。结论<kbd class="k must">MUST</kbd>进 <code>DECISIONS.md</code> 的未决段或在册（<code>MS-29</code>）。动作等级上限 <code>L0</code>。<strong>待补</strong>：原型代码的隔离要求（<kbd class="k must NOT">MUST NOT</kbd>进主干）· 研究结论的证据标准 · 与 <a href="#ch5">§5.5</a>（探索期不适用元语）的衔接。</p>
+</div>
+
+<!-- ═══════════════════════ PART VII ═══════════════════════ -->
+
+<div class="part-head" id="partVII">
+  <div class="kicker">Part VII</div>
+  <h2>Infrastructure · 基础设施</h2>
+  <p>能力要求已在 <a href="#ch11">§11</a> 定稿；本部分展开各能力的接口契约与实现约束。全部章节已定范围。</p>
+</div>
+
+<h3 class="ch" id="ch48"><span class="num">Chapter 48</span>计算与沙箱<a class="anchor" href="#ch48">#</a></h3>
+<div class="stub">
+<span class="lbl">Scope</span>
+<p>沙箱接口（"起一个隔离环境跑一条命令并回收"）· 隔离级别与动作等级的对应（<code>L2</code> 面的活动<kbd class="k should">SHOULD</kbd>在独立沙箱）· 网络出口限制 · 并行活动的资源配额 · 沙箱内的凭据注入（<kbd class="k must NOT">MUST NOT</kbd>注入超出该角色工具面所需的凭据）· 沙箱日志与血缘的关联。</p>
+</div>
+
+<h3 class="ch" id="ch49"><span class="num">Chapter 49</span>源码控制与人工放行闸<a class="anchor" href="#ch49">#</a></h3>
+
+<div class="rule">
+<p><span class="rid">IN-1</span>人工放行<kbd class="k must">MUST</kbd>由<strong>真实自然人</strong>执行，且放行记录<kbd class="k must">MUST</kbd>包含身份与时间戳，时间戳<kbd class="k should">SHOULD</kbd>由放行系统而非被放行方生成。智能体<kbd class="k must NOT">MUST NOT</kbd>代为执行放行动作。</p>
+</div>
+
+<div class="stub">
+<span class="lbl">Scope · 待补</span>
+<p>放行载体的选型对比（代码评审 vs 仓内放行台）与判据 —— 已知倾向：评审的审阅人是真实自然人且时间戳由平台背书，比自建台账更容易向第三方解释。<strong>待补</strong>：放行记录到血缘 <code>human_release</code> 字段的映射 · 分支保护与动作分级的对应 · 无法机器区分执行者时的诚实登记（<code>MS-39</code>）· 多人放行与四眼要求的关系。</p>
+</div>
+
+<h3 class="ch" id="ch50"><span class="num">Chapter 50</span>状态、记忆与存储<a class="anchor" href="#ch50">#</a></h3>
+<div class="stub">
+<span class="lbl">Scope</span>
+<p>四类状态的存储要求与保留期限：<strong>①</strong> 工作流事件（可重放，<code>WF-1</code>）；<strong>②</strong> 血缘记录（append-only，<code>FINV-7</code>）；<strong>③</strong> 检查点（可丢弃）；<strong>④</strong> Agent memory（<kbd class="k must NOT">MUST NOT</kbd>存项目事实，<code>AG-3</code>）。<strong>待补</strong>：各类的存储介质选型判据 · 归档策略 · 跨项目隔离要求。</p>
+</div>
+
+<h3 class="ch" id="ch51"><span class="num">Chapter 51</span>可观测性<a class="anchor" href="#ch51">#</a></h3>
+<div class="stub">
+<span class="lbl">Scope</span>
+<p>追溯的最小要求（活动的输入/输出/工具调用可关联到 <code>run_id</code>）· 日志的结构化要求 · 度量采集点（对应 <a href="#ch25">§25.7</a> 的五项指标）· <strong>边界</strong>：工厂只观测自己，被生产系统的可观测性属该项目（<a href="#ch9">§9.3</a>）。</p>
+</div>
+
+<h3 class="ch" id="ch52"><span class="num">Chapter 52</span>成本治理<a class="anchor" href="#ch52">#</a></h3>
+<div class="stub">
+<span class="lbl">Scope</span>
+<p>计量归集到活动粒度的实现 · 预算护栏的运行时强制点（<code>C4</code> 要求，<code>AG-10</code>）· 成本与成功率的联合读法（<code>VC-10</code>：单看成本会诱导放弃困难任务）· 知识切片对上下文成本的影响（<code>MS-9</code>）。</p>
+</div>
+
+<!-- ═══════════════════════ PART VIII ═══════════════════════ -->
+
+<div class="part-head" id="partVIII">
+  <div class="kicker">Part VIII</div>
+  <h2>Extension · 扩展</h2>
+  <p>如何向体系中新增项目、智能体、工作流、工具与运行时。每类扩展的共同要求是：<strong>先改注册表，再落实现，同一提交</strong>。</p>
+</div>
+
+<h3 class="ch" id="ch53"><span class="num">Chapter 53</span>新增项目<a class="anchor" href="#ch53">#</a></h3>
+
+<h4>53.1 落地顺序</h4>
+
+<div class="rule">
+<p><span class="rid">EX-1</span>新增项目<kbd class="k must">MUST</kbd>按以下顺序推进，<kbd class="k must NOT">MUST NOT</kbd>跳步（<code>FINV-3</code>）：<strong>①</strong> 写六本核心元语（只写事实）→ <code>C0</code>；<strong>②</strong> 每本落校验器 + 负向验证 + 闸门内移 → <code>C1</code>；<strong>③</strong> 判定条件元语是否触发（<code>MS-2</code>）；<strong>④</strong> 动作分级 + 血缘 → <code>C2</code>；<strong>⑤</strong> 注册进项目注册表。</p>
+</div>
+
+<div class="tw"><table>
+<thead><tr><th>步</th><th>产物</th><th>验收</th><th>典型耗时占比</th></tr></thead>
+<tbody>
+<tr><td>①</td><td>六本元语</td><td>格式契约齐备；只写事实（<code>FR-9</code>）</td><td>~40%</td></tr>
+<tr><td>②</td><td>校验器套件</td><td>每条检查维度有负向验证记录（<code>VC-8</code>）</td><td>~35%</td></tr>
+<tr><td>③</td><td>条件元语判定</td><td>触发条件与实际一致（<code>MS-2</code>）</td><td>~5%</td></tr>
+<tr><td>④</td><td>分级表 + 血缘</td><td>路径面可解析（<code>MS-38</code>）；<code>AG-9</code> 生效</td><td>~15%</td></tr>
+<tr><td>⑤</td><td>注册表条目</td><td>声明等级可验证（<code>FR-16</code>）</td><td>~5%</td></tr>
+</tbody>
+</table></div>
+
+<div class="note">
+<span class="lbl">对既有项目的补元语顺序</span>
+<p>既有项目<kbd class="k should">SHOULD</kbd>按<strong>发现密度</strong>而非字母序推进。经验顺序：<code>DOMAIN</code>（结构基础，其他元语引用它）→ <code>DECISIONS</code>（建立 ID 命名空间，后续元语要用）→ <code>FLOWS</code>（发现密度最高，<a href="#ch20">§20.5</a>）→ <code>DEPLOY</code> → 改 <code>AGENTS.md</code> → 闸门内移。<code>ARCHITECTURE</code>/<code>DESIGN</code> 通常已存在，补守护方式列即可。</p>
+<p><strong>闸门内移放最后</strong>的原因：它会立刻把所有已存在的问题变成红色，需要前面几步先把问题清单摸清（<code>FINV-8</code>）。</p>
+</div>
+
+<h3 class="ch" id="ch54"><span class="num">Chapter 54</span>新增智能体 / 工作流 / 工具<a class="anchor" href="#ch54">#</a></h3>
+
+<div class="rule">
+<p><span class="rid">EX-2</span>三类扩展<kbd class="k must">MUST</kbd>遵循同一约束：<strong>先改注册表，再落实现，同一提交</strong>（<code>MS-37</code>）。已实现但未登记，以及已登记但未实现，均<kbd class="k must">MUST</kbd>报红。</p>
+</div>
+
+<div class="tw"><table>
+<thead><tr><th>扩展</th><th>先改什么</th><th>必须同时提供</th><th>验收</th></tr></thead>
+<tbody>
+<tr><td>新增智能体</td><td>能力注册表条目</td><td>角色契约九项（<a href="#ch28">§28.1</a>）· 工具面授权 · 动作等级上限</td><td>import 边界测试（<code>AG-11</code>/<code>AG-12</code>）</td></tr>
+<tr><td>新增工作流</td><td>工作流清单</td><td><code>WF-2</code> 六项（<strong>含失败路由与终止条件</strong>）</td><td>可重放性验证（<code>WF-1</code>）</td></tr>
+<tr><td>新增工具</td><td>MCP server 能力声明</td><td>角色 × 工具授权矩阵条目 · 血缘落点</td><td>未授权角色调用<kbd class="k must">MUST</kbd>被拒</td></tr>
+</tbody>
+</table></div>
+
+<div class="stub">
+<span class="lbl">Scope · 待补</span>
+<p>新增角色时的职责重叠检测（<a href="#ch28">§28.1</a> 第 1 项要求"不与其他角色重叠"，需要可执行的判据）· 工作流的组合与嵌套规则 · 工具的废弃流程。</p>
+</div>
+
+<h3 class="ch" id="ch55"><span class="num">Chapter 55</span>新增运行时<a class="anchor" href="#ch55">#</a></h3>
+
+<div class="rule">
+<p><span class="rid">EX-3</span>新增运行时绑定<kbd class="k must">MUST</kbd>满足：<strong>①</strong> 实现 <code>RT-1</code> 全部接口方法；<strong>②</strong> 通过一致性测试套件；<strong>③</strong> 提交替换证明（<code>RT-4</code>：<code>factory/</code> 与元语零改动）；<strong>④</strong> 能力缺口显式声明并登记豁免（<code>MS-39</code>）。</p>
+</div>
+
+<div class="stub">
+<span class="lbl">Scope · 待补</span>
+<p>一致性测试套件的具体用例 · 能力缺口的补偿模式（在适配器内补齐 vs 在工厂层降级——<strong>倾向前者</strong>，因为后者会让工厂层出现厂商相关分支，违反 <code>FG-5</code>）· 多运行时并存的路由与成本比较。</p>
+</div>
+
+<!-- ═══════════════════════ APPENDIX ═══════════════════════ -->
+
+<div class="part-head" id="appendix">
+  <div class="kicker">Appendix</div>
+  <h2>附录</h2>
+  <p>一致性检查清单、编号体系、模板、参考实现与变更记录。</p>
+</div>
+
+<h3 class="ch" id="apxA"><span class="num">Appendix A</span>一致性检查清单<a class="anchor" href="#apxA">#</a></h3>
+
+<p class="lead">每个检查点 <code>CP-n</code> 对应一条可执行的验证。声明一致性等级时<kbd class="k must">MUST</kbd>逐项确认该等级及以下的全部检查点。</p>
+
+<h4>A.1 C0 · Documented</h4>
+<div class="tw"><table>
+<thead><tr><th>CP</th><th>检查</th><th>验证方式</th><th>依据</th></tr></thead>
+<tbody>
+<tr><td><code>CP-1</code></td><td>六本核心元语齐备</td><td>文件存在性</td><td><code>FR-6</code></td></tr>
+<tr><td><code>CP-2</code></td><td>每本有抬头块（四项齐全）</td><td>结构检查</td><td><code>MS-6</code></td></tr>
+<tr><td><code>CP-3</code></td><td>每本有格式契约附录，含解析空转兜底</td><td>结构检查</td><td><code>MS-8</code></td></tr>
+<tr><td><code>CP-4</code></td><td>契约段与叙述段可区分</td><td>人工确认 + 分级表引用</td><td><code>MS-7</code></td></tr>
+<tr><td><code>CP-5</code></td><td><code>AGENTS.md</code> 存在且不含一手事实</td><td>其他校验器的解析目标不落在本文件内</td><td><code>FR-8</code></td></tr>
+<tr><td><code>CP-6</code></td><td><code>AGENTS.md</code> 不含数字化规模断言</td><td>grep</td><td><code>MA-1</code></td></tr>
+<tr><td><code>CP-7</code></td><td>元语只写事实，不含愿望表述</td><td>人工确认；愿望已移入未决段</td><td><code>FR-9</code></td></tr>
+<tr><td><code>CP-8</code></td><td>条件元语的存在性与触发条件一致</td><td>触发条件核对</td><td><code>MS-2</code></td></tr>
+<tr><td><code>CP-9</code></td><td>工厂层不 import 厂商 SDK</td><td>grep：命中仅在 <code>runtime/&lt;vendor&gt;/</code></td><td><code>FG-5</code> <code>FR-10</code></td></tr>
+<tr><td><code>CP-10</code></td><td>工厂层不含项目业务术语</td><td>grep：命中为 0（夹具除外）</td><td><code>FINV-4</code></td></tr>
+<tr><td><code>CP-11</code></td><td>未决项只存在于唯一位置</td><td>其他文档只有指针</td><td><code>MS-29</code></td></tr>
+<tr><td><code>CP-12</code></td><td>元语引用图无环，链接可解析</td><td>链接检查</td><td><code>MS-5</code></td></tr>
+</tbody>
+</table></div>
+
+<h4>A.2 C1 · Verified</h4>
+<div class="tw"><table>
+<thead><tr><th>CP</th><th>检查</th><th>验证方式</th><th>依据</th></tr></thead>
+<tbody>
+<tr><td><code>CP-13</code></td><td>每本元语有校验器</td><td>校验器清单 ↔ 元语清单</td><td><code>C1</code></td></tr>
+<tr><td><code>CP-14</code></td><td>校验器挂进默认测试命令</td><td>执行默认测试命令，观察校验器运行</td><td><code>VC-9</code></td></tr>
+<tr><td><code>CP-15</code></td><td>每条检查维度有负向验证记录</td><td>负向验证记录清单</td><td><code>VC-7</code> <code>VC-8</code></td></tr>
+<tr><td><code>CP-16</code></td><td>校验器无 <code>--fix</code>，传入即非零退出</td><td>执行</td><td><code>VC-2</code></td></tr>
+<tr><td><code>CP-17</code></td><td>对拍双向（缺项与死项都红）</td><td>负向验证两个方向</td><td><code>VC-4</code></td></tr>
+<tr><td><code>CP-18</code></td><td>枚举对拍顺序敏感</td><td>负向验证：交换两个取值顺序 → 红</td><td><code>MS-20</code></td></tr>
+<tr><td><code>CP-19</code></td><td>闸门检查工作区而非仅历史</td><td>负向验证：工作区注入违规且不提交 → 红</td><td><code>FINV-6</code> <code>VC-5</code></td></tr>
+<tr><td><code>CP-20</code></td><td>扫描面显式声明</td><td>代码审查 + 格式契约附录登记</td><td><code>VC-6</code></td></tr>
+<tr><td><code>CP-21</code></td><td>格式契约先验，解析空转判失败</td><td>负向验证：契约表改散文 → 红</td><td><code>VC-3</code></td></tr>
+<tr><td><code>CP-22</code></td><td>闸门命令不长期失败</td><td>在干净基线上执行 → 绿</td><td><code>FINV-8</code></td></tr>
+<tr><td><code>CP-23</code></td><td>env 键位三方相等</td><td>负向验证：任一方增删一键 → 红</td><td><code>MS-32</code></td></tr>
+<tr><td><code>CP-24</code></td><td>状态机 <code>impl</code> 为状态级语义且检测矛盾</td><td>负向验证：同目标态声明 yes+no → 红</td><td><code>MS-25</code></td></tr>
+<tr><td><code>CP-25</code></td><td>代码中的 ID 必须在册（词边界匹配）</td><td>负向验证：引用未在册 ID → 红</td><td><code>MS-27</code></td></tr>
+</tbody>
+</table></div>
+
+<h4>A.3 C2 · Governed</h4>
+<div class="tw"><table>
+<thead><tr><th>CP</th><th>检查</th><th>验证方式</th><th>依据</th></tr></thead>
+<tbody>
+<tr><td><code>CP-26</code></td><td>能力注册表为闭集，无预登记角色</td><td>注册表 ↔ 实现对照</td><td><code>MS-37</code> <code>FP-6</code></td></tr>
+<tr><td><code>CP-27</code></td><td>动作分级路径面可匹配真实路径</td><td>负向验证：指向不存在目录 → 红</td><td><code>MS-38</code></td></tr>
+<tr><td><code>CP-28</code></td><td><code>L3</code> 各条满足 <code>AG-6</code> 判据</td><td>逐条复核；不满足的降入 <code>L2</code></td><td><code>AG-6</code></td></tr>
+<tr><td><code>CP-29</code></td><td>血缘字段齐全且 <code>declares</code> 在册</td><td>负向验证：缺字段 / 未在册 ID → 红</td><td><code>AG-7</code></td></tr>
+<tr><td><code>CP-30</code></td><td>触及 <code>L2</code> 面时 <code>human_release</code> 非空</td><td>负向验证 → 红</td><td><code>AG-9</code></td></tr>
+<tr><td><code>CP-31</code></td><td>血缘 append-only</td><td>负向验证：修改已提交记录 → 红</td><td><code>FINV-7</code></td></tr>
+<tr><td><code>CP-32</code></td><td>失败与中止会话同样落血缘</td><td>抽样核对</td><td><code>AG-2</code></td></tr>
+<tr><td><code>CP-33</code></td><td>未知度量记空值而非 0</td><td>抽样核对</td><td><code>AG-8</code></td></tr>
+<tr><td><code>CP-34</code></td><td>护栏阈值在册</td><td>护栏表非空</td><td><code>AG-10</code></td></tr>
+<tr><td><code>CP-35</code></td><td>无机器守护的约束在豁免表在册</td><td>负向验证：标记无守护但未在册 → 红</td><td><code>MS-39</code></td></tr>
+</tbody>
+</table></div>
+
+<h4>A.4 C3 · Orchestrated ／ C4 · Autonomous</h4>
+<div class="tw"><table>
+<thead><tr><th>CP</th><th>等级</th><th>检查</th><th>依据</th></tr></thead>
+<tbody>
+<tr><td><code>CP-36</code></td><td><code>C3</code></td><td>Worker 不 import 其他 Worker</td><td><code>AG-11</code></td></tr>
+<tr><td><code>CP-37</code></td><td><code>C3</code></td><td>Worker 不 import 可触达 <code>L2</code>/<code>L3</code> 的客户端</td><td><code>AG-12</code></td></tr>
+<tr><td><code>CP-38</code></td><td><code>C3</code></td><td>typed state parse 失败即中断，不降级继续</td><td><code>FR-14</code></td></tr>
+<tr><td><code>CP-39</code></td><td><code>C3</code></td><td>智能体间不内联项目事实，只传语义引用</td><td><code>FR-17</code></td></tr>
+<tr><td><code>CP-40</code></td><td><code>C3</code></td><td>确定性闸门先于 Reviewer 闸门</td><td><code>WF-3</code></td></tr>
+<tr><td><code>CP-41</code></td><td><code>C3</code></td><td>每类工作流定义六项（含失败路由与终止条件）</td><td><code>WF-2</code></td></tr>
+<tr><td><code>CP-42</code></td><td><code>C3</code></td><td>禁止智能体化清单被遵守</td><td><code>AG-13</code> <code>FINV-1</code></td></tr>
+<tr><td><code>CP-43</code></td><td><code>C3</code></td><td>替换运行时后 <code>factory/</code> 与元语零改动</td><td><code>FINV-5</code> <code>RT-4</code></td></tr>
+<tr><td><code>CP-44</code></td><td><code>C4</code></td><td>护栏有运行时强制点，超限中止而非静默重试</td><td><code>AG-10</code></td></tr>
+<tr><td><code>CP-45</code></td><td><code>C4</code></td><td>工作流事件可重放，重启不重做已完成活动</td><td><code>WF-1</code></td></tr>
+<tr><td><code>CP-46</code></td><td><code>C4</code></td><td>度量闭环，且未被设为优化目标</td><td><code>VC-10</code></td></tr>
+</tbody>
+</table></div>
+
+<h3 class="ch" id="apxB"><span class="num">Appendix B</span>编号体系与 ID 命名空间<a class="anchor" href="#apxB">#</a></h3>
+
+<h4>B.1 本规范的命名空间</h4>
+<div class="tw"><table>
+<thead><tr><th>前缀</th><th>含义</th><th>出处</th><th>当前数量</th></tr></thead>
+<tbody>
+<tr><td><code>FG-n</code></td><td>Factory Goal　设计目标</td><td><a href="#ch3">§3</a></td><td>6</td></tr>
+<tr><td><code>FP-n</code></td><td>Factory Principle　设计原则</td><td><a href="#ch4">§4</a></td><td>7</td></tr>
+<tr><td><code>FINV-n</code></td><td>Factory Invariant　不变量（无偏离路径）</td><td><a href="#ch14">§14</a> · <a href="#ch41">§41</a></td><td>9</td></tr>
+<tr><td><code>FR-n</code></td><td>Factory Requirement　规范性要求</td><td>Part I–II</td><td>18（<code>FR-0</code> 起）</td></tr>
+<tr><td><code>FADR-n</code></td><td>Factory ADR　工厂级架构决策</td><td><a href="#ch10">§10.2</a></td><td>1</td></tr>
+<tr><td><code>MS-n</code></td><td>Meta-Schema Rule　元语规范</td><td>Part III · <a href="#apxB">附录 B</a></td><td>42</td></tr>
+<tr><td><code>MA-n</code></td><td>Meta-Language Anti-pattern　元语反模式</td><td><a href="#ch16">§16.8</a></td><td>8</td></tr>
+<tr><td><code>VC-n</code></td><td>Verifier Contract　校验器契约</td><td><a href="#ch25">§25</a></td><td>10</td></tr>
+<tr><td><code>AG-n</code></td><td>Agent Rule　智能体规范</td><td>Part IV</td><td>13</td></tr>
+<tr><td><code>RT-n</code></td><td>Runtime Rule　运行时规范</td><td>Part V</td><td>4</td></tr>
+<tr><td><code>WF-n</code></td><td>Workflow Rule　工作流规范</td><td>Part VI</td><td>5</td></tr>
+<tr><td><code>IN-n</code></td><td>Infrastructure Rule　基础设施规范</td><td>Part VII</td><td>1</td></tr>
+<tr><td><code>EX-n</code></td><td>Extension Rule　扩展规范</td><td>Part VIII</td><td>3</td></tr>
+<tr><td><code>PS-n</code></td><td>Problem Statement　故障模式</td><td><a href="#ch2">§2</a></td><td>6</td></tr>
+<tr><td><code>CP-n</code></td><td>Conformance Point　一致性检查点</td><td><a href="#apxA">附录 A</a></td><td>46</td></tr>
+</tbody>
+</table></div>
+
+<h4>B.2 命名空间设计规则</h4>
+
+<div class="rule">
+<p><span class="rid">MS-42</span>ID 命名空间的区分性<kbd class="k must">MUST</kbd>在<strong>视觉层面</strong>成立，不能只在语义层面成立。两个命名空间<kbd class="k must NOT">MUST NOT</kbd>共用前缀字母（如 <code>D-n</code> 与 <code>D-xxA</code>）——查册是靠模式匹配完成的，视觉相似会导致查错命名空间（<a href="#ch18">§18.4</a>）。</p>
+</div>
+
+<div class="tw"><table>
+<thead><tr><th>规则</th><th>要求</th></tr></thead>
+<tbody>
+<tr><td>前缀唯一性</td><td>每个命名空间的前缀在全体系内唯一，且不是另一前缀的前缀</td></tr>
+<tr><td>反引号包裹</td><td>元语与代码中的 ID <kbd class="k must">MUST</kbd>用反引号包裹，使 grep 可区分 ID 与普通文本</td></tr>
+<tr><td>子编号</td><td><code>X-n.m</code> 形式的子编号按<strong>父编号</strong>查册</td></tr>
+<tr><td>词边界</td><td>校验器匹配 ID <kbd class="k must">MUST</kbd>用词边界，避免 <code>INV-1</code> 匹配到 <code>INV-12</code></td></tr>
+<tr><td>不复用</td><td>废弃的 ID <kbd class="k must NOT">MUST NOT</kbd>被重新分配给新条目</td></tr>
+<tr><td>重命名过渡</td><td>命名空间重命名期间<kbd class="k must">MUST</kbd>两种写法都在册，校验器同时接受，直至迁移完成</td></tr>
+</tbody>
+</table></div>
+
+<h4>B.3 项目层的推荐命名空间</h4>
+<p>项目的 <code>DECISIONS.md</code> <kbd class="k should">SHOULD</kbd>采用以下命名空间。它们与本规范的前缀不冲突（本规范全部使用双字母前缀或 <code>F</code> 开头）：</p>
+<div class="tw"><table>
+<thead><tr><th>前缀</th><th>含义</th><th>论证出处</th></tr></thead>
+<tbody>
+<tr><td><code>INV-n</code></td><td>项目不变量</td><td>不变量清单 / 测试清单</td></tr>
+<tr><td><code>ADR-n</code></td><td>项目架构决策</td><td><code>ARCHITECTURE.md</code></td></tr>
+<tr><td><code>B-n</code></td><td>模块边界规矩</td><td><code>ARCHITECTURE.md</code></td></tr>
+<tr><td><code>DS-n</code></td><td>UI 反模式</td><td><code>DESIGN.md</code></td></tr>
+<tr><td><code>D-xxx</code></td><td>业务/技术决策点</td><td>需求 / 深度设计文档</td></tr>
+<tr><td><code>AO-n</code></td><td>agent 治理硬规矩</td><td><code>AGENT-OPS.md</code></td></tr>
+<tr><td><code>F-n</code></td><td><code>L3</code> 禁令</td><td><code>AGENT-OPS.md</code></td></tr>
+</tbody>
+</table></div>
+
+<h3 class="ch" id="apxC"><span class="num">Appendix C</span>元语模板<a class="anchor" href="#apxC">#</a></h3>
+<div class="stub">
+<span class="lbl">Scope</span>
+<p>八本元语（六核心 + 两条件）的可复制骨架，含抬头块、契约段占位、格式契约附录。<strong>约束</strong>：模板<kbd class="k must NOT">MUST NOT</kbd>包含示例业务内容——填了示例的模板会被直接提交上去（<code>FR-9</code> 只写事实）。模板<kbd class="k must">MUST</kbd>用占位符并在占位处标注该填什么类型的事实。<strong>结构要求已在 <a href="#ch16">§16</a> 与 <a href="#ch17">§17</a>–<a href="#ch23">§23</a> 逐本定稿，本附录只做可复制化。</strong></p>
+</div>
+
+<h3 class="ch" id="apxD"><span class="num">Appendix D</span>校验器参考实现<a class="anchor" href="#apxD">#</a></h3>
+<div class="stub">
+<span class="lbl">Scope</span>
+<p>共享解析层（markdown 表格 / 代码块 / ID 提取）· 八本元语各自的校验器骨架 · 负向验证的执行脚本 · 聚合入口与退出码约定。<strong>契约已在 <a href="#ch25">§25</a> 定稿（<code>VC-1</code>–<code>VC-10</code>），本附录只做参考代码。</strong></p>
+<p><strong>含本规范自身的校验器 <code>check-asfas-doc.mjs</code></strong>（<code>FR-1</code>）：章节 <code>id</code> 连续 · 规范性陈述有唯一 <code>rid</code> · 内部引用可解析 · <a href="#apxB">附录 B</a> 的数量与实际出现次数相等。<strong>当前未实现</strong>，见 <a href="#apxI">附录 I</a> 未决清单。</p>
+</div>
+
+<h3 class="ch" id="apxE"><span class="num">Appendix E</span>Prompt 规范<a class="anchor" href="#apxE">#</a></h3>
+<div class="stub">
+<span class="lbl">Scope</span>
+<p><strong>已定的约束</strong>：prompt <kbd class="k must NOT">MUST NOT</kbd>承载工具面收窄（<code>RT-3</code>）· <kbd class="k must NOT">MUST NOT</kbd>内联项目事实，只放语义引用（<code>FR-17</code>）· <kbd class="k must NOT">MUST NOT</kbd>承载可由确定性规则表达的约束（<code>FINV-1</code>）。</p>
+<p><strong>待补</strong>：prompt 的结构规范（角色 / 知识引用位 / 任务卡位 / 输出契约位）· 变体管理与版本 · prompt 作为资产的登记（属 <code>AI.md</code> 时）vs 作为工厂配置的登记 · 输出契约与 parse 失败处理。</p>
+</div>
+
+<h3 class="ch" id="apxF"><span class="num">Appendix F</span>命名与编码风格<a class="anchor" href="#apxF">#</a></h3>
+
+<h4>F.1 本规范的用词禁令</h4>
+<div class="tw"><table>
+<thead><tr><th>用</th><th>不用</th><th>理由</th></tr></thead>
+<tbody>
+<tr><td><strong>元语</strong></td><td>知识文件 · SoT 文档 · 规范文档</td><td>"元语"强调它是<strong>描述项目的语言</strong>而非项目的一部分；此区分在 <a href="#ch12">§12</a> 承载实际约束（<a href="#ch6">§6.5</a>）</td></tr>
+<tr><td><strong>对拍</strong></td><td>校验 · 检查</td><td>"对拍"特指两个闭集的集合相等比较，比"校验"精确</td></tr>
+<tr><td><strong>假绿</strong></td><td>误报 · 漏报</td><td>假绿特指"闸门通过但未实际检查"，与误报/漏报是不同现象</td></tr>
+<tr><td><strong>放行</strong></td><td>审批 · 批准</td><td>放行特指高影响改动生效前的人工确认，不含业务审批语义</td></tr>
+<tr><td><strong>切片</strong></td><td>拆分 · 分册</td><td>切片是<strong>加载策略</strong>，拆分是<strong>结构变更</strong>；混用会诱导违反 <code>FR-7</code></td></tr>
+</tbody>
+</table></div>
+
+<div class="stub">
+<span class="lbl">Scope · 待补</span>
+<p>工厂层代码的命名约定 · 文件与目录命名 · 血缘记录的文件名格式 · 事件命名 · 提交信息约定（含 scope 与阶段标注）。</p>
+</div>
+
+<h3 class="ch" id="apxG"><span class="num">Appendix G</span>参考实现<a class="anchor" href="#apxG">#</a></h3>
+
+<p>本规范的经验基础来自两个真实仓库。按 <code>FR-5</code>，此处只做<strong>结构性描述与路径引用</strong>，不复制其元语内容。</p>
+
+<div class="tw"><table>
+<thead><tr><th></th><th><code>GMPGCPwork</code></th><th><code>diabetes</code></th></tr></thead>
+<tbody>
+<tr><td>领域</td><td>受监管行业的文档协作与审核平台</td><td>医疗领域应用</td></tr>
+<tr><td>一致性等级</td><td><strong>C2</strong></td><td><strong>C1</strong></td></tr>
+<tr><td>核心元语</td><td>六本齐备</td><td>六本齐备</td></tr>
+<tr><td>条件元语</td><td><code>AGENT-OPS.md</code>（产品侧无 AI，<strong>刻意不设</strong> <code>AI.md</code>）</td><td><code>AI.md</code></td></tr>
+<tr><td>校验器</td><td>13 个，挂进默认测试命令</td><td>4 个，挂进默认测试命令</td></tr>
+<tr><td>血缘</td><td><code>.agent-runs/</code>，入 Git，append-only</td><td>无</td></tr>
+<tr><td>动作分级</td><td><code>L0</code>–<code>L3</code> 在册，含豁免表</td><td>无</td></tr>
+<tr><td>距下一等级的缺口</td><td>护栏无运行时强制点（已在豁免表在册）；无编排面 → 未达 <code>C3</code></td><td>无动作分级 / 无血缘 → 未达 <code>C2</code></td></tr>
+</tbody>
+</table></div>
+
+<h4>G.1 本规范从参考实现提炼的关键经验</h4>
+<div class="tw"><table>
+<thead><tr><th>经验</th><th>提炼为</th></tr></thead>
+<tbody>
+<tr><td>人写文档必然漏，集合核对不能靠人工 review</td><td><code>MS-1</code> 判据 ③④ · <code>VC-4</code></td></tr>
+<tr><td>校验器出现过三次假绿（语义 / 时点 ×2）</td><td><code>PS-3</code> · <code>FINV-6</code> · <code>MS-25</code> · <code>VC-5</code></td></tr>
+<tr><td>检查器的扫描面漏了一个目录，盲区存活约两年</td><td><code>MS-33</code> · <code>VC-6</code> · <a href="#ch25">§25.4</a> 反向枚举</td></tr>
+<tr><td>写数字的文档注定漂移</td><td><code>MA-1</code> · <code>FR-8</code> · <code>MS-11</code></td></tr>
+<tr><td>一个字符把 fail-closed 翻成 fail-open，顺序看着没变</td><td><code>FP-4</code> · <code>AG-5</code> · <a href="#ch23">§23.3</a> "读否定分支"</td></tr>
+<tr><td>决策与实现的偏离若不登记，会被"修正"回旧方案</td><td><code>FR-4</code> · <code>MS-30</code></td></tr>
+<tr><td>一条与全部历史矛盾的摆设规则</td><td><code>AG-6</code>（<code>L3</code> 判据）</td></tr>
+<tr><td>闸门挂进长期红的命令等于没挂</td><td><code>FINV-8</code></td></tr>
+<tr><td>状态机补全查出五类此前无人知道的问题</td><td><a href="#ch20">§20.5</a> · <code>MS-23</code></td></tr>
+<tr><td>登记一条挡不住的禁令，比假装它被挡住要好</td><td><code>FP-7</code> · <code>MS-39</code></td></tr>
+</tbody>
+</table></div>
+
+<h3 class="ch" id="apxH"><span class="num">Appendix H</span>术语表<a class="anchor" href="#apxH">#</a></h3>
+
+<p>术语的权威定义在 <a href="#ch6">§6.5</a>，本附录<strong>不复制</strong>——按 <code>FP-1</code>，复制即制造第二个事实来源。用词禁令见 <a href="#apxF">附录 F.1</a>。</p>
+
+<div class="note">
+<span class="lbl">为什么这里是一个指针而不是一份表</span>
+<p>"附录应当有术语表"是文档惯例，但本规范的术语表已经在 <a href="#ch6">§6.5</a>——那里是它被<strong>首次需要</strong>的位置。在附录再放一份会立刻产生两处需要同步的定义。<strong>本节是本规范遵守自身 <code>FP-1</code> 的一个实例</strong>，也是一个示范：遇到"惯例要求有这一节"与"单一事实来源"冲突时，后者优先。</p>
+</div>
+
+<h3 class="ch" id="apxI"><span class="num">Appendix I</span>变更记录与未决清单<a class="anchor" href="#apxI">#</a></h3>
+
+<h4>I.1 版本历史</h4>
+<div class="tw"><table>
+<thead><tr><th>版本</th><th>日期</th><th>内容</th></tr></thead>
+<tbody>
+<tr><td><code>1.0.0-draft</code></td><td>2026-07-30</td><td>首版。Part I–III 规范性定稿（<a href="#ch1">§1</a>–<a href="#ch25">§25</a>）；Part IV 的 <a href="#ch26">§26</a>–<a href="#ch27">§27</a>、<a href="#ch34">§34</a>，Part V 的 <a href="#ch35">§35</a>、<a href="#ch39">§39</a>–<a href="#ch40">§40</a>，Part VI 的 <a href="#ch41">§41</a>–<a href="#ch43">§43</a>，Part VIII 定稿；其余章节定范围。取代 2026-07 的总体方案稿</td></tr>
+</tbody>
+</table></div>
+
+<h4>I.2 本版对原方案稿的四处更正</h4>
+<div class="tw"><table>
+<thead><tr><th>#</th><th>原方案稿</th><th>本规范</th><th>理由</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>六个知识文件含 <code>AGENTS.md</code>，不含 <code>DESIGN.md</code></td><td>六本核心元语为 <code>ARCHITECTURE</code>/<code>DESIGN</code>/<code>DOMAIN</code>/<code>FLOWS</code>/<code>DECISIONS</code>/<code>DEPLOY</code>；<code>AGENTS.md</code> 是<strong>入口指针</strong>，不是元语</td><td><code>FR-8</code>：<code>AGENTS.md</code> 若为元语必然复制其他六本内容，违反 <code>FP-1</code></td></tr>
+<tr><td>2</td><td>设计目标含 <em>Cloud Native</em></td><td>降级为基础设施选型约束，改列 <code>FG-6</code> <em>Governed by Default</em></td><td>云原生是部署形态不是区分性特征；写进目标会混淆层次并诱导预埋（<a href="#ch3">§3</a>）</td></tr>
+<tr><td>3</td><td>设计原则含 <em>Everything is Workflow / Event / Tool</em></td><td>降级；改列 <code>FP-4</code> <em>Fail Closed</em>、<code>FP-5</code> <em>Diagnose Never Auto-Fix</em>、<code>FP-6</code> <em>No Speculative Scaffolding</em>、<code>FP-7</code> <em>Honest Gaps</em></td><td>原三条无法裁决分歧（<a href="#ch4">§4</a> 尾注）；保留无裁决力的原则会稀释其余原则的权威</td></tr>
+<tr><td>4</td><td><code>DECISIONS.md</code> 定位为 ADR</td><td>定位为<strong>登记册</strong>，ADR 是其中一个命名空间</td><td>ADR 目录形态无法回答"当前结论是什么"（须推演取代链），且不可对拍（<a href="#ch21">§21.1</a>）</td></tr>
+</tbody>
+</table></div>
+
+<h4>I.3 未决清单</h4>
+
+<p>按 <code>MS-29</code>，本规范的未决项只存在于此表。决出后<kbd class="k must">MUST</kbd>入正文 + 从本表销项，<strong>同一提交</strong>。</p>
+
+<div class="tw"><table>
+<thead><tr><th>#</th><th>事项</th><th>倾向</th><th>决出前禁止</th></tr></thead>
+<tbody>
+<tr><td><code>QA-1</code></td><td><code>check-asfas-doc.mjs</code> 未实现，<code>FR-1</code> 当前仅为文档约束</td><td>实现（否则本规范停留在 <code>C0</code>）</td><td>不得声称本规范已达 <code>C1</code></td></tr>
+<tr><td><code>QA-2</code></td><td>Part IV–VII 待补章节的完成顺序</td><td>Part VI 工作流优先（价值最高且 Part IV 的角色契约依赖它）</td><td>不得在工作流模型定稿前冻结角色契约</td></tr>
+<tr><td><code>QA-3</code></td><td>L2 人工放行的载体：代码评审 vs 仓内放行台</td><td>评审（审阅人是自然人、时间戳由平台背书）</td><td>不得两套并行</td></tr>
+<tr><td><code>QA-4</code></td><td>多智能体并行的隔离方式：每 agent 独立工作副本 vs 串行</td><td>—</td><td>不得在未定前实现并行编排（会引入"两个 agent 基于不同基线判断"的新型上下文不一致）</td></tr>
+<tr><td><code>QA-5</code></td><td>本规范自身的一致性等级目标</td><td><code>C1</code></td><td>不得在 <code>QA-1</code> 前声明</td></tr>
+<tr><td><code>QA-6</code></td><td>L1 白皮书与 L3 手册的派生时机</td><td>Part IV–VII 定稿后</td><td>不得提前派生（会立刻产生三套需同步的内容，违反 <code>FR-0</code>）</td></tr>
+</tbody>
+</table></div>
+
+<h4>I.4 需同步到参考实现的项</h4>
+<div class="tw"><table>
+<thead><tr><th>项</th><th>动作</th><th>依据</th></tr></thead>
+<tbody>
+<tr><td><code>GMPGCPwork</code> 的编排面运行时选型仍登记为未决</td><td>销项并入册，出处指向 <code>FADR-1</code></td><td><a href="#ch10">§10.2</a> 提示框</td></tr>
+<tr><td>两个参考实现的一致性等级未声明</td><td>在各自 <code>AGENTS.md</code> 或注册表声明 <code>C1</code>/<code>C2</code></td><td><code>FR-16</code></td></tr>
+</tbody>
+</table></div>
+
+<div class="note">
+<span class="lbl">关于本表</span>
+<p>工厂层拍板<strong>不自动</strong>销掉项目层的未决项——两处登记册各自独立，须显式同步。登记册是权威，不是缓存（<code>FP-1</code>）。</p>
+</div>
+
+<!--ASFAS:APPEND-->
+
+</div><!-- /wrap -->
+</main>
+</div><!-- /shell -->
+
+<script>
+(function(){
+  var root=document.documentElement, btn=document.getElementById('themebtn');
+  var saved=null; try{saved=localStorage.getItem('asfas-theme');}catch(e){}
+  if(saved) root.setAttribute('data-theme',saved);
+  btn.addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme');
+    if(!cur) cur=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';
+    var next=cur==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('asfas-theme',next);}catch(e){}
+  });
+
+  var links=[].slice.call(document.querySelectorAll('nav.toc a'));
+  var parts=[].slice.call(document.querySelectorAll('nav.toc .part'));
+  var filter=document.getElementById('tocfilter');
+  filter.addEventListener('input',function(){
+    var q=filter.value.trim().toLowerCase();
+    links.forEach(function(a){
+      a.classList.toggle('hide', q!=='' && a.textContent.toLowerCase().indexOf(q)===-1);
+    });
+    parts.forEach(function(p){
+      var n=p.nextElementSibling, any=false;
+      while(n && n.tagName==='A'){ if(!n.classList.contains('hide')) any=true; n=n.nextElementSibling; }
+      p.classList.toggle('hide', !any);
+    });
+  });
+
+  var heads=[].slice.call(document.querySelectorAll('h3.ch[id]'));
+  var byId={}; links.forEach(function(a){ byId[a.getAttribute('href').slice(1)]=a; });
+  var active=null;
+  function sync(){
+    var best=null, top=window.scrollY+120;
+    heads.forEach(function(h){ if(h.offsetTop<=top) best=h; });
+    if(!best) best=heads[0];
+    if(!best) return;
+    var a=byId[best.id];
+    if(a && a!==active){
+      if(active) active.classList.remove('on');
+      a.classList.add('on'); active=a;
+      var sb=document.querySelector('.sidebar');
+      if(sb && sb.scrollHeight>sb.clientHeight){
+        var r=a.offsetTop-sb.scrollTop;
+        if(r<60||r>sb.clientHeight-60) sb.scrollTop=a.offsetTop-sb.clientHeight/2;
+      }
+    }
+  }
+  var tick=false;
+  addEventListener('scroll',function(){ if(!tick){ tick=true; requestAnimationFrame(function(){sync();tick=false;}); } },{passive:true});
+  sync();
+})();
+</script>
+</body>
+</html>
