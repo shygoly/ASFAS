@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ASFAS — Agent Native Software Factory Architecture Specification v1.2</title>
+<title>ASFAS — Agent Native Software Factory Architecture Specification v1.3</title>
 <meta name="description" content="Level 2 Engineering Specification. Knowledge Driven Software Factory.">
 <style>
 /* ============================================================
@@ -256,7 +256,7 @@ h3.ch:hover .anchor,h4:hover .anchor{opacity:1}
   <div class="brand">
     <div class="mark">ASFAS</div>
     <div class="sub">Agent Native Software Factory<br>Architecture Specification</div>
-    <span class="ver">v1.2 · Level 2 · Engineering Spec</span>
+    <span class="ver">v1.3 · Level 2 · Engineering Spec</span>
   </div>
   <div class="searchbox">
     <input type="search" id="tocfilter" placeholder="筛选章节…" autocomplete="off" aria-label="筛选章节">
@@ -357,8 +357,8 @@ h3.ch:hover .anchor,h4:hover .anchor{opacity:1}
     <p class="zh">智能体原生软件工厂架构规范 · <strong>Knowledge Driven Software Factory</strong></p>
     <dl>
       <dt>Document</dt><dd>ASFAS — Level 2 Engineering Specification</dd>
-      <dt>Version</dt><dd>1.2.0-draft</dd>
-      <dt>Status</dt><dd>Draft · Part I–IV + VI + VIII normative · Part V/VII scoped</dd>
+      <dt>Version</dt><dd>1.3.0-draft</dd>
+      <dt>Status</dt><dd>Draft · Part I–VI + VIII normative · Part VII scoped</dd>
       <dt>Date</dt><dd>2026-07-30</dd>
       <dt>Repository</dt><dd><code>~/Sync/project/ai-factory/spec/ASFAS.html</code></dd>
       <dt>Supersedes</dt><dd><code>AI_Software_Factory_Claude_Agent_SDK_方案.html</code>（2026-07，总体方案稿）</dd>
@@ -3169,7 +3169,7 @@ L = max(level(p) for p in P)</code></pre>
 <div class="part-head" id="partV">
   <div class="kicker">Part V</div>
   <h2>Runtime · 运行时</h2>
-  <p>运行时抽象接口、Claude Agent SDK 绑定、会话与检查点机制、工具面与替换协议。<a href="#ch35">§35</a> 为规范性内容（<code>FINV-5</code>/<code>FG-5</code> 依赖）；其余章节已定范围。</p>
+  <p><strong>本部分规范性定稿。</strong>运行时抽象接口与错误分类 · Claude Agent SDK 概念映射与绑定约束 · 会话边界与 SubAgent 选用判据 · Checkpoint 与血缘的区分 · 工具面授权矩阵 · 替换协议与一致性测试。</p>
 </div>
 
 <h3 class="ch" id="ch35"><span class="num">Chapter 35</span>运行时抽象接口<a class="anchor" href="#ch35">#</a></h3>
@@ -3196,27 +3196,244 @@ L = max(level(p) for p in P)</code></pre>
 <p><span class="rid">RT-2</span>接口<kbd class="k must NOT">MUST NOT</kbd>暴露"让智能体自行决定下一步"的方法。推进由工作流裁决（<code>FG-3</code>）；运行时只负责<strong>执行被指定的活动</strong>。</p>
 </div>
 
-<div class="stub">
-<span class="lbl">Scope · 本章待补</span>
-<p>完整类型签名 · 错误分类（可重试 / 不可重试 / 须升级）· 流式输出的契约 · 并发与隔离要求 · 接口版本演进规则。</p>
+<h4>35.2 接口形状</h4>
+
+<pre><code>interface RuntimeAdapter {
+  run(a: Activity):            Promise&lt;ActivityResult&gt;
+  handoff(h: Handoff):         Promise&lt;void&gt;
+  resume(c: CheckpointRef):    Promise&lt;ActivityResult&gt;
+  cancel(runId, reason):       Promise&lt;void&gt;
+  checkpoint(runId):           Promise&lt;CheckpointRef&gt;
+  meter(runId):                Promise&lt;Metering&gt;
+  capabilities():              RuntimeCapabilities      // §40 能力缺口声明
+}
+
+Activity = {
+  run_id, role,                        // role 须在能力注册表在册（MS-37）
+  action_level_ceiling,                // 由归级算法算出（§27.6）
+  semantic_refs: string[],             // FR-17：引用而非内容
+  tool_grants:   string[],             // 闭集；运行时不得扩展（AG-1）
+  input:         unknown,              // typed，由角色契约定义
+  budget: { iterations, tokens?, minutes? }
+}
+
+ActivityResult =
+  | { ok: true,  output: unknown, metering: Metering }
+  | { ok: false, error: RuntimeError, metering: Metering }
+</code></pre>
+
+<div class="rule">
+<p><span class="rid">RT-5</span><code>run()</code> <kbd class="k must NOT">MUST NOT</kbd>抛出异常表示活动失败。活动失败<kbd class="k must">MUST</kbd>作为 <code>ok:false</code> 的<strong>返回值</strong>表达，并<kbd class="k must">MUST</kbd>携带计量数据。理由：抛出会绕过 Record 阶段（<code>AG-2</code> 要求失败会话同样落血缘），而计量丢失会污染成本度量（<code>AG-8</code>）。</p>
+</div>
+
+<div class="rule">
+<p><span class="rid">RT-6</span><code>tool_grants</code> <kbd class="k must">MUST</kbd>是闭集，运行时<kbd class="k must NOT">MUST NOT</kbd>在活动执行期间扩展它，也<kbd class="k must NOT">MUST NOT</kbd>提供"请求追加工具"的回调。工具面变更<kbd class="k must">MUST</kbd>意味着<strong>结束当前活动、由工作流重新派工</strong>。</p>
+</div>
+
+<h4>35.3 错误分类</h4>
+
+<p>错误分类<kbd class="k must">MUST</kbd>由运行时给出，因为只有它知道失败发生在哪一层。工作流据此选择失败路由（<code>WF-11</code>），<kbd class="k must NOT">MUST NOT</kbd>靠猜测。</p>
+
+<div class="tw"><table>
+<thead><tr><th>类</th><th>含义</th><th>工作流处置</th><th>计入迭代</th></tr></thead>
+<tbody>
+<tr><td><code>transient</code></td><td>基础设施瞬时故障（网络、限流、超时）</td><td>同参数重试</td><td><strong>否</strong></td></tr>
+<tr><td><code>output_invalid</code></td><td>输出 parse 失败（<code>WF-9</code>）</td><td>回同一角色，附失败位置</td><td><strong>是</strong></td></tr>
+<tr><td><code>budget_exceeded</code></td><td>迭代 / token / 时长超限</td><td><strong>升级给人</strong>，不重试（<code>AG-10</code>）</td><td>—</td></tr>
+<tr><td><code>permission_denied</code></td><td>活动试图触及 <code>tool_grants</code> 或等级上限之外</td><td><strong>立即升级</strong>，重试无意义</td><td>—</td></tr>
+<tr><td><code>capability_missing</code></td><td>当前运行时不支持该活动所需能力（<a href="#ch40">§40</a>）</td><td>升级；<kbd class="k must NOT">MUST NOT</kbd>降级绕过</td><td>—</td></tr>
+<tr><td><code>runtime_fault</code></td><td>适配器自身缺陷</td><td>升级 + 标记适配器</td><td>否</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">RT-7</span><code>transient</code> 与 <code>output_invalid</code> <kbd class="k must">MUST</kbd>区分。前者不计入迭代护栏（基础设施抖动不是智能体的失败），后者<kbd class="k must">MUST</kbd>计入。把两者合并会让护栏在网络不稳时误报，进而诱导调高阈值——<strong>而调高后的阈值对真正的失败同样宽松</strong>。</p>
+</div>
+
+<div class="rule">
+<p><span class="rid">RT-8</span>运行时<kbd class="k must NOT">MUST NOT</kbd>自行重试 <code>output_invalid</code>。重试次数是护栏计量对象，<kbd class="k must">MUST</kbd>由工作流可见地控制。运行时内部的静默重试会让 <code>iterations</code> 失真，使 <code>AG-10</code> 的护栏形同虚设。</p>
+</div>
+
+<h4>35.4 流式输出</h4>
+
+<div class="rule">
+<p><span class="rid">RT-9</span>流式输出<kbd class="k may">MAY</kbd>用于可观测性（进度展示、追溯），<kbd class="k must NOT">MUST NOT</kbd>用于推进工作流。工作流的推进条件<kbd class="k must">MUST</kbd>只依赖 <code>ActivityResult</code> 这个<strong>完整的、已 parse 的</strong>终值（<code>FINV-9</code>）。</p>
+</div>
+
+<p>这条封堵一个具体诱惑：从流里提前看出"它已经在写正确的代码了"就开始下一步。流中间态既不完整也不可重放，据此推进会让工作流的可重放性失效。</p>
+
+<h4>35.5 并发与隔离</h4>
+
+<div class="rule">
+<p><span class="rid">RT-10</span>同一 <code>run_id</code> 的活动<kbd class="k must NOT">MUST NOT</kbd>并发执行。不同 <code>run_id</code> 的并发活动，若其 <code>action_level_ceiling</code> 为 <code>L1</code> 或以上，<kbd class="k must">MUST</kbd>在相互隔离的工作副本中执行（<a href="#ch48">§48</a>）。<code>L0</code> 活动<kbd class="k may">MAY</kbd>共享只读视图。</p>
+</div>
+
+<h4>35.6 接口版本演进</h4>
+
+<div class="rule">
+<p><span class="rid">RT-11</span>接口的<strong>破坏性变更</strong>（删方法、改语义、收窄返回类型）<kbd class="k must">MUST</kbd>同时更新全部已登记的运行时绑定，<strong>同一提交</strong>。<kbd class="k must NOT">MUST NOT</kbd>用"某绑定暂不支持新方法"的方式分批迁移——那会让 <code>FINV-5</code>（替换后零改动）在迁移期间不成立，而迁移期恰恰是最需要它成立的时候。</p>
+</div>
+
+<div class="rule">
+<p><span class="rid">RT-12</span>新增<strong>可选</strong>能力<kbd class="k must">MUST</kbd>经 <code>capabilities()</code> 声明，<kbd class="k must NOT">MUST NOT</kbd>用"调用后看是否抛异常"来探测。能力探测必须是<strong>声明式</strong>的，否则工厂层无法在派工前判断该活动能否执行（<code>FP-4</code> fail-closed）。</p>
 </div>
 
 <h3 class="ch" id="ch36"><span class="num">Chapter 36</span>Claude Agent SDK 绑定<a class="anchor" href="#ch36">#</a></h3>
-<div class="stub">
-<span class="lbl">Scope</span>
-<p>选型理由与替代方案否决记录已定稿于 <a href="#ch10">§10.2</a>（<code>FADR-1</code>），本章不重复。<strong>待补</strong>：SDK 概念到 <code>RT-1</code> 接口的逐项映射（Agent / Session / SubAgent / Tool / Streaming）· 工具面经 MCP 收窄的具体配置 · 计量数据的获取路径 · SDK 能力缺口与补偿方案 · 版本升级的兼容性检查清单。</p>
+
+<p class="lead">选型理由与替代方案否决记录已定稿于 <a href="#ch10">§10.2</a>（<code>FADR-1</code>），本章不重复（<code>FP-1</code>）。本章定义<strong>概念映射与绑定约束</strong>。</p>
+
+<h4>36.1 概念映射</h4>
+
+<div class="tw"><table>
+<thead><tr><th>SDK 概念</th><th>映射到</th><th>绑定约束</th></tr></thead>
+<tbody>
+<tr><td><strong>Agent</strong></td><td>一次 <code>run()</code> 的执行主体</td><td>角色身份来自 <code>Activity.role</code>，<kbd class="k must NOT">MUST NOT</kbd>由 SDK 侧配置另行定义——<strong>能力注册表是唯一权威</strong>（<code>MS-37</code>）</td></tr>
+<tr><td><strong>Session</strong></td><td>一次活动的上下文容器</td><td>会话边界 = 活动边界（<a href="#ch37">§37.1</a>）；<kbd class="k must NOT">MUST NOT</kbd>跨活动复用以"省 token"（违反 <code>AG-3</code>）</td></tr>
+<tr><td><strong>SubAgent</strong></td><td>活动<strong>内部</strong>的分解</td><td>受 <code>FINV-11</code> 约束：<kbd class="k must NOT">MUST NOT</kbd>用于实现 Reviewer 或任何需要独立性的角色（<a href="#ch37">§37.3</a>）</td></tr>
+<tr><td><strong>Tool</strong></td><td><code>tool_grants</code> 的实现</td><td><kbd class="k must">MUST</kbd>经 MCP 暴露（<code>RT-3</code>）；SDK 内置工具若超出授权集<kbd class="k must">MUST</kbd>显式禁用</td></tr>
+<tr><td><strong>Handoff</strong></td><td><code>handoff()</code></td><td>传递物<kbd class="k must">MUST</kbd>是 typed state，<kbd class="k must NOT">MUST NOT</kbd>是会话历史（<code>FR-17</code>）</td></tr>
+<tr><td><strong>Streaming</strong></td><td>可观测性通道</td><td><code>RT-9</code>：不得用于推进</td></tr>
+<tr><td><strong>Checkpoint</strong></td><td><code>checkpoint()</code> / <code>resume()</code></td><td><a href="#ch38">§38</a></td></tr>
+<tr><td><strong>计量</strong></td><td><code>meter()</code></td><td>未知值<kbd class="k must">MUST</kbd>返回空而非 0（<code>AG-8</code>）</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">RT-13</span>SDK 提供的、超出 <code>tool_grants</code> 的<strong>内置工具</strong><kbd class="k must">MUST</kbd>被显式禁用，<kbd class="k must NOT">MUST NOT</kbd>依赖"不在 prompt 里提它"来收窄。理由见 <code>RT-3</code>：prompt 约束不可验证，而"server 不暴露该能力"可验证。适配器<kbd class="k must">MUST</kbd>有一条测试断言未授权工具确实不可调用。</p>
 </div>
+
+<div class="note warn">
+<span class="lbl">默认开放是需要被抵消的属性</span>
+<p>通用 Agent SDK 的默认倾向是<strong>让内置工具尽可能可用</strong>（文件读写、shell、网络），因为这对大多数用户是便利。在本体系中它是需要被主动关闭的默认值——<code>RT-13</code> 把"关闭"从实现者的自觉变成带测试断言的绑定要求。这与 <a href="#ch10">§10.2</a> 指出的"两者优化方向相反"是同一件事的实现面。</p>
+</div>
+
+<h4>36.2 绑定的具体 API 面</h4>
+
+<div class="stub">
+<span class="lbl">Scope · 实现时确定</span>
+<p>SDK 的<strong>具体方法名、参数形状与版本</strong>本规范<strong>不登记</strong>——它们随 SDK 演进，写进规范会立刻成为会漂移的事实（<code>MA-1</code> 同理）。实现时<kbd class="k must">MUST</kbd>对照当时的 SDK 文档确定，并把结果记入 <code>runtime/claude-agent-sdk/</code> 的本地文档 + 一致性测试（<a href="#ch40">§40.1</a>），<strong>不回写本规范</strong>。</p>
+<p>本规范登记的是<strong>约束</strong>（上表右列）与<strong>验收方式</strong>（一致性测试套件）。二者与 SDK 版本无关。</p>
+</div>
+
+<h4>36.3 版本升级检查清单</h4>
+
+<div class="tw"><table>
+<thead><tr><th>检查</th><th>为什么</th></tr></thead>
+<tbody>
+<tr><td>一致性测试套件全绿（<a href="#ch40">§40.1</a>）</td><td>行为等价性是替换与升级的共同验收条件</td></tr>
+<tr><td>未授权工具仍不可调用（<code>RT-13</code>）</td><td>新版本可能新增内置工具，默认开启</td></tr>
+<tr><td><code>capabilities()</code> 声明与实际一致</td><td>能力增减须反映到声明（<code>RT-12</code>）</td></tr>
+<tr><td>计量字段仍可获取</td><td>计量丢失会静默污染成本度量与护栏</td></tr>
+<tr><td>SubAgent 的上下文继承语义未变</td><td><code>FINV-11</code> 的成立依赖这一语义（<a href="#ch37">§37.3</a>）</td></tr>
+<tr><td><code>factory/</code> 零改动</td><td><code>FINV-5</code> —— 升级不应外溢</td></tr>
+</tbody>
+</table></div>
+
+<p>第五行是最容易被忽略的一条：SubAgent 是否继承父上下文，属于 SDK 的<strong>实现细节</strong>，可能在小版本中变化，而 <code>FINV-11</code> 的守护正建立在它之上。因此它<kbd class="k must">MUST</kbd>作为升级检查项，且<kbd class="k should">SHOULD</kbd>有一条断言直接验证（构造一个父上下文可见的标记，确认子实例读不到）。</p>
 
 <h3 class="ch" id="ch37"><span class="num">Chapter 37</span>Session / Handoff / SubAgent<a class="anchor" href="#ch37">#</a></h3>
-<div class="stub">
-<span class="lbl">Scope</span>
-<p>会话边界与知识切片的对应关系 · Handoff 时的 typed state 契约 · SubAgent 与独立 Agent 实例的选用判据（关键：SubAgent 共享父上下文，会破坏 Reviewer 的独立性要求，见 <a href="#ch32">§32</a>）· 上下文预算的分配策略。</p>
+<h4>37.1 会话边界</h4>
+
+<div class="rule">
+<p><span class="rid">RT-14</span>会话边界<kbd class="k must">MUST</kbd>等于活动边界：一次 <code>run()</code> 一个会话，活动结束会话即销毁。<kbd class="k must NOT">MUST NOT</kbd>跨活动复用会话以节省上下文重建成本——那会使智能体跨活动持有项目知识，直接违反 <code>AG-3</code> 并重建 <code>PS-1</code>。</p>
 </div>
 
+<p>这条的成本是真实的：每次活动都要重新加载知识切片。本规范接受这个成本，因为它买到的是<strong>可归属性</strong>——每次活动读了什么、依据什么产出，都由 <code>semantic_refs</code> 完整记录。复用会话会让"这个判断依据的是哪一版事实"变得不可回答。切片加载（<code>MS-9</code>）是用来降低这个成本的，不是用来取消它的。</p>
+
+<h4>37.2 Handoff 的传递物</h4>
+
+<div class="rule">
+<p><span class="rid">RT-15</span>Handoff 传递的<kbd class="k must">MUST</kbd>只有 typed state，<kbd class="k must NOT">MUST NOT</kbd>包含会话历史、推理过程或自由文本形式的项目事实。接收方<kbd class="k must">MUST</kbd>能仅凭 typed state + 其中的语义引用重建全部所需上下文；不能则说明 state 定义不完整，<kbd class="k must NOT">MUST NOT</kbd>用附带历史来补。</p>
+</div>
+
+<div class="tw"><table>
+<thead><tr><th>可传递</th><th>不可传递</th><th>为什么</th></tr></thead>
+<tbody>
+<tr><td>任务卡</td><td>Spec 的推理过程</td><td>推理过程会把上游的误解一并传下去</td></tr>
+<tr><td>语义引用</td><td>事实摘要</td><td>摘要会分叉，引用不会（<code>FR-17</code>）</td></tr>
+<tr><td>闸门结果</td><td>闸门的原始输出全文</td><td>结果是结论，全文是噪声</td></tr>
+<tr><td>失败位置与规则 ID</td><td>"上一个 agent 说这里可能有问题"</td><td>无位置无规则的意见不可执行（<code>AG-31</code>）</td></tr>
+<tr><td>迭代计数与预算余量</td><td>会话 token 历史</td><td>护栏只需要数字</td></tr>
+</tbody>
+</table></div>
+
+<h4>37.3 SubAgent 的选用判据</h4>
+
+<p>SubAgent 与独立实例的关键差异是<strong>上下文继承</strong>。多数运行时的 SubAgent 继承父会话上下文，这使它在某些场景是优势、在另一些场景是硬违规。</p>
+
+<div class="rule">
+<p><span class="rid">RT-16</span>需要<strong>独立性</strong>的角色<kbd class="k must NOT">MUST NOT</kbd>实现为 SubAgent。判据：若该角色的价值依赖于"不知道产出方是怎么想的"，则<kbd class="k must">MUST</kbd>用独立实例。Reviewer 是典型（<code>FINV-11</code>）；Guard 同理（它审查的正是其他角色的行为）。</p>
+</div>
+
+<div class="tw"><table>
+<thead><tr><th>场景</th><th>用什么</th><th>依据</th></tr></thead>
+<tbody>
+<tr><td>Reviewer 审查 Impl 的产出</td><td><strong>独立实例</strong></td><td><code>FINV-11</code>——共享上下文 = 自我审查</td></tr>
+<tr><td>Guard 监控其他角色</td><td><strong>独立实例</strong></td><td>同上</td></tr>
+<tr><td>Impl 在一次活动内探索多个文件</td><td>SubAgent <kbd class="k may">MAY</kbd></td><td>同一活动内的分解，无独立性要求</td></tr>
+<tr><td>Test 在一次活动内并行跑多组用例</td><td>SubAgent <kbd class="k may">MAY</kbd></td><td>同上</td></tr>
+<tr><td>Supervisor 派工给另一角色</td><td><strong>独立实例 + handoff</strong></td><td>跨活动边界（<code>RT-14</code>）</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">RT-17</span>SubAgent <kbd class="k must NOT">MUST NOT</kbd>跨越活动边界，也<kbd class="k must NOT">MUST NOT</kbd>拥有超出父活动 <code>tool_grants</code> 或 <code>action_level_ceiling</code> 的权限。<strong>SubAgent 是活动内部的实现细节，对工厂层不可见</strong>——它不单独产生血缘记录，其计量归入父活动。</p>
+</div>
+
+<div class="note warn">
+<span class="lbl">这是一条会被 SDK 升级悄悄破坏的约束</span>
+<p><code>FINV-11</code> 与 <code>RT-16</code> 都建立在"SubAgent 继承父上下文"这一<strong>运行时实现细节</strong>之上。该语义若在某个版本改变（例如改为默认隔离），约束的表述仍然正确但推理基础变了。因此 <a href="#ch36">§36.3</a> 把它列为升级必查项，并要求一条<strong>直接断言</strong>：在父上下文放一个标记，确认子实例读不到。</p>
+<p>不要依赖文档描述，要依赖断言——这与 <code>FP-7</code>（诚实缺口）同源：<strong>你以为被守住的东西，必须有办法确认它真的被守住</strong>。</p>
+</div>
+
+<h4>37.4 上下文预算</h4>
+
+<div class="rule">
+<p><span class="rid">RT-18</span>活动的上下文预算<kbd class="k must">MUST</kbd>优先分配给<strong>知识切片</strong>，其次才是历史与产出。当切片无法完整装入时<kbd class="k must">MUST</kbd>缩小任务范围（回 Supervisor 重新拆分，<code>AG-18</code>），<kbd class="k must NOT">MUST NOT</kbd>截断切片或改为加载摘要。</p>
+</div>
+
+<p><strong>截断切片是最坏的降级方式</strong>：它产生的不是"信息少一点"，而是"看起来完整的错误事实"——智能体不知道自己读到的表少了三张，会基于不完整的集合做集合判断。宁可让任务失败并重新拆分，也不要让它在残缺事实上成功。</p>
+
 <h3 class="ch" id="ch38"><span class="num">Chapter 38</span>Checkpoint 与恢复<a class="anchor" href="#ch38">#</a></h3>
-<div class="stub">
-<span class="lbl">Scope</span>
-<p>检查点的写入时机（<kbd class="k should">SHOULD</kbd>在每次闸门前后）· 检查点内容与血缘记录的关系（<strong>两者不同</strong>：检查点用于恢复执行，血缘用于事后审计，<a href="#ch5">§5.4</a>）· 恢复后的闸门重跑要求 · 检查点的保留期限。</p>
+
+<h4>38.1 Checkpoint 与血缘的区别</h4>
+
+<p>两者都记录"发生过什么"，但用途、生命周期与可变性完全不同。混淆会导致其中之一失效。</p>
+
+<div class="tw"><table>
+<thead><tr><th></th><th>Checkpoint</th><th>血缘记录</th></tr></thead>
+<tbody>
+<tr><td>用途</td><td><strong>恢复执行</strong></td><td><strong>事后审计</strong></td></tr>
+<tr><td>读者</td><td>运行时</td><td>人 · Guard · 发布清单生成器</td></tr>
+<tr><td>内容</td><td>足以继续的运行时状态</td><td>目标 · 触及文件 · 声明 · 闸门 · 放行 · 计量</td></tr>
+<tr><td>可变性</td><td><kbd class="k may">MAY</kbd>覆盖与删除</td><td><strong>append-only</strong>（<code>FINV-7</code>）</td></tr>
+<tr><td>生命周期</td><td>工作流终止即可回收</td><td>跟随验证包 / 留存要求</td></tr>
+<tr><td>缺失后果</td><td>需重跑活动（成本）</td><td><strong>不可追溯</strong>（合规缺陷，<code>WF-21</code> 阻断发布）</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">RT-19</span>Checkpoint <kbd class="k must NOT">MUST NOT</kbd>被用作血缘记录的替代或来源。二者<kbd class="k must">MUST</kbd>独立产生：血缘在 Record 阶段无条件写入（<code>AG-2</code>），<kbd class="k must NOT">MUST NOT</kbd>依赖 checkpoint 是否存在。</p>
+</div>
+
+<h4>38.2 写入时机与恢复</h4>
+
+<div class="rule">
+<p><span class="rid">RT-20</span>Checkpoint <kbd class="k should">SHOULD</kbd>在每次闸门评估<strong>之前</strong>写入。理由：闸门失败是最常见的中断点，在它之前落点可使重试不必从活动起点重跑。</p>
+</div>
+
+<div class="rule">
+<p><span class="rid">RT-21</span>从 checkpoint 恢复后，<strong>全部闸门<kbd class="k must">MUST</kbd>重新评估</strong>，<kbd class="k must NOT">MUST NOT</kbd>沿用 checkpoint 中记录的闸门结果。理由：checkpoint 写入与恢复之间，工作副本或依赖可能已变化——沿用旧结果是 <code>FINV-6</code>（闸门必须检查即将提交的内容）的直接违反。</p>
+</div>
+
+<div class="rule">
+<p><span class="rid">RT-22</span>恢复<kbd class="k must NOT">MUST NOT</kbd>重置迭代计数与预算余量。恢复是<strong>同一次活动的继续</strong>，不是新活动——否则可通过反复 checkpoint/resume 无限规避护栏（<code>AG-10</code>）。</p>
+</div>
+
+<h4>38.3 保留</h4>
+
+<div class="rule">
+<p><span class="rid">RT-23</span>Checkpoint <kbd class="k may">MAY</kbd>在工作流终止后回收。回收<kbd class="k must NOT">MUST NOT</kbd>影响血缘完整性——若某项审计信息只存在于 checkpoint 中，说明血缘字段定义有缺口，<kbd class="k must">MUST</kbd>补血缘而非延长 checkpoint 保留期。</p>
 </div>
 
 <h3 class="ch" id="ch39"><span class="num">Chapter 39</span>工具面与 MCP<a class="anchor" href="#ch39">#</a></h3>
@@ -3227,9 +3444,48 @@ L = max(level(p) for p in P)</code></pre>
 
 <p>理由是可验证性：写在 prompt 里的"请不要修改迁移文件"是不可验证的；而 MCP server <strong>不暴露</strong>该能力是可验证的。<strong>智能体能做什么由 server 暴露什么决定</strong>——这比约定可靠一个量级，且它把工具面变成了可审计的接口。</p>
 
-<div class="stub">
-<span class="lbl">Scope · 本章待补</span>
-<p>角色 × 工具面授权矩阵的 schema · 校验器 / 不变量测试 / schema 差异 / 状态机查询暴露为 MCP server 的接口定义 · 工具调用的血缘落点 · 只读与写入工具的分离规则。</p>
+<h4>39.1 授权矩阵</h4>
+
+<div class="rule">
+<p><span class="rid">RT-24</span>工厂<kbd class="k must">MUST</kbd>维护<strong>角色 × 工具</strong>的显式授权矩阵。矩阵<kbd class="k must">MUST</kbd>是闭集：未在矩阵中的组合默认<strong>拒绝</strong>（<code>FP-4</code>）。矩阵中的角色<kbd class="k must">MUST</kbd>在能力注册表在册，工具<kbd class="k must">MUST</kbd>对应实际暴露的 MCP 能力——两侧均做双向对拍（<code>VC-4</code>）。</p>
+</div>
+
+<div class="tw"><table>
+<thead><tr><th>工具类</th><th>Supervisor</th><th>Spec</th><th>Test</th><th>Impl</th><th>Reviewer</th><th>Guard</th></tr></thead>
+<tbody>
+<tr><td>读元语切片</td><td>索引</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>—</td></tr>
+<tr><td>只读检索</td><td>—</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
+<tr><td>读 diff</td><td>—</td><td>—</td><td>—</td><td>—</td><td>✓</td><td>✓</td></tr>
+<tr><td>写测试面</td><td>—</td><td>—</td><td>✓</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>写授权路径面</td><td>—</td><td>—</td><td>—</td><td>✓</td><td>—</td><td>—</td></tr>
+<tr><td>跑闸门</td><td>读结果</td><td>—</td><td>✓</td><td>✓</td><td>读结果</td><td>读结果</td></tr>
+<tr><td>干净基线复跑</td><td>—</td><td>—</td><td>✓</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>派工 / 写事件</td><td>✓</td><td>—</td><td>—</td><td>—</td><td>—</td><td>发升级</td></tr>
+<tr><td>读血缘 / 计量</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>✓</td></tr>
+<tr><td><strong>放行</strong></td><td colspan="6" style="text-align:center"><strong>无任何角色</strong>（<code>AG-12</code> · <code>IN-1</code>）</td></tr>
+</tbody>
+</table></div>
+
+<p>最后一行是矩阵中最重要的一行：它是一条<strong>空行</strong>。放行能力不属于任何智能体角色，因此它在工具面上根本不存在——不是"有但不给"，而是<strong>MCP server 不暴露</strong>。</p>
+
+<h4>39.2 治理能力的 MCP 化</h4>
+
+<div class="rule">
+<p><span class="rid">RT-25</span>校验器、不变量测试、schema 差异查询、状态机查询<kbd class="k should">SHOULD</kbd>经 MCP 暴露为<strong>只读</strong>能力。它们的实现<kbd class="k must">MUST</kbd>保持确定性（<code>FINV-1</code>）——MCP 化改变的是<strong>调用方式</strong>，不改变<strong>执行性质</strong>。</p>
+</div>
+
+<p>收益不在"更规范"，而在工具面成为<strong>可审计的收窄接口</strong>：智能体能查什么、能跑什么，由 server 的能力声明决定并可被独立审查。这比在 prompt 里写"请先跑校验器"可靠一个量级，也让 Guard 能从工具调用记录中确认闸门确实跑过。</p>
+
+<h4>39.3 只读与写入的分离</h4>
+
+<div class="rule">
+<p><span class="rid">RT-26</span>只读工具与写入工具<kbd class="k must">MUST</kbd>分属不同的能力面，<kbd class="k must NOT">MUST NOT</kbd>由同一工具通过参数区分（如 <code>dryRun: false</code>）。理由：参数化的破坏性开关无法在授权层拦截——授予了工具就授予了它的全部参数空间。</p>
+</div>
+
+<h4>39.4 工具调用的血缘落点</h4>
+
+<div class="rule">
+<p><span class="rid">RT-27</span>写入类工具的每次调用<kbd class="k must">MUST</kbd>可关联到 <code>run_id</code>，并<kbd class="k must">MUST</kbd>体现在血缘的 <code>files</code> 中。工具调用记录与血缘 <code>files</code> 不符<kbd class="k must">MUST</kbd>触发 Guard 告警——这是<strong>幻觉率之外的第二类失真</strong>：声明的改动范围与实际调用不符。</p>
 </div>
 
 <h3 class="ch" id="ch40"><span class="num">Chapter 40</span>运行时替换协议<a class="anchor" href="#ch40">#</a></h3>
@@ -3238,10 +3494,48 @@ L = max(level(p) for p in P)</code></pre>
 <p><span class="rid">RT-4</span>新增运行时绑定<kbd class="k must">MUST</kbd>提交<strong>替换证明</strong>：在切换绑定的提交中，<code>factory/</code> 与项目元语的改动<kbd class="k must">MUST</kbd>为零（<code>FINV-5</code>）。非零改动<kbd class="k must">MUST</kbd>被视为职责泄漏并修复，<kbd class="k must NOT">MUST NOT</kbd>作为例外接受。</p>
 </div>
 
-<div class="stub">
-<span class="lbl">Scope · 本章待补</span>
-<p>一致性测试套件（同一活动在不同运行时上须产生等价的 typed 结果与闸门判定）· 能力缺口的声明格式 · 多运行时并存时的路由规则 · 迁移期的双跑校验。</p>
+<h4>40.1 一致性测试套件</h4>
+
+<div class="rule">
+<p><span class="rid">RT-28</span>每个运行时绑定<kbd class="k must">MUST</kbd>通过同一套一致性测试。测试断言的是<strong>可观测的等价性</strong>：同一 <code>Activity</code> 在不同绑定上<kbd class="k must">MUST</kbd>产生相同的 <code>ok</code> 值、相同的错误分类（<a href="#ch35">§35.3</a>）、以及使闸门得出相同判定的输出。<kbd class="k must NOT">MUST NOT</kbd>断言输出文本逐字相同——模型输出本就非确定（<code>FINV-9</code>）。</p>
 </div>
+
+<div class="tw"><table>
+<thead><tr><th>用例</th><th>断言</th></tr></thead>
+<tbody>
+<tr><td>正常活动</td><td><code>ok:true</code>；输出可 parse；计量非空</td></tr>
+<tr><td>输出不合 schema</td><td><code>ok:false</code> 且分类为 <code>output_invalid</code>；<strong>运行时未自行重试</strong>（<code>RT-8</code>）</td></tr>
+<tr><td>调用未授权工具</td><td>分类为 <code>permission_denied</code>；调用<strong>未生效</strong>（<code>RT-13</code>）</td></tr>
+<tr><td>超预算</td><td>分类为 <code>budget_exceeded</code>；活动中止</td></tr>
+<tr><td>SubAgent 上下文</td><td>父上下文标记在子实例<strong>不可见</strong>或<strong>可见</strong>——须与声明一致（<code>RT-16</code> 的推理基础）</td></tr>
+<tr><td>checkpoint / resume</td><td>恢复后闸门重跑（<code>RT-21</code>）；迭代计数<strong>未重置</strong>（<code>RT-22</code>）</td></tr>
+<tr><td>cancel</td><td>触发 Record 阶段；血缘含中止原因（<code>AG-2</code>）</td></tr>
+<tr><td>计量缺失</td><td>返回空值<strong>而非 0</strong>（<code>AG-8</code>）</td></tr>
+</tbody>
+</table></div>
+
+<h4>40.2 能力缺口的声明</h4>
+
+<div class="rule">
+<p><span class="rid">RT-29</span>绑定不支持某项能力时<kbd class="k must">MUST</kbd>经 <code>capabilities()</code> 显式声明为缺失，并<kbd class="k must">MUST</kbd>在豁免表在册（<code>MS-39</code>）含理由与失效条件。<kbd class="k must NOT">MUST NOT</kbd>以"调用时静默降级"或"抛通用异常"表达缺口——工厂层<kbd class="k must">MUST</kbd>能在<strong>派工前</strong>判断该活动可否执行。</p>
+</div>
+
+<div class="rule">
+<p><span class="rid">RT-30</span>能力缺口<kbd class="k should">SHOULD</kbd>在<strong>适配器内补齐</strong>，<kbd class="k should NOT">SHOULD NOT</kbd>在工厂层加分支绕过。工厂层出现 <code>if (runtime === 'X')</code> 形式的分支即违反 <code>FG-5</code>，<kbd class="k must">MUST</kbd>视为职责泄漏。</p>
+</div>
+
+<h4>40.3 多绑定并存与迁移</h4>
+
+<div class="rule">
+<p><span class="rid">RT-31</span>多个绑定并存时，路由规则<kbd class="k must">MUST</kbd>是确定性的（按角色 / 按活动类型 / 按显式配置），<kbd class="k must NOT">MUST NOT</kbd>由模型或"哪个更快"这类运行时状态决定。理由：不确定的路由会让工作流不可重放——同一事件序列重放可能落到不同绑定上。</p>
+</div>
+
+<div class="rule">
+<p><span class="rid">RT-32</span>迁移期<kbd class="k may">MAY</kbd>双跑（同一活动在新旧绑定各执行一次）用于比对，但<kbd class="k must">MUST</kbd>指定其中<strong>一个为权威</strong>，另一个的产出<kbd class="k must NOT">MUST NOT</kbd>进入工作副本。双跑的差异<kbd class="k must">MUST</kbd>作为观测数据记录，<kbd class="k must NOT">MUST NOT</kbd>用于自动择优。</p>
+</div>
+
+<p>"自动择优"看似合理，实际会引入一个无法审计的决策点：产物来自哪个绑定取决于当次比对结果，而比对结果不可复现。<strong>迁移期的目的是建立信心，不是提高质量</strong>——一旦允许择优，就永远无法确认新绑定是否真的可以独立承担。</p>
+
 
 <!-- ═══════════════════════ PART VI ═══════════════════════ -->
 
@@ -4093,6 +4387,15 @@ L = max(level(p) for p in P)</code></pre>
 <tr><td><code>CP-59</code></td><td><code>C3</code></td><td>失败重派未改动验收条件，未切换更宽松执行者</td><td><code>AG-19</code> <code>AG-20</code></td></tr>
 <tr><td><code>CP-60</code></td><td><code>C3</code></td><td>审查清单由改动确定性派生，非模型自拟；阻断项均引用位置与规则 ID</td><td><code>AG-30</code> <code>AG-31</code></td></tr>
 <tr><td><code>CP-61</code></td><td><code>C3</code></td><td>Guard 触发判定全部来自确定性信号；Guard 无直接中止权</td><td><code>AG-33</code> <code>AG-35</code></td></tr>
+<tr><td><code>CP-62</code></td><td><code>C3</code></td><td>活动失败作返回值而非异常，且携带计量；运行时不自行重试 <code>output_invalid</code></td><td><code>RT-5</code> <code>RT-8</code></td></tr>
+<tr><td><code>CP-63</code></td><td><code>C3</code></td><td><code>transient</code> 与 <code>output_invalid</code> 分类可区分，前者不计入迭代护栏</td><td><code>RT-7</code></td></tr>
+<tr><td><code>CP-64</code></td><td><code>C3</code></td><td><strong>未授权工具确实不可调用</strong>，且有测试断言（非仅靠 prompt 收窄）</td><td><code>RT-3</code> <code>RT-13</code></td></tr>
+<tr><td><code>CP-65</code></td><td><code>C3</code></td><td>会话边界 = 活动边界；SubAgent 不跨活动边界、不超父权限</td><td><code>RT-14</code> <code>RT-17</code></td></tr>
+<tr><td><code>CP-66</code></td><td><code>C3</code></td><td>上下文不足时缩小任务范围，<strong>不截断知识切片</strong></td><td><code>RT-18</code></td></tr>
+<tr><td><code>CP-67</code></td><td><code>C3</code></td><td>恢复后全部闸门重跑；迭代计数与预算余量未重置</td><td><code>RT-21</code> <code>RT-22</code></td></tr>
+<tr><td><code>CP-68</code></td><td><code>C3</code></td><td>角色 × 工具授权矩阵为闭集并与能力注册表 / MCP 声明双向对拍；<strong>放行不属任何角色</strong></td><td><code>RT-24</code> <code>AG-12</code></td></tr>
+<tr><td><code>CP-69</code></td><td><code>C3</code></td><td>一致性测试套件全绿（断言可观测等价性，非逐字相同）</td><td><code>RT-28</code></td></tr>
+<tr><td><code>CP-70</code></td><td><code>C3</code></td><td>能力缺口经 <code>capabilities()</code> 声明并在豁免表在册；工厂层无厂商分支</td><td><code>RT-29</code> <code>RT-30</code></td></tr>
 <tr><td><code>CP-46</code></td><td><code>C4</code></td><td>度量闭环，且未被设为优化目标</td><td><code>VC-10</code></td></tr>
 <tr><td><code>CP-53</code></td><td><code>C4</code></td><td>变更清单由血缘派生，覆盖全部 run（含失败）；血缘缺口阻断发布</td><td><code>WF-19</code> <code>WF-21</code></td></tr>
 <tr><td><code>CP-54</code></td><td><code>C4</code></td><td>热修复裁剪产生补做工单；未完成补做数量被暴露为度量</td><td><code>WF-17</code></td></tr>
@@ -4114,12 +4417,12 @@ L = max(level(p) for p in P)</code></pre>
 <tr><td><code>MA-n</code></td><td>Meta-Language Anti-pattern　元语反模式</td><td><a href="#ch16">§16.8</a></td><td>8</td></tr>
 <tr><td><code>VC-n</code></td><td>Verifier Contract　校验器契约</td><td><a href="#ch25">§25</a></td><td>10</td></tr>
 <tr><td><code>AG-n</code></td><td>Agent Rule　智能体规范</td><td>Part IV</td><td>36</td></tr>
-<tr><td><code>RT-n</code></td><td>Runtime Rule　运行时规范</td><td>Part V</td><td>4</td></tr>
+<tr><td><code>RT-n</code></td><td>Runtime Rule　运行时规范</td><td>Part V</td><td>32</td></tr>
 <tr><td><code>WF-n</code></td><td>Workflow Rule　工作流规范</td><td>Part VI</td><td>26</td></tr>
 <tr><td><code>IN-n</code></td><td>Infrastructure Rule　基础设施规范</td><td>Part VII</td><td>1</td></tr>
 <tr><td><code>EX-n</code></td><td>Extension Rule　扩展规范</td><td>Part VIII</td><td>3</td></tr>
 <tr><td><code>PS-n</code></td><td>Problem Statement　故障模式</td><td><a href="#ch2">§2</a></td><td>6</td></tr>
-<tr><td><code>CP-n</code></td><td>Conformance Point　一致性检查点</td><td><a href="#apxA">附录 A</a></td><td>61</td></tr>
+<tr><td><code>CP-n</code></td><td>Conformance Point　一致性检查点</td><td><a href="#apxA">附录 A</a></td><td>70</td></tr>
 </tbody>
 </table></div>
 
@@ -4271,6 +4574,7 @@ L = max(level(p) for p in P)</code></pre>
 <tr><td><code>1.0.0-draft</code></td><td>2026-07-30</td><td>首版。Part I–III 规范性定稿（<a href="#ch1">§1</a>–<a href="#ch25">§25</a>）；Part IV 的 <a href="#ch26">§26</a>–<a href="#ch27">§27</a>、<a href="#ch34">§34</a>，Part V 的 <a href="#ch35">§35</a>、<a href="#ch39">§39</a>–<a href="#ch40">§40</a>，Part VIII 定稿；其余章节定范围。取代 2026-07 的总体方案稿</td></tr>
 <tr><td><code>1.1.0-draft</code></td><td>2026-07-30</td><td><strong>Part VI 全部定稿</strong>（<a href="#ch41">§41</a>–<a href="#ch47">§47</a>）：事件模型 <code>WF-6</code>–<code>WF-7</code> · 活动契约 <code>WF-8</code>–<code>WF-9</code> · 闸门分类学与不可裁剪子集 <code>WF-10</code> · 失败路由 <code>WF-11</code> · 六类工作流各含时序图与失败路由表（<code>WF-12</code>–<code>WF-26</code>）· 新增 <code>FINV-10</code>（重构 = 断言零变更）· 新增 <code>CP-47</code>–<code>CP-54</code>。销 <code>QA-2</code> 原议题</td></tr>
 <tr><td><code>1.1.1-draft</code></td><td>2026-07-30</td><td><strong><code>FR-1</code> 落地</strong>：<code>spec/check-asfas-doc.mjs</code> 8 维度 + <code>spec/negative-verify.mjs</code> 逐维度负向验证，挂进 <code>npm test</code>。本规范自身由 <code>C0</code> 升至 <code>C1</code>。修复 12 张时序图中 9 处 SVG 内 <code>&lt;strong&gt;</code> 导致的解析中断（见 <a href="#status">§0.3</a>）。销 <code>QA-1</code> <code>QA-5</code>；新增 <code>QA-7</code></td></tr>
+<tr><td><code>1.3.0-draft</code></td><td>2026-07-30</td><td><strong>Part V 全部定稿</strong>（<a href="#ch35">§35</a>–<a href="#ch40">§40</a>）：接口形状与<strong>错误六分类</strong>（<code>RT-5</code>–<code>RT-12</code>，<code>transient</code> 与 <code>output_invalid</code> 须分开计入护栏）· SDK 概念映射与 <code>RT-13</code> 内置工具须显式禁用（具体 API 面<strong>刻意不入规范</strong>，见 §36.2）· 会话边界 = 活动边界（<code>RT-14</code>）· <strong>SubAgent 选用判据</strong>（<code>RT-16</code>/<code>RT-17</code>，承 <code>FINV-11</code>）· 上下文不足须缩范围<strong>不得截断切片</strong>（<code>RT-18</code>）· Checkpoint 与血缘的六维区分（<code>RT-19</code>–<code>RT-23</code>）· <strong>角色 × 工具授权矩阵</strong>（<code>RT-24</code>–<code>RT-27</code>）· 一致性测试与能力缺口声明（<code>RT-28</code>–<code>RT-32</code>）· 新增 <code>CP-62</code>–<code>CP-70</code>。销 <code>QA-2</code> 本轮议题</td></tr>
 <tr><td><code>1.2.0-draft</code></td><td>2026-07-30</td><td><strong>Part IV 全部定稿</strong>（<a href="#ch26">§26</a>–<a href="#ch34">§34</a>）：<strong>归级算法</strong>（§27.6，未匹配路径 fail-closed 归 <code>L2</code>，<code>L3</code> 命中短路）· 六个角色的完整九项契约 · Supervisor 确定性/非确定性分界与拆分粒度判据（<code>AG-16</code>–<code>AG-20</code>）· 任务卡 schema 与 <strong><code>declares</code> 只减不加</strong>推导规则（<code>AG-21</code>–<code>AG-24</code>）· 黄金纵切与邻近文件三级判定（<code>AG-25</code>–<code>AG-27</code>）· 新增 <code>FINV-11</code>（<strong>Reviewer 独立性</strong>，直接约束 SubAgent 用法）· 审查清单确定性派生（<code>AG-30</code>–<code>AG-32</code>）· Guard 触发判定确定性 + Memory 例外 + 无中止权（<code>AG-33</code>–<code>AG-36</code>）· 新增 <code>CP-55</code>–<code>CP-61</code>。销 <code>QA-2</code> 本轮议题</td></tr>
 </tbody>
 </table></div>
@@ -4293,7 +4597,7 @@ L = max(level(p) for p in P)</code></pre>
 <div class="tw"><table>
 <thead><tr><th>#</th><th>事项</th><th>倾向</th><th>决出前禁止</th></tr></thead>
 <tbody>
-<tr><td><code>QA-2</code></td><td>剩余待补章节顺序（Part V 运行时绑定 · Part VII 基础设施）<br><em>v1.1 销：Part VI 优先 · v1.2 销：Part IV 角色契约</em></td><td><strong>Part V</strong>（<a href="#ch36">§36</a>–<a href="#ch38">§38</a>）——六个角色的工具面与上下文要求已定，SDK 逐项映射现在有了明确的映射目标；<code>FINV-11</code> 也已给出 SubAgent 选用的第一条硬约束</td><td>不得在 Part V 定稿前写 Part VII 的沙箱凭据注入细则（依赖工具面授权矩阵）</td></tr>
+<tr><td><code>QA-2</code></td><td>剩余待补章节（<strong>仅 Part VII 基础设施</strong>）<br><em>v1.1 销：Part VI · v1.2 销：Part IV · v1.3 销：Part V</em></td><td><strong>Part VII</strong>（<a href="#ch48">§48</a>–<a href="#ch52">§52</a>）——授权矩阵（<code>RT-24</code>）已定，沙箱凭据注入的粒度现在可以据此确定</td><td>Part VII 定稿后本条销项；此后 55 章全部定稿，转入附录 C/D/E/F 的可复制化</td></tr>
 <tr><td><code>QA-3</code></td><td>L2 人工放行的载体：代码评审 vs 仓内放行台</td><td>评审（审阅人是自然人、时间戳由平台背书）</td><td>不得两套并行</td></tr>
 <tr><td><code>QA-4</code></td><td>多智能体并行的隔离方式：每 agent 独立工作副本 vs 串行</td><td>—</td><td>不得在未定前实现并行编排（会引入"两个 agent 基于不同基线判断"的新型上下文不一致）</td></tr>
 <tr><td><code>QA-7</code></td><td>负向验证用例与文档锚点耦合（注入点写死了具体章节号/rid），文档结构变动时用例会失效</td><td>用例失效时<strong>显式报错</strong>（当前行为），不静默跳过</td><td>不得把失效用例改成宽松匹配以"让它过去"</td></tr>
