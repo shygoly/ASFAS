@@ -13,8 +13,9 @@
 //   F  SVG 内不含非 SVG 元素                    ← <strong> 会中断 SVG 解析
 //   G  块级标签平衡
 //   H  每个 Part 的 part-head 存在
+//   I  templates/ 与元语全集一致，且每份模板结构合规、仍是模板
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -26,7 +27,13 @@ if (process.argv.includes('--fix')) {
 // ── 扫描面（VC-6：显式声明，便于审查完整性）─────────────────
 const HERE = dirname(fileURLToPath(import.meta.url));
 const TARGET = join(HERE, 'ASFAS.html');
+const TEMPLATE_DIR = join(HERE, '..', 'templates');
 const CHAPTER_COUNT = 55;
+// 元语全集（§15.2）：6 核心 + 2 条件 + AGENTS.md 入口指针（FR-6 要求 C0 齐备）
+const CORE_META = ['ARCHITECTURE', 'DESIGN', 'DOMAIN', 'FLOWS', 'DECISIONS', 'DEPLOY'];
+const COND_META = ['AI', 'AGENT-OPS'];
+const ENTRY_DOC = ['AGENTS'];
+const MIN_PLACEHOLDERS = 5;
 const PARTS = ['partI', 'partII', 'partIII', 'partIV', 'partV', 'partVI', 'partVII', 'partVIII', 'appendix'];
 const BLOCK_TAGS = ['div', 'table', 'tr', 'td', 'th', 'thead', 'tbody', 'aside', 'main', 'nav',
   'figure', 'figcaption', 'p', 'ul', 'ol', 'li', 'pre', 'code', 'span', 'strong', 'kbd', 'svg', 'text'];
@@ -166,6 +173,44 @@ const nsActual = {};
   const missing = PARTS.filter((p) => !h.includes(`id="${p}"`));
   if (missing.length) fail(`H Part 结构缺失：${missing.join(', ')}`);
   else pass(`H ${PARTS.length} 个 Part / Appendix 结构齐备`);
+}
+
+// ── I templates/ 与元语全集一致，且每份仍是模板 ─────────────
+{
+  const expected = [...CORE_META, ...COND_META, ...ENTRY_DOC].sort();
+  let files;
+  try {
+    files = readdirSync(TEMPLATE_DIR).filter((f) => f.endsWith('.md')).map((f) => f.replace(/\.md$/, ''));
+  } catch {
+    fail(`I templates/ 目录不存在或不可读：${TEMPLATE_DIR}`);
+    files = null;
+  }
+  if (files) {
+    if (files.length === 0) fail('I templates/ 无模板 —— 解析空转');
+    const actual = [...files].sort();
+    const missing = expected.filter((e) => !actual.includes(e));
+    const extra = actual.filter((a) => !expected.includes(a));
+    if (missing.length) fail(`I 模板缺失：${missing.join(', ')}`);
+    if (extra.length) fail(`I 模板多余（不在元语全集内）：${extra.join(', ')}`);
+
+    const structural = [];
+    for (const name of actual) {
+      const t = readFileSync(join(TEMPLATE_DIR, `${name}.md`), 'utf8');
+      // 抬头块（MS-6）：标题行后须紧跟引用块
+      if (!/^#\s.+\n\n>\s/m.test(t)) structural.push(`${name}: 缺抬头块`);
+      // 格式契约附录 + 兜底规则（MS-8）—— 入口指针非元语，不要求
+      if (!ENTRY_DOC.includes(name)) {
+        if (!/##\s*附录：格式契约/.test(t)) structural.push(`${name}: 缺格式契约附录`);
+        else if (!/解析为\s*0\s*行/.test(t)) structural.push(`${name}: 格式契约缺解析空转兜底规则`);
+      }
+      // 仍是模板：占位符未被填掉
+      const ph = (t.match(/\{\{[^}]+\}\}/g) || []).length;
+      if (ph < MIN_PLACEHOLDERS) structural.push(`${name}: 占位符仅 ${ph} 处（<${MIN_PLACEHOLDERS}）—— 疑似被填入实例内容`);
+    }
+    if (structural.length) fail(`I 模板结构不合规 —— ${structural.join(' · ')}`);
+    if (!missing.length && !extra.length && !structural.length)
+      pass(`I ${actual.length} 份模板与元语全集一致，结构合规且仍为模板`);
+  }
 }
 
 report();
