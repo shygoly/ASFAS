@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ASFAS — Agent Native Software Factory Architecture Specification v1.3</title>
+<title>ASFAS — Agent Native Software Factory Architecture Specification v1.4</title>
 <meta name="description" content="Level 2 Engineering Specification. Knowledge Driven Software Factory.">
 <style>
 /* ============================================================
@@ -256,7 +256,7 @@ h3.ch:hover .anchor,h4:hover .anchor{opacity:1}
   <div class="brand">
     <div class="mark">ASFAS</div>
     <div class="sub">Agent Native Software Factory<br>Architecture Specification</div>
-    <span class="ver">v1.3 · Level 2 · Engineering Spec</span>
+    <span class="ver">v1.4 · Level 2 · Engineering Spec</span>
   </div>
   <div class="searchbox">
     <input type="search" id="tocfilter" placeholder="筛选章节…" autocomplete="off" aria-label="筛选章节">
@@ -357,8 +357,8 @@ h3.ch:hover .anchor,h4:hover .anchor{opacity:1}
     <p class="zh">智能体原生软件工厂架构规范 · <strong>Knowledge Driven Software Factory</strong></p>
     <dl>
       <dt>Document</dt><dd>ASFAS — Level 2 Engineering Specification</dd>
-      <dt>Version</dt><dd>1.3.0-draft</dd>
-      <dt>Status</dt><dd>Draft · Part I–VI + VIII normative · Part VII scoped</dd>
+      <dt>Version</dt><dd>1.4.0-draft</dd>
+      <dt>Status</dt><dd>Draft · <strong>Part I–VIII 全部规范性定稿</strong>（55/55 章）· 附录 C–F 待可复制化</dd>
       <dt>Date</dt><dd>2026-07-30</dd>
       <dt>Repository</dt><dd><code>~/Sync/project/ai-factory/spec/ASFAS.html</code></dd>
       <dt>Supersedes</dt><dd><code>AI_Software_Factory_Claude_Agent_SDK_方案.html</code>（2026-07，总体方案稿）</dd>
@@ -4190,13 +4190,69 @@ ActivityResult =
 <div class="part-head" id="partVII">
   <div class="kicker">Part VII</div>
   <h2>Infrastructure · 基础设施</h2>
-  <p>能力要求已在 <a href="#ch11">§11</a> 定稿；本部分展开各能力的接口契约与实现约束。全部章节已定范围。</p>
+  <p><strong>本部分规范性定稿。</strong>能力要求已在 <a href="#ch11">§11</a> 定稿，本部分展开接口契约与实现约束：沙箱与凭据派生 · 放行闸的三条判据 · 四类状态的存储纪律 · 观测边界与日志纪律 · 成本归集与降本顺序。</p>
 </div>
 
 <h3 class="ch" id="ch48"><span class="num">Chapter 48</span>计算与沙箱<a class="anchor" href="#ch48">#</a></h3>
-<div class="stub">
-<span class="lbl">Scope</span>
-<p>沙箱接口（"起一个隔离环境跑一条命令并回收"）· 隔离级别与动作等级的对应（<code>L2</code> 面的活动<kbd class="k should">SHOULD</kbd>在独立沙箱）· 网络出口限制 · 并行活动的资源配额 · 沙箱内的凭据注入（<kbd class="k must NOT">MUST NOT</kbd>注入超出该角色工具面所需的凭据）· 沙箱日志与血缘的关联。</p>
+
+<h4>48.1 沙箱接口</h4>
+
+<div class="rule">
+<p><span class="rid">IN-2</span>沙箱接口<kbd class="k must">MUST</kbd>最小化为：<strong>起一个隔离环境 · 在其中执行受限命令 · 取回产物与日志 · 回收</strong>。沙箱<kbd class="k must NOT">MUST NOT</kbd>承载业务语义、闸门判断或放行逻辑——它是 L4 能力，被 L3 使用，对 L2 不可见（<code>FR-11</code>）。</p>
+</div>
+
+<h4>48.2 隔离级别与动作等级</h4>
+
+<div class="tw"><table>
+<thead><tr><th>活动等级</th><th>隔离要求</th><th>工作副本</th><th>依据</th></tr></thead>
+<tbody>
+<tr><td><code>L0</code></td><td><kbd class="k may">MAY</kbd>共享只读视图</td><td>无写入</td><td><code>RT-10</code></td></tr>
+<tr><td><code>L1</code></td><td><kbd class="k must">MUST</kbd>独立工作副本</td><td>独立</td><td><code>RT-10</code></td></tr>
+<tr><td><code>L2</code></td><td><kbd class="k must">MUST</kbd>独立工作副本 + <strong>独立沙箱实例</strong></td><td>独立</td><td>爆炸半径</td></tr>
+<tr><td><code>L3</code></td><td colspan="3">不存在——<code>L3</code> 无放行路径，不会被派工（<code>AG-6</code>）</td></tr>
+</tbody>
+</table></div>
+
+<h4>48.3 沙箱不是 L3 禁令的替代</h4>
+
+<div class="rule">
+<p><span class="rid">IN-3</span>沙箱<kbd class="k must NOT">MUST NOT</kbd>被用作放宽 <code>L3</code> 禁令的理由。沙箱限制的是<strong>执行期的爆炸半径</strong>，而 <code>L3</code> 禁止的是<strong>会被合并回主干的产物</strong>——工作副本终将被合并，因此在沙箱内修改已应用的迁移与在主干上修改是同一件事。</p>
+</div>
+
+<div class="note warn">
+<span class="lbl">一个容易接受的错误推论</span>
+<p>"反正在沙箱里，让它随便试"是一个直觉上安全、实际上错误的推论。它混淆了两种风险：<strong>沙箱防的是执行副作用</strong>（删了本机文件、打了外部接口），<strong><code>L3</code> 防的是证据损坏</strong>（伪造迁移历史、削弱审计守护、给不变量测试加跳过标记）。后者的载体是<strong>diff</strong>，而 diff 会离开沙箱。</p>
+<p>因此 <code>L3</code> 的守护点<kbd class="k must">MUST</kbd>在闸门上，不在沙箱边界上。</p>
+</div>
+
+<h4>48.4 凭据注入</h4>
+
+<div class="rule">
+<p><span class="rid">IN-4</span>沙箱内注入的凭据<kbd class="k must">MUST</kbd>由该活动的 <code>tool_grants</code> <strong>派生</strong>，<kbd class="k must NOT">MUST NOT</kbd>注入超出其所需的任何凭据。派生规则<kbd class="k must">MUST</kbd>是确定性的：授权矩阵（<code>RT-24</code>）→ 所需外部依赖 → 最小凭据集。无对应工具授权的凭据即使"可能有用"也<kbd class="k must NOT">MUST NOT</kbd>注入。</p>
+</div>
+
+<div class="tw"><table>
+<thead><tr><th>角色</th><th>典型凭据</th><th>不得注入</th></tr></thead>
+<tbody>
+<tr><td>Spec / Reviewer / Guard</td><td>只读仓库访问</td><td>写凭据 · 部署凭据 · 外部服务密钥</td></tr>
+<tr><td>Test</td><td>只读仓库 + 测试依赖服务（隔离实例）</td><td>生产连接串 · 部署凭据</td></tr>
+<tr><td>Impl</td><td>工作副本写入 + 测试依赖服务</td><td><strong>推送凭据</strong>（<code>AG-12</code>）· 部署凭据 · 生产密钥</td></tr>
+<tr><td>Supervisor</td><td>事件存储读写</td><td>仓库写凭据（<code>AG-16</code> 无文件写入）</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">IN-5</span>沙箱的网络出口<kbd class="k must">MUST</kbd>默认拒绝，按活动所需显式放开（<code>FP-4</code>）。放开的目标<kbd class="k should">SHOULD</kbd>登记在授权矩阵中，使"这个角色能访问哪些外部端点"成为可查事实而非运行时才知道。</p>
+</div>
+
+<h4>48.5 配额与血缘关联</h4>
+
+<div class="rule">
+<p><span class="rid">IN-6</span>沙箱实例<kbd class="k must">MUST</kbd>携带 <code>run_id</code>，其日志与产物<kbd class="k must">MUST</kbd>可关联回该次活动的血缘记录。沙箱回收<kbd class="k must NOT">MUST NOT</kbd>导致血缘信息丢失——需要留存的信息<kbd class="k must">MUST</kbd>在回收前写入血缘（<code>RT-23</code> 同理）。</p>
+</div>
+
+<div class="rule">
+<p><span class="rid">IN-7</span>并行活动的资源配额<kbd class="k must">MUST</kbd>按 <code>run_id</code> 归集，使单任务成本可计（<a href="#ch52">§52</a>）。共享配额池<kbd class="k must NOT">MUST NOT</kbd>使个别活动的成本不可归属。</p>
 </div>
 
 <h3 class="ch" id="ch49"><span class="num">Chapter 49</span>源码控制与人工放行闸<a class="anchor" href="#ch49">#</a></h3>
@@ -4205,28 +4261,192 @@ ActivityResult =
 <p><span class="rid">IN-1</span>人工放行<kbd class="k must">MUST</kbd>由<strong>真实自然人</strong>执行，且放行记录<kbd class="k must">MUST</kbd>包含身份与时间戳，时间戳<kbd class="k should">SHOULD</kbd>由放行系统而非被放行方生成。智能体<kbd class="k must NOT">MUST NOT</kbd>代为执行放行动作。</p>
 </div>
 
-<div class="stub">
-<span class="lbl">Scope · 待补</span>
-<p>放行载体的选型对比（代码评审 vs 仓内放行台）与判据 —— 已知倾向：评审的审阅人是真实自然人且时间戳由平台背书，比自建台账更容易向第三方解释。<strong>待补</strong>：放行记录到血缘 <code>human_release</code> 字段的映射 · 分支保护与动作分级的对应 · 无法机器区分执行者时的诚实登记（<code>MS-39</code>）· 多人放行与四眼要求的关系。</p>
+<h4>49.1 放行载体的判据</h4>
+
+<div class="rule">
+<p><span class="rid">IN-8</span>放行载体<kbd class="k must">MUST</kbd>满足三条：<strong>①</strong> 放行人是可归属的真实自然人；<strong>②</strong> 时间戳由<strong>放行系统</strong>生成，不由被放行方提供；<strong>③</strong> 放行<kbd class="k must">MUST</kbd>绑定到<strong>具体的改动集标识</strong>，而非绑定到"某个分支"或"某个任务"。</p>
+</div>
+
+<div class="note warn">
+<span class="lbl">判据 ③ 封堵的是"放行漂移"</span>
+<p>放行若只绑定分支，则批准与合并之间分支还能继续变化——<strong>批准的是 A，合并的是 A+B</strong>。这不需要恶意，一次善意的"顺手再改一点"就会发生，而放行记录看起来完全正常。</p>
+<p>绑定到改动集标识后，改动集一变放行即失效，须重新放行。这也让血缘的 <code>human_release</code> 能精确指向"这个人批准了这些字节"。</p>
+</div>
+
+<div class="tw"><table>
+<thead><tr><th>载体</th><th>①身份</th><th>②平台时间戳</th><th>③绑定改动集</th><th>评估</th></tr></thead>
+<tbody>
+<tr><td>代码评审（PR review）</td><td>✓</td><td>✓</td><td>✓（可配置为改动即失效）</td><td><strong>推荐</strong>——三条天然满足，且第三方易于理解</td></tr>
+<tr><td>仓内放行台账</td><td>需自建</td><td>✗ 自记时间戳</td><td>需自建</td><td>三条都要自证，向检查方解释成本高</td></tr>
+<tr><td>由人执行推送</td><td>✗ <strong>凭据层面无法区分执行者</strong></td><td>✓</td><td>✓</td><td>过渡形态，须诚实登记（§49.4）</td></tr>
+</tbody>
+</table></div>
+
+<h4>49.2 放行记录到血缘的映射</h4>
+
+<div class="tw"><table>
+<thead><tr><th>血缘字段</th><th>来源</th><th>要求</th></tr></thead>
+<tbody>
+<tr><td><code>human_release.by</code></td><td>放行系统的账户身份</td><td><kbd class="k must">MUST</kbd>可解析到自然人，不得是机器账户或共享账户</td></tr>
+<tr><td><code>human_release.method</code></td><td>载体类型</td><td>与 §49.1 表中的一种一致</td></tr>
+<tr><td><code>human_release.ref</code></td><td>放行事件的稳定引用</td><td><kbd class="k must">MUST</kbd>可回溯查证</td></tr>
+<tr><td><code>human_release.change_set</code></td><td>被放行的改动集标识</td><td><kbd class="k must">MUST</kbd>与实际合并的改动集相等（<code>IN-8</code> ③）</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">IN-9</span>放行完成后<kbd class="k must">MUST</kbd>回填血缘的 <code>human_release</code>。因血缘 append-only（<code>FINV-7</code>），回填<kbd class="k must">MUST</kbd>以<strong>新增更正记录</strong>的方式进行，<kbd class="k must NOT">MUST NOT</kbd>修改原记录。</p>
+</div>
+
+<h4>49.3 分支保护与动作分级</h4>
+
+<div class="rule">
+<p><span class="rid">IN-10</span>启用分支保护时，受保护范围<kbd class="k must">MUST</kbd>与动作分级表中标记为需放行的路径面<strong>一致</strong>。二者不一致<kbd class="k must">MUST</kbd>报红——保护了不需放行的面会制造无谓摩擦，而漏保护需放行的面会让分级表形同虚设。</p>
+</div>
+
+<h4>49.4 无法机器区分执行者时</h4>
+
+<div class="rule">
+<p><span class="rid">IN-11</span>当放行载体在技术上无法区分执行者（典型：本地版本控制凭据层面无法判定谁在推送），该事实<kbd class="k must">MUST</kbd>在豁免表在册（<code>MS-39</code>），含<strong>失效条件</strong>（如"启用分支保护后本豁免失效"）。<kbd class="k must NOT">MUST NOT</kbd>省略登记，也<kbd class="k must NOT">MUST NOT</kbd>宣称该约束已被守住。</p>
+</div>
+
+<p>这是 <code>FP-7</code>（诚实缺口）在基础设施层的落点。<strong>登记一条挡不住的规则，比假装它被挡住要好</strong>——读者由此知道该靠人盯，而不是误以为有闸门。</p>
+
+<h4>49.5 多人放行与四眼</h4>
+
+<div class="rule">
+<p><span class="rid">IN-12</span>项目若有四眼类要求（产出者 ≠ 审核者），放行系统<kbd class="k must">MUST</kbd>能强制该约束，<kbd class="k must NOT">MUST NOT</kbd>依赖流程约定。<strong>智能体产出的改动，其放行人<kbd class="k must NOT">MUST NOT</kbd>是同一次会话的发起人</strong>——发起人对该改动有承诺偏差，与产出者自审同构（<code>FINV-11</code> 的同类推理）。</p>
 </div>
 
 <h3 class="ch" id="ch50"><span class="num">Chapter 50</span>状态、记忆与存储<a class="anchor" href="#ch50">#</a></h3>
-<div class="stub">
-<span class="lbl">Scope</span>
-<p>四类状态的存储要求与保留期限：<strong>①</strong> 工作流事件（可重放，<code>WF-1</code>）；<strong>②</strong> 血缘记录（append-only，<code>FINV-7</code>）；<strong>③</strong> 检查点（可丢弃）；<strong>④</strong> Agent memory（<kbd class="k must NOT">MUST NOT</kbd>存项目事实，<code>AG-3</code>）。<strong>待补</strong>：各类的存储介质选型判据 · 归档策略 · 跨项目隔离要求。</p>
+
+<h4>50.1 四类状态</h4>
+
+<div class="tw"><table>
+<thead><tr><th></th><th>工作流事件</th><th>血缘记录</th><th>Checkpoint</th><th>Agent Memory</th></tr></thead>
+<tbody>
+<tr><td>用途</td><td>重放与状态推导</td><td>审计与归属</td><td>恢复执行</td><td>本次任务中间态</td></tr>
+<tr><td>可变性</td><td><strong>append-only</strong></td><td><strong>append-only</strong></td><td><kbd class="k may">MAY</kbd>覆盖/删除</td><td>会话内可变</td></tr>
+<tr><td>生命周期</td><td>工作流生命周期 +</td><td><strong>跟随留存要求</strong></td><td>工作流终止即可回收</td><td><strong>会话结束即销毁</strong></td></tr>
+<tr><td>可含项目事实</td><td>只含引用</td><td>只含引用与路径</td><td><kbd class="k may">MAY</kbd></td><td><kbd class="k must NOT">MUST NOT</kbd>（<code>AG-3</code>）</td></tr>
+<tr><td>丢失后果</td><td>不可重放</td><td><strong>不可追溯</strong>（阻断发布）</td><td>需重跑（成本）</td><td>无</td></tr>
+<tr><td>规范</td><td><code>WF-1</code> <code>WF-6</code></td><td><code>FINV-7</code> <code>AG-7</code></td><td><code>RT-19</code>–<code>RT-23</code></td><td><code>AG-3</code> <code>AG-34</code></td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">IN-13</span>四类状态<kbd class="k must">MUST</kbd>分开存储，<kbd class="k must NOT">MUST NOT</kbd>合并到同一可变存储中。理由：其中两类要求 append-only 而另两类要求可回收，合并后只能取最严（浪费）或最松（<strong>破坏 <code>FINV-7</code></strong>）。</p>
+</div>
+
+<h4>50.2 存储介质的选型判据</h4>
+
+<div class="tw"><table>
+<thead><tr><th>状态</th><th>硬要求</th><th>参考实现</th></tr></thead>
+<tbody>
+<tr><td>工作流事件</td><td>有序 · 持久 · 可按序重放</td><td>关系库事件表 / 日志流</td></tr>
+<tr><td>血缘记录</td><td><strong>不可篡改</strong> · 与代码同版本可追溯 · 可 diff</td><td>版本库内的 append-only 目录</td></tr>
+<tr><td>Checkpoint</td><td>可寻址 · 可回收</td><td>对象存储 / 本地卷</td></tr>
+<tr><td>Agent Memory</td><td>进程内</td><td>不持久化（Guard 的度量序列除外，<code>AG-34</code>）</td></tr>
+</tbody>
+</table></div>
+
+<div class="note">
+<span class="lbl">血缘放版本库的三条理由</span>
+<p>与代码<strong>同版本可追溯</strong>；天然可 diff；append-only 可用版本控制的差异过滤器直接强制，无需另建存储与权限体系。已否决的替代方案是接入业务侧的不可篡改设施——那会让<strong>开发期工具依赖业务表</strong>，违反 <code>FG-4</code>（项目独立）。</p>
+<p><strong>已知限制</strong>（<code>FP-7</code>）：版本库的 append-only 守护只对<strong>已提交</strong>记录生效，未提交记录的改动看不见。这是版本控制语义决定的，不是漏洞——记录一旦入库即锁死。此限制<kbd class="k must">MUST</kbd>在豁免表登记。</p>
+</div>
+
+<h4>50.3 跨项目隔离与归档</h4>
+
+<div class="rule">
+<p><span class="rid">IN-14</span>不同项目的四类状态<kbd class="k must">MUST</kbd>隔离存储。跨项目共享<kbd class="k must NOT">MUST NOT</kbd>存在——这是 <code>FR-15</code>（项目间零耦合）在存储层的落点。工厂层<kbd class="k may">MAY</kbd>跨项目<strong>聚合度量</strong>，但聚合<kbd class="k must NOT">MUST NOT</kbd>形成跨项目的写路径。</p>
+</div>
+
+<div class="rule">
+<p><span class="rid">IN-15</span>归档<kbd class="k must NOT">MUST NOT</kbd>破坏可追溯性。血缘归档后<kbd class="k must">MUST</kbd>仍可按 <code>run_id</code> 与时间区间检索，且<kbd class="k must">MUST</kbd>保持 append-only 语义。<strong>按时间分片归档在目录体积成为实际问题之前不应实施</strong>——提前做属预埋（<code>FP-6</code>）。</p>
 </div>
 
 <h3 class="ch" id="ch51"><span class="num">Chapter 51</span>可观测性<a class="anchor" href="#ch51">#</a></h3>
-<div class="stub">
-<span class="lbl">Scope</span>
-<p>追溯的最小要求（活动的输入/输出/工具调用可关联到 <code>run_id</code>）· 日志的结构化要求 · 度量采集点（对应 <a href="#ch25">§25.7</a> 的五项指标）· <strong>边界</strong>：工厂只观测自己，被生产系统的可观测性属该项目（<a href="#ch9">§9.3</a>）。</p>
+
+<h4>51.1 追溯的最小要求</h4>
+
+<div class="rule">
+<p><span class="rid">IN-16</span>一次活动的<strong>输入 · 输出 · 工具调用 · 闸门评估 · 计量</strong><kbd class="k must">MUST</kbd>全部可关联到同一 <code>run_id</code>。<code>run_id</code> <kbd class="k must">MUST</kbd>贯穿运行时、沙箱、工具面与存储四层，<kbd class="k must NOT">MUST NOT</kbd>在任一层被重新生成或丢失。</p>
+</div>
+
+<h4>51.2 观测边界</h4>
+
+<div class="rule">
+<p><span class="rid">IN-17</span>工厂<kbd class="k must">MUST</kbd>只观测<strong>自己</strong>——工作流、智能体、闸门、成本。被生产系统的运行时可观测性属该项目（<a href="#ch9">§9.3</a>），<kbd class="k must NOT">MUST NOT</kbd>进入工厂层，否则工厂将获得项目相关的观测 schema，违反 <code>FINV-4</code>。</p>
+</div>
+
+<h4>51.3 日志纪律</h4>
+
+<div class="rule">
+<p><span class="rid">IN-18</span>日志<kbd class="k must NOT">MUST NOT</kbd>包含凭据、密钥或连接串真值。工具面与沙箱<kbd class="k must">MUST</kbd>在写入前做脱敏，<kbd class="k must NOT">MUST NOT</kbd>依赖调用方自觉。</p>
+</div>
+
+<div class="rule">
+<p><span class="rid">IN-19</span>日志<kbd class="k must NOT">MUST NOT</kbd>成为血缘的替代渠道。凡属血缘必填字段的信息（<code>AG-7</code>），<kbd class="k must NOT">MUST NOT</kbd>"只在日志里有"。判据：<strong>删除全部日志后，血缘与事件序列仍须足以回答"谁改了什么、依据什么、谁放行的"</strong>。</p>
+</div>
+
+<p><code>IN-19</code> 防的是一种渐进侵蚀：日志写起来比血缘字段方便，于是关键信息逐渐只落在日志里；而日志是可回收、可能被采样、可能被脱敏截断的。等到需要追溯时，才发现证据链的一环只存在于一个已被清理的日志桶里。</p>
+
+<h4>51.4 度量采集点</h4>
+
+<div class="tw"><table>
+<thead><tr><th>指标（<a href="#ch25">§25.7</a>）</th><th>采集点</th><th>性质</th></tr></thead>
+<tbody>
+<tr><td>漂移拦截率</td><td><code>gate.evaluated</code> 中校验器类闸门的失败计数 ÷ 提交数</td><td>确定性</td></tr>
+<tr><td>幻觉率</td><td>血缘 <code>declares</code> 与实际 diff 的不变量落点比对</td><td>确定性</td></tr>
+<tr><td>任务成功率</td><td><code>workflow.terminated</code> 的终止原因分布</td><td>确定性</td></tr>
+<tr><td>闸门拦截分布</td><td>逐闸门 <code>gate.evaluated</code>（<code>WF-7</code> 要求不合并的原因）</td><td>确定性</td></tr>
+<tr><td>单任务成本</td><td>血缘 <code>cost</code> 聚合（空值不计入）</td><td>确定性</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">IN-20</span>全部度量<kbd class="k must">MUST</kbd>来自确定性采集点（事件与血缘字段），<kbd class="k must NOT">MUST NOT</kbd>由模型从日志文本中推断。理由同 <code>AG-33</code>：不可复现的度量无法支撑趋势判断，也无法作为合规证据。</p>
 </div>
 
 <h3 class="ch" id="ch52"><span class="num">Chapter 52</span>成本治理<a class="anchor" href="#ch52">#</a></h3>
-<div class="stub">
-<span class="lbl">Scope</span>
-<p>计量归集到活动粒度的实现 · 预算护栏的运行时强制点（<code>C4</code> 要求，<code>AG-10</code>）· 成本与成功率的联合读法（<code>VC-10</code>：单看成本会诱导放弃困难任务）· 知识切片对上下文成本的影响（<code>MS-9</code>）。</p>
+
+<h4>52.1 计量归集</h4>
+
+<div class="rule">
+<p><span class="rid">IN-21</span>token 与计算时长<kbd class="k must">MUST</kbd>归集到<strong>活动粒度</strong>（<code>run_id</code>），并<kbd class="k must">MUST</kbd>写入血缘 <code>cost</code>。SubAgent 的消耗<kbd class="k must">MUST</kbd>归入父活动（<code>RT-17</code>）。未知值<kbd class="k must">MUST</kbd>记空而非 0（<code>AG-8</code>）。</p>
 </div>
+
+<h4>52.2 预算护栏的强制点</h4>
+
+<div class="rule">
+<p><span class="rid">IN-22</span>达到 <code>C4</code> 的实现<kbd class="k must">MUST</kbd>提供预算的<strong>运行时强制点</strong>：超限时中止活动并返回 <code>budget_exceeded</code>（<a href="#ch35">§35.3</a>），<kbd class="k must NOT">MUST NOT</kbd>仅事后从血缘看出越界。未达 <code>C4</code> 时该缺口<kbd class="k must">MUST</kbd>在豁免表在册（<code>MS-39</code>）。</p>
+</div>
+
+<h4>52.3 成本的读法</h4>
+
+<div class="rule">
+<p><span class="rid">IN-23</span>成本<kbd class="k must NOT">MUST NOT</kbd>单独作为优化目标（<code>VC-10</code>）。它<kbd class="k must">MUST</kbd>与成功率、闸门拦截分布联合解读。<strong>单看成本会诱导系统放弃困难任务</strong>——而困难任务恰恰是自主性价值最高的地方。</p>
+</div>
+
+<h4>52.4 上下文成本的优化顺序</h4>
+
+<div class="rule">
+<p><span class="rid">IN-24</span>降低上下文成本<kbd class="k must">MUST</kbd>按以下顺序尝试，<kbd class="k must NOT">MUST NOT</kbd>跳步：<strong>①</strong> 收窄知识切片粒度（<code>MS-9</code>）；<strong>②</strong> 缩小任务范围重新拆分（<code>AG-18</code>）；<strong>③</strong> 精简 prompt 中的非事实内容；<strong>④</strong> 更换模型。<kbd class="k must NOT">MUST NOT</kbd>以<strong>截断知识切片</strong>或<strong>改为加载摘要</strong>的方式降本（<code>RT-18</code>）。</p>
+</div>
+
+<div class="tw"><table>
+<thead><tr><th>顺序</th><th>为什么在这个位置</th></tr></thead>
+<tbody>
+<tr><td>① 切片粒度</td><td>纯收益：更小的切片同时降本<strong>并</strong>提高准确性——无关但相似的内容进入上下文是混淆的主因（<a href="#ch16">§16.5</a>）</td></tr>
+<tr><td>② 缩小任务</td><td>有成本（更多次活动）但不损失事实完整性</td></tr>
+<tr><td>③ 精简 prompt</td><td>只能动非事实部分；事实一律是引用，本就不占多少</td></tr>
+<tr><td>④ 换模型</td><td>影响产出质量，须与成功率联合评估（<code>IN-23</code>）</td></tr>
+<tr><td><strong>✗ 截断切片</strong></td><td><strong>永远不可</strong>：产生"看起来完整的错误事实"，代价不是质量下降而是<strong>静默错误</strong></td></tr>
+</tbody>
+</table></div>
+
+<p>这个顺序的原则是：<strong>先动不损失事实的手段，最后才动可能影响产出的手段，而损害事实完整性的手段永远排除在外。</strong></p>
 
 <!-- ═══════════════════════ PART VIII ═══════════════════════ -->
 
@@ -4396,6 +4616,18 @@ ActivityResult =
 <tr><td><code>CP-68</code></td><td><code>C3</code></td><td>角色 × 工具授权矩阵为闭集并与能力注册表 / MCP 声明双向对拍；<strong>放行不属任何角色</strong></td><td><code>RT-24</code> <code>AG-12</code></td></tr>
 <tr><td><code>CP-69</code></td><td><code>C3</code></td><td>一致性测试套件全绿（断言可观测等价性，非逐字相同）</td><td><code>RT-28</code></td></tr>
 <tr><td><code>CP-70</code></td><td><code>C3</code></td><td>能力缺口经 <code>capabilities()</code> 声明并在豁免表在册；工厂层无厂商分支</td><td><code>RT-29</code> <code>RT-30</code></td></tr>
+<tr><td><code>CP-71</code></td><td><code>C2</code></td><td><strong>放行绑定到具体改动集标识</strong>，改动集变更后放行失效</td><td><code>IN-8</code> ③</td></tr>
+<tr><td><code>CP-72</code></td><td><code>C2</code></td><td>放行人可解析到自然人（非机器账户/共享账户）；回填走新增更正记录</td><td><code>IN-9</code></td></tr>
+<tr><td><code>CP-73</code></td><td><code>C2</code></td><td>分支保护范围与分级表需放行的路径面一致</td><td><code>IN-10</code></td></tr>
+<tr><td><code>CP-74</code></td><td><code>C2</code></td><td>无法区分执行者的载体已在豁免表在册（含失效条件）</td><td><code>IN-11</code> <code>MS-39</code></td></tr>
+<tr><td><code>CP-75</code></td><td><code>C2</code></td><td>四类状态分开存储；<strong>删除全部日志后仍可完成追溯</strong></td><td><code>IN-13</code> <code>IN-19</code></td></tr>
+<tr><td><code>CP-76</code></td><td><code>C2</code></td><td>日志无凭据/密钥真值，脱敏在写入侧而非调用侧</td><td><code>IN-18</code></td></tr>
+<tr><td><code>CP-77</code></td><td><code>C3</code></td><td>沙箱凭据由 <code>tool_grants</code> 派生；网络出口默认拒绝</td><td><code>IN-4</code> <code>IN-5</code></td></tr>
+<tr><td><code>CP-78</code></td><td><code>C3</code></td><td><strong>沙箱未被用作放宽 <code>L3</code> 的理由</strong>；<code>L3</code> 守护点在闸门而非沙箱边界</td><td><code>IN-3</code></td></tr>
+<tr><td><code>CP-79</code></td><td><code>C3</code></td><td><code>run_id</code> 贯穿运行时/沙箱/工具面/存储四层，未被重新生成或丢失</td><td><code>IN-16</code></td></tr>
+<tr><td><code>CP-80</code></td><td><code>C3</code></td><td>全部度量来自确定性采集点，非从日志文本推断</td><td><code>IN-20</code></td></tr>
+<tr><td><code>CP-81</code></td><td><code>C4</code></td><td>预算有运行时强制点：超限中止并返回 <code>budget_exceeded</code></td><td><code>IN-22</code></td></tr>
+<tr><td><code>CP-82</code></td><td><code>C4</code></td><td>降本未采用截断切片或摘要替代；按 <code>IN-24</code> 顺序尝试</td><td><code>IN-24</code> <code>RT-18</code></td></tr>
 <tr><td><code>CP-46</code></td><td><code>C4</code></td><td>度量闭环，且未被设为优化目标</td><td><code>VC-10</code></td></tr>
 <tr><td><code>CP-53</code></td><td><code>C4</code></td><td>变更清单由血缘派生，覆盖全部 run（含失败）；血缘缺口阻断发布</td><td><code>WF-19</code> <code>WF-21</code></td></tr>
 <tr><td><code>CP-54</code></td><td><code>C4</code></td><td>热修复裁剪产生补做工单；未完成补做数量被暴露为度量</td><td><code>WF-17</code></td></tr>
@@ -4419,10 +4651,10 @@ ActivityResult =
 <tr><td><code>AG-n</code></td><td>Agent Rule　智能体规范</td><td>Part IV</td><td>36</td></tr>
 <tr><td><code>RT-n</code></td><td>Runtime Rule　运行时规范</td><td>Part V</td><td>32</td></tr>
 <tr><td><code>WF-n</code></td><td>Workflow Rule　工作流规范</td><td>Part VI</td><td>26</td></tr>
-<tr><td><code>IN-n</code></td><td>Infrastructure Rule　基础设施规范</td><td>Part VII</td><td>1</td></tr>
+<tr><td><code>IN-n</code></td><td>Infrastructure Rule　基础设施规范</td><td>Part VII</td><td>24</td></tr>
 <tr><td><code>EX-n</code></td><td>Extension Rule　扩展规范</td><td>Part VIII</td><td>3</td></tr>
 <tr><td><code>PS-n</code></td><td>Problem Statement　故障模式</td><td><a href="#ch2">§2</a></td><td>6</td></tr>
-<tr><td><code>CP-n</code></td><td>Conformance Point　一致性检查点</td><td><a href="#apxA">附录 A</a></td><td>70</td></tr>
+<tr><td><code>CP-n</code></td><td>Conformance Point　一致性检查点</td><td><a href="#apxA">附录 A</a></td><td>82</td></tr>
 </tbody>
 </table></div>
 
@@ -4574,6 +4806,7 @@ ActivityResult =
 <tr><td><code>1.0.0-draft</code></td><td>2026-07-30</td><td>首版。Part I–III 规范性定稿（<a href="#ch1">§1</a>–<a href="#ch25">§25</a>）；Part IV 的 <a href="#ch26">§26</a>–<a href="#ch27">§27</a>、<a href="#ch34">§34</a>，Part V 的 <a href="#ch35">§35</a>、<a href="#ch39">§39</a>–<a href="#ch40">§40</a>，Part VIII 定稿；其余章节定范围。取代 2026-07 的总体方案稿</td></tr>
 <tr><td><code>1.1.0-draft</code></td><td>2026-07-30</td><td><strong>Part VI 全部定稿</strong>（<a href="#ch41">§41</a>–<a href="#ch47">§47</a>）：事件模型 <code>WF-6</code>–<code>WF-7</code> · 活动契约 <code>WF-8</code>–<code>WF-9</code> · 闸门分类学与不可裁剪子集 <code>WF-10</code> · 失败路由 <code>WF-11</code> · 六类工作流各含时序图与失败路由表（<code>WF-12</code>–<code>WF-26</code>）· 新增 <code>FINV-10</code>（重构 = 断言零变更）· 新增 <code>CP-47</code>–<code>CP-54</code>。销 <code>QA-2</code> 原议题</td></tr>
 <tr><td><code>1.1.1-draft</code></td><td>2026-07-30</td><td><strong><code>FR-1</code> 落地</strong>：<code>spec/check-asfas-doc.mjs</code> 8 维度 + <code>spec/negative-verify.mjs</code> 逐维度负向验证，挂进 <code>npm test</code>。本规范自身由 <code>C0</code> 升至 <code>C1</code>。修复 12 张时序图中 9 处 SVG 内 <code>&lt;strong&gt;</code> 导致的解析中断（见 <a href="#status">§0.3</a>）。销 <code>QA-1</code> <code>QA-5</code>；新增 <code>QA-7</code></td></tr>
+<tr><td><code>1.4.0-draft</code></td><td>2026-07-30</td><td><strong>Part VII 全部定稿 —— 55/55 章规范性内容齐备。</strong>沙箱接口与<strong>凭据按 <code>tool_grants</code> 派生</strong>（<code>IN-2</code>–<code>IN-7</code>）· <strong><code>IN-3</code> 沙箱不是 <code>L3</code> 禁令的替代</strong>（沙箱防执行副作用，<code>L3</code> 防证据损坏，而后者的载体是会离开沙箱的 diff）· 放行三判据含<strong>绑定改动集标识</strong>（<code>IN-8</code>，封堵"批准的是 A、合并的是 A+B"）· 四类状态存储纪律与<strong>删日志后仍可追溯</strong>判据（<code>IN-13</code>–<code>IN-19</code>）· 度量须来自确定性采集点（<code>IN-20</code>）· <strong>上下文降本四步顺序</strong>，截断切片永远排除在外（<code>IN-24</code>）· 新增 <code>CP-71</code>–<code>CP-82</code>。销 <code>QA-2</code>；新增 <code>QA-8</code></td></tr>
 <tr><td><code>1.3.0-draft</code></td><td>2026-07-30</td><td><strong>Part V 全部定稿</strong>（<a href="#ch35">§35</a>–<a href="#ch40">§40</a>）：接口形状与<strong>错误六分类</strong>（<code>RT-5</code>–<code>RT-12</code>，<code>transient</code> 与 <code>output_invalid</code> 须分开计入护栏）· SDK 概念映射与 <code>RT-13</code> 内置工具须显式禁用（具体 API 面<strong>刻意不入规范</strong>，见 §36.2）· 会话边界 = 活动边界（<code>RT-14</code>）· <strong>SubAgent 选用判据</strong>（<code>RT-16</code>/<code>RT-17</code>，承 <code>FINV-11</code>）· 上下文不足须缩范围<strong>不得截断切片</strong>（<code>RT-18</code>）· Checkpoint 与血缘的六维区分（<code>RT-19</code>–<code>RT-23</code>）· <strong>角色 × 工具授权矩阵</strong>（<code>RT-24</code>–<code>RT-27</code>）· 一致性测试与能力缺口声明（<code>RT-28</code>–<code>RT-32</code>）· 新增 <code>CP-62</code>–<code>CP-70</code>。销 <code>QA-2</code> 本轮议题</td></tr>
 <tr><td><code>1.2.0-draft</code></td><td>2026-07-30</td><td><strong>Part IV 全部定稿</strong>（<a href="#ch26">§26</a>–<a href="#ch34">§34</a>）：<strong>归级算法</strong>（§27.6，未匹配路径 fail-closed 归 <code>L2</code>，<code>L3</code> 命中短路）· 六个角色的完整九项契约 · Supervisor 确定性/非确定性分界与拆分粒度判据（<code>AG-16</code>–<code>AG-20</code>）· 任务卡 schema 与 <strong><code>declares</code> 只减不加</strong>推导规则（<code>AG-21</code>–<code>AG-24</code>）· 黄金纵切与邻近文件三级判定（<code>AG-25</code>–<code>AG-27</code>）· 新增 <code>FINV-11</code>（<strong>Reviewer 独立性</strong>，直接约束 SubAgent 用法）· 审查清单确定性派生（<code>AG-30</code>–<code>AG-32</code>）· Guard 触发判定确定性 + Memory 例外 + 无中止权（<code>AG-33</code>–<code>AG-36</code>）· 新增 <code>CP-55</code>–<code>CP-61</code>。销 <code>QA-2</code> 本轮议题</td></tr>
 </tbody>
@@ -4597,7 +4830,7 @@ ActivityResult =
 <div class="tw"><table>
 <thead><tr><th>#</th><th>事项</th><th>倾向</th><th>决出前禁止</th></tr></thead>
 <tbody>
-<tr><td><code>QA-2</code></td><td>剩余待补章节（<strong>仅 Part VII 基础设施</strong>）<br><em>v1.1 销：Part VI · v1.2 销：Part IV · v1.3 销：Part V</em></td><td><strong>Part VII</strong>（<a href="#ch48">§48</a>–<a href="#ch52">§52</a>）——授权矩阵（<code>RT-24</code>）已定，沙箱凭据注入的粒度现在可以据此确定</td><td>Part VII 定稿后本条销项；此后 55 章全部定稿，转入附录 C/D/E/F 的可复制化</td></tr>
+<tr><td><code>QA-8</code></td><td>附录 C/D.2/E/F 的可复制化顺序<br><em>v1.4 销 <code>QA-2</code>：Part I–VIII 全部定稿（55/55 章）</em></td><td><strong>附录 C 元语模板</strong>优先——它是 <code>EX-1</code>（新增项目）落地顺序第 ① 步的直接产物，缺它则 <code>C0</code> 无法快速达成</td><td>模板<kbd class="k must NOT">MUST NOT</kbd>含示例业务内容（填了示例的模板会被直接提交上去）</td></tr>
 <tr><td><code>QA-3</code></td><td>L2 人工放行的载体：代码评审 vs 仓内放行台</td><td>评审（审阅人是自然人、时间戳由平台背书）</td><td>不得两套并行</td></tr>
 <tr><td><code>QA-4</code></td><td>多智能体并行的隔离方式：每 agent 独立工作副本 vs 串行</td><td>—</td><td>不得在未定前实现并行编排（会引入"两个 agent 基于不同基线判断"的新型上下文不一致）</td></tr>
 <tr><td><code>QA-7</code></td><td>负向验证用例与文档锚点耦合（注入点写死了具体章节号/rid），文档结构变动时用例会失效</td><td>用例失效时<strong>显式报错</strong>（当前行为），不静默跳过</td><td>不得把失效用例改成宽松匹配以"让它过去"</td></tr>
