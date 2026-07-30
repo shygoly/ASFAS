@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ASFAS — Agent Native Software Factory Architecture Specification v1.5</title>
+<title>ASFAS — Agent Native Software Factory Architecture Specification v1.6</title>
 <meta name="description" content="Level 2 Engineering Specification. Knowledge Driven Software Factory.">
 <style>
 /* ============================================================
@@ -256,7 +256,7 @@ h3.ch:hover .anchor,h4:hover .anchor{opacity:1}
   <div class="brand">
     <div class="mark">ASFAS</div>
     <div class="sub">Agent Native Software Factory<br>Architecture Specification</div>
-    <span class="ver">v1.5 · Level 2 · Engineering Spec</span>
+    <span class="ver">v1.6 · Level 2 · Engineering Spec</span>
   </div>
   <div class="searchbox">
     <input type="search" id="tocfilter" placeholder="筛选章节…" autocomplete="off" aria-label="筛选章节">
@@ -357,8 +357,8 @@ h3.ch:hover .anchor,h4:hover .anchor{opacity:1}
     <p class="zh">智能体原生软件工厂架构规范 · <strong>Knowledge Driven Software Factory</strong></p>
     <dl>
       <dt>Document</dt><dd>ASFAS — Level 2 Engineering Specification</dd>
-      <dt>Version</dt><dd>1.5.0-draft</dd>
-      <dt>Status</dt><dd>Draft · <strong>Part I–VIII 全部规范性定稿</strong>（55/55 章）· 附录 C–F 待可复制化</dd>
+      <dt>Version</dt><dd>1.6.0-draft</dd>
+      <dt>Status</dt><dd>Draft · <strong>Part I–VIII 全部规范性定稿</strong>（55/55 章）· 附录 C/D 已落地 · E/F 待补</dd>
       <dt>Date</dt><dd>2026-07-30</dd>
       <dt>Repository</dt><dd><code>~/Sync/project/ai-factory/spec/ASFAS.html</code></dd>
       <dt>Supersedes</dt><dd><code>AI_Software_Factory_Claude_Agent_SDK_方案.html</code>（2026-07，总体方案稿）</dd>
@@ -4530,6 +4530,8 @@ ActivityResult =
 <tbody>
 <tr><td><code>CP-1</code></td><td>六本核心元语齐备</td><td>文件存在性</td><td><code>FR-6</code></td></tr>
 <tr><td><code>CP-83</code></td><td>元语中<strong>无残留 <code>{{…}}</code> 占位符</strong>（未完成的事实声明比缺失更危险）</td><td>grep</td><td><code>MS-46</code></td></tr>
+<tr><td><code>CP-84</code></td><td>校验逻辑在工厂层复用；项目只提供适配器，且适配器不 import 工厂内部模块</td><td>import 边界 grep</td><td><code>VC-11</code></td></tr>
+<tr><td><code>CP-85</code></td><td>适配器无法判定时<strong>可见地跳过</strong>（警告），既不判红也不静默通过</td><td>负向验证：令某维度不可判定 → 须出警告且不影响退出码</td><td><code>VC-12</code></td></tr>
 <tr><td><code>CP-2</code></td><td>每本有抬头块（四项齐全）</td><td>结构检查</td><td><code>MS-6</code></td></tr>
 <tr><td><code>CP-3</code></td><td>每本有格式契约附录，含解析空转兜底</td><td>结构检查</td><td><code>MS-8</code></td></tr>
 <tr><td><code>CP-4</code></td><td>契约段与叙述段可区分</td><td>人工确认 + 分级表引用</td><td><code>MS-7</code></td></tr>
@@ -4648,14 +4650,14 @@ ActivityResult =
 <tr><td><code>FADR-n</code></td><td>Factory ADR　工厂级架构决策</td><td><a href="#ch10">§10.2</a></td><td>1</td></tr>
 <tr><td><code>MS-n</code></td><td>Meta-Schema Rule　元语规范</td><td>Part III · <a href="#apxB">附录 B</a> · <a href="#apxC">附录 C</a></td><td>46</td></tr>
 <tr><td><code>MA-n</code></td><td>Meta-Language Anti-pattern　元语反模式</td><td><a href="#ch16">§16.8</a></td><td>8</td></tr>
-<tr><td><code>VC-n</code></td><td>Verifier Contract　校验器契约</td><td><a href="#ch25">§25</a></td><td>10</td></tr>
+<tr><td><code>VC-n</code></td><td>Verifier Contract　校验器契约</td><td><a href="#ch25">§25</a> · <a href="#apxD">附录 D</a></td><td>12</td></tr>
 <tr><td><code>AG-n</code></td><td>Agent Rule　智能体规范</td><td>Part IV</td><td>36</td></tr>
 <tr><td><code>RT-n</code></td><td>Runtime Rule　运行时规范</td><td>Part V</td><td>32</td></tr>
 <tr><td><code>WF-n</code></td><td>Workflow Rule　工作流规范</td><td>Part VI</td><td>26</td></tr>
 <tr><td><code>IN-n</code></td><td>Infrastructure Rule　基础设施规范</td><td>Part VII</td><td>24</td></tr>
 <tr><td><code>EX-n</code></td><td>Extension Rule　扩展规范</td><td>Part VIII</td><td>3</td></tr>
 <tr><td><code>PS-n</code></td><td>Problem Statement　故障模式</td><td><a href="#ch2">§2</a></td><td>6</td></tr>
-<tr><td><code>CP-n</code></td><td>Conformance Point　一致性检查点</td><td><a href="#apxA">附录 A</a></td><td>83</td></tr>
+<tr><td><code>CP-n</code></td><td>Conformance Point　一致性检查点</td><td><a href="#apxA">附录 A</a></td><td>85</td></tr>
 </tbody>
 </table></div>
 
@@ -4767,10 +4769,9 @@ ActivityResult =
 </table></div>
 
 <h3 class="ch" id="apxD"><span class="num">Appendix D</span>校验器参考实现<a class="anchor" href="#apxD">#</a></h3>
-<div class="stub">
-<span class="lbl">Scope</span>
-<p>共享解析层（markdown 表格 / 代码块 / ID 提取）· 八本元语各自的校验器骨架 · 负向验证的执行脚本 · 聚合入口与退出码约定。<strong>契约已在 <a href="#ch25">§25</a> 定稿（<code>VC-1</code>–<code>VC-10</code>），本附录只做参考代码。</strong></p>
-<h4>D.1 本规范自身的校验器（已实现）</h4>
+<p class="lead">校验器<strong>契约</strong>已在 <a href="#ch25">§25</a> 定稿（<code>VC-1</code>–<code>VC-10</code>）。本附录只做<strong>参考实现的说明与指针</strong>，不复制代码（<code>FP-1</code>）。</p>
+
+<h4>D.1 本规范自身的校验器</h4>
 <p><code>spec/check-asfas-doc.mjs</code> 是 <code>FR-1</code> 的守护，也是本规范全部校验器契约的<strong>参考实现</strong>——它自己遵守 <code>VC-1</code>–<code>VC-9</code>。配套 <code>spec/negative-verify.mjs</code> 逐维度做负向验证。</p>
 
 <div class="tw"><table>
@@ -4794,8 +4795,59 @@ ActivityResult =
 <p>它被负向验证的前置步骤（"基线必须绿"）当场抓住。<strong>如果没有负向验证脚本，这个假报会被当成文档的问题去改文档</strong>——即用改数据来消除检查器的 bug，一种反向的假绿。</p>
 </div>
 
-<h4>D.2 项目侧校验器（待补）</h4>
+<h4>D.2 项目侧校验器</h4>
+
+<p>参考实现位于 <code>factory/verifiers/</code>。它把项目从 <code>C0</code> 带到 <code>C1</code>，对应 <a href="#ch53">§53.1</a> <code>EX-1</code> 的第 <strong>②</strong> 步。</p>
+
+<h5>D.2.1 校验器在工厂，适配器在项目</h5>
+
+<div class="rule">
+<p><span class="rid">VC-11</span>校验逻辑<kbd class="k should">SHOULD</kbd>位于工厂层并被多项目复用；项目<kbd class="k must">MUST</kbd>只提供一个<strong>适配器</strong>，声明代码侧的闭集（对象名、枚举取值、状态写入点、env 读取点）。适配器<kbd class="k must NOT">MUST NOT</kbd> import 工厂内部模块，只用标准库（<code>FR-14</code> 接口收窄）。</p>
 </div>
+
+<p>这个切分让 <code>FINV-4</code> 成立：工厂只认元语的 schema，"这个项目的 schema 长什么样"由适配器回答。副作用是修一次校验器缺陷对所有项目生效。</p>
+
+<div class="tw"><table>
+<thead><tr><th>层</th><th>内容</th><th>谁维护</th></tr></thead>
+<tbody>
+<tr><td><code>lib/</code></td><td>共享解析层：markdown 表格 / <code>flow</code> 块 / ID 提取 / 对拍原语 / 扫描面 / 报告</td><td>工厂</td></tr>
+<tr><td><code>checks/</code></td><td>六个检查：格式契约先验 · DOMAIN · FLOWS · DECISIONS · DEPLOY · AGENTS</td><td>工厂</td></tr>
+<tr><td><code>negative-harness.mjs</code></td><td>负向验证脚手架（<code>VC-7</code> / <code>VC-8</code>）</td><td>工厂</td></tr>
+<tr><td><code>governance.adapter.mjs</code></td><td><strong>唯一接口</strong>：代码侧事实</td><td><strong>项目</strong></td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">VC-12</span>适配器无法判定某维度时<kbd class="k must">MUST</kbd>返回"无法判定"并使该检查<strong>可见地跳过</strong>（警告），<kbd class="k must NOT">MUST NOT</kbd>返回"不成立"而判红，也<kbd class="k must NOT">MUST NOT</kbd>静默通过。<strong>静默跳过是假绿；误判为不成立是假阳性</strong>——两者都侵蚀闸门可信度，而后者更快。</p>
+</div>
+
+<h5>D.2.2 在真实项目上验证时暴露的三个自身缺陷</h5>
+
+<div class="note evidence">
+<span class="lbl">Evidence · 参考实现首次运行报出 60+ 条，多数是它自己的 bug</span>
+<p>本套件首次在一个 <code>C2</code> 项目上运行时报出大量问题。逐条做归属判断（<a href="#ch23">§23.3</a> <code>AO-4</code>）后，三个是校验器自身的缺陷：</p>
+<ol style="margin-bottom:.4rem">
+<li><strong>默认忽略列表把源码目录跳过了。</strong> <code>build</code> 既可能是构建产物目录，也可能是<strong>源码模块</strong>。按名字无差别忽略 → 整个模块照不到 → 误报"某 env 键缺于代码"。这是 <a href="#ch22">§22.2</a> 那类扫描面缺陷的又一形态：<strong>检查器一直在跑，只是照不到</strong>。修法：忽略列表分「任何深度都忽略」与「仅仓库根一层忽略」两类。</li>
+<li><strong>共享解析层只认一种取值编码。</strong> 该项目用反引号 token + 分隔符而非方括号列表，整张枚举表被解析成 0 项，下游误判成"文档漏登记 23 项"。<strong>解析空转在下游会伪装成内容错误</strong>——这正是 <code>VC-3</code>（格式契约先验）必须第一个跑、且失败后须停下的原因。</li>
+<li><strong>示例适配器的启发式两个方向都出错。</strong> 用窗口法找状态写入点，误报 21 条"声明已实现但找不到写入点"与 2 条反向错误。</li>
+</ol>
+<p>第三条催生了 <code>VC-12</code>：<strong>假阳性比没有检查更坏——它教人"红是常态"（<code>FINV-8</code>），随后整个闸门被忽略。</strong></p>
+</div>
+
+<h5>D.2.3 同一次验证查出的真发现</h5>
+
+<p>去掉自身缺陷后，剩余为该项目的真实缺口，均可复现：</p>
+
+<div class="tw"><table>
+<thead><tr><th>发现</th><th>为什么该项目自己的校验器看不到</th></tr></thead>
+<tbody>
+<tr><td>两本元语无「附录：格式契约」小节</td><td>其校验器直接实现解析规则，未要求文档声明规则——<strong>人与机器对格式的理解没有对照物</strong>（<code>MS-8</code>）</td></tr>
+<tr><td>三本元语的格式契约缺<strong>解析空转兜底</strong>规则</td><td>同上。缺了它，把契约表改写成散文会"无违规通过"（<code>PS-3</code>）</td></tr>
+<tr><td>一个框架内置 env 变量被读取但未登记</td><td>其扫描模式只覆盖一种读取写法，看不到另一种——<strong>又一次扫描面缺口</strong></td></tr>
+</tbody>
+</table></div>
+
+<p>第三行值得注意：该项目在补元语时<strong>已经踩过一次</strong>扫描面缺口并修复，而这次是同类问题的<strong>另一个实例</strong>。这支持 <a href="#ch25">§25.4</a> 的要求——扫描面需要<strong>反向枚举</strong>持续暴露面外命中，而不是修一次就完。</p>
 
 <h3 class="ch" id="apxE"><span class="num">Appendix E</span>Prompt 规范<a class="anchor" href="#apxE">#</a></h3>
 <div class="stub">
@@ -4876,6 +4928,7 @@ ActivityResult =
 <tr><td><code>1.0.0-draft</code></td><td>2026-07-30</td><td>首版。Part I–III 规范性定稿（<a href="#ch1">§1</a>–<a href="#ch25">§25</a>）；Part IV 的 <a href="#ch26">§26</a>–<a href="#ch27">§27</a>、<a href="#ch34">§34</a>，Part V 的 <a href="#ch35">§35</a>、<a href="#ch39">§39</a>–<a href="#ch40">§40</a>，Part VIII 定稿；其余章节定范围。取代 2026-07 的总体方案稿</td></tr>
 <tr><td><code>1.1.0-draft</code></td><td>2026-07-30</td><td><strong>Part VI 全部定稿</strong>（<a href="#ch41">§41</a>–<a href="#ch47">§47</a>）：事件模型 <code>WF-6</code>–<code>WF-7</code> · 活动契约 <code>WF-8</code>–<code>WF-9</code> · 闸门分类学与不可裁剪子集 <code>WF-10</code> · 失败路由 <code>WF-11</code> · 六类工作流各含时序图与失败路由表（<code>WF-12</code>–<code>WF-26</code>）· 新增 <code>FINV-10</code>（重构 = 断言零变更）· 新增 <code>CP-47</code>–<code>CP-54</code>。销 <code>QA-2</code> 原议题</td></tr>
 <tr><td><code>1.1.1-draft</code></td><td>2026-07-30</td><td><strong><code>FR-1</code> 落地</strong>：<code>spec/check-asfas-doc.mjs</code> 8 维度 + <code>spec/negative-verify.mjs</code> 逐维度负向验证，挂进 <code>npm test</code>。本规范自身由 <code>C0</code> 升至 <code>C1</code>。修复 12 张时序图中 9 处 SVG 内 <code>&lt;strong&gt;</code> 导致的解析中断（见 <a href="#status">§0.3</a>）。销 <code>QA-1</code> <code>QA-5</code>；新增 <code>QA-7</code></td></tr>
+<tr><td><code>1.6.0-draft</code></td><td>2026-07-30</td><td><strong>附录 D.2 项目侧校验器落地</strong>：<code>factory/verifiers/</code> 共享解析层 + 六个检查 + 负向验证脚手架；项目只提供适配器（<code>VC-11</code>）· <code>VC-12</code> 无法判定时<strong>可见地跳过</strong>而非判红或静默通过 · 在一个真实 <code>C2</code> 项目上验证，暴露<strong>三个自身缺陷</strong>（忽略列表跳过源码目录 · 解析层只认一种取值编码 · 示例启发式两个方向都误报）与<strong>三类真发现</strong> · 新增 <code>CP-84</code> <code>CP-85</code>。销 <code>QA-8</code> 本轮议题；新增 <code>QA-9</code></td></tr>
 <tr><td><code>1.5.0-draft</code></td><td>2026-07-30</td><td><strong>附录 C 元语模板落地</strong>：9 份模板（6 核心 + 2 条件 + 入口指针）以<strong>真实文件</strong>形式存在于 <code>templates/</code>，本规范只做规范描述与指针、不复制正文（<code>MS-43</code>）· <code>{{…}}</code> 占位符约定（<code>MS-44</code>，选它是因为在 markdown/SQL/代码中都不会自然出现，故"是否还有未填占位符"可判定）· <strong>不得含示例业务内容</strong>（<code>MS-45</code>，附诚实标注：只能部分机器校验）· 使用规程与残留占位符检查（<code>MS-46</code>）· 校验器新增<strong>维度 <code>I</code></strong>（模板集合、结构、仍为模板）+ 2 条负向验证用例 · 新增 <code>CP-83</code>。销 <code>QA-8</code> 本轮议题</td></tr>
 <tr><td><code>1.4.0-draft</code></td><td>2026-07-30</td><td><strong>Part VII 全部定稿 —— 55/55 章规范性内容齐备。</strong>沙箱接口与<strong>凭据按 <code>tool_grants</code> 派生</strong>（<code>IN-2</code>–<code>IN-7</code>）· <strong><code>IN-3</code> 沙箱不是 <code>L3</code> 禁令的替代</strong>（沙箱防执行副作用，<code>L3</code> 防证据损坏，而后者的载体是会离开沙箱的 diff）· 放行三判据含<strong>绑定改动集标识</strong>（<code>IN-8</code>，封堵"批准的是 A、合并的是 A+B"）· 四类状态存储纪律与<strong>删日志后仍可追溯</strong>判据（<code>IN-13</code>–<code>IN-19</code>）· 度量须来自确定性采集点（<code>IN-20</code>）· <strong>上下文降本四步顺序</strong>，截断切片永远排除在外（<code>IN-24</code>）· 新增 <code>CP-71</code>–<code>CP-82</code>。销 <code>QA-2</code>；新增 <code>QA-8</code></td></tr>
 <tr><td><code>1.3.0-draft</code></td><td>2026-07-30</td><td><strong>Part V 全部定稿</strong>（<a href="#ch35">§35</a>–<a href="#ch40">§40</a>）：接口形状与<strong>错误六分类</strong>（<code>RT-5</code>–<code>RT-12</code>，<code>transient</code> 与 <code>output_invalid</code> 须分开计入护栏）· SDK 概念映射与 <code>RT-13</code> 内置工具须显式禁用（具体 API 面<strong>刻意不入规范</strong>，见 §36.2）· 会话边界 = 活动边界（<code>RT-14</code>）· <strong>SubAgent 选用判据</strong>（<code>RT-16</code>/<code>RT-17</code>，承 <code>FINV-11</code>）· 上下文不足须缩范围<strong>不得截断切片</strong>（<code>RT-18</code>）· Checkpoint 与血缘的六维区分（<code>RT-19</code>–<code>RT-23</code>）· <strong>角色 × 工具授权矩阵</strong>（<code>RT-24</code>–<code>RT-27</code>）· 一致性测试与能力缺口声明（<code>RT-28</code>–<code>RT-32</code>）· 新增 <code>CP-62</code>–<code>CP-70</code>。销 <code>QA-2</code> 本轮议题</td></tr>
@@ -4901,7 +4954,8 @@ ActivityResult =
 <div class="tw"><table>
 <thead><tr><th>#</th><th>事项</th><th>倾向</th><th>决出前禁止</th></tr></thead>
 <tbody>
-<tr><td><code>QA-8</code></td><td>剩余附录的可复制化（D.2 项目侧校验器 · E Prompt 规范 · F 命名与风格）<br><em>v1.5 销：附录 C 元语模板已落地（9 份 + 维度 <code>I</code> 守护）</em></td><td><strong>附录 D.2 项目侧校验器</strong>优先——它是 <code>EX-1</code> 第 ② 步（<code>C0</code>→<code>C1</code>）的直接产物，且模板的格式契约附录已把解析规则逐条写清，可直接据此实现</td><td>校验器参考实现<kbd class="k must NOT">MUST NOT</kbd>提供 <code>--fix</code>（<code>VC-2</code>），且每条检查维度<kbd class="k must">MUST</kbd>随附负向验证（<code>VC-8</code>）</td></tr>
+<tr><td><code>QA-8</code></td><td>剩余附录（E Prompt 规范 · F 命名与风格）<br><em>v1.5 销：附录 C 模板 · v1.6 销：附录 D.2 校验器</em></td><td><strong>附录 F</strong> 优先——它可由既有内容归集（<a href="#apxF">F.1</a> 用词禁令已定稿），成本低；E 依赖角色契约的 prompt 位定义，宜与首个真实编排面同期做</td><td>E 的 prompt 结构规范<kbd class="k must NOT">MUST NOT</kbd>在无真实运行时的情况下臆造（会写出无法验证的格式）</td></tr>
+<tr><td><code>QA-9</code></td><td>示例适配器的 <code>stateHasWriter</code> 默认返回"无法判定"，意味着 <code>FLOWS</code> 的 <code>impl</code> 双向检查在项目实现它之前<strong>不生效</strong></td><td>保持现状（<code>VC-12</code>）——宁可可见地跳过，不可假阳性</td><td>不得为"让检查跑起来"而恢复启发式默认值</td></tr>
 <tr><td><code>QA-3</code></td><td>L2 人工放行的载体：代码评审 vs 仓内放行台</td><td>评审（审阅人是自然人、时间戳由平台背书）</td><td>不得两套并行</td></tr>
 <tr><td><code>QA-4</code></td><td>多智能体并行的隔离方式：每 agent 独立工作副本 vs 串行</td><td>—</td><td>不得在未定前实现并行编排（会引入"两个 agent 基于不同基线判断"的新型上下文不一致）</td></tr>
 <tr><td><code>QA-7</code></td><td>负向验证用例与文档锚点耦合（注入点写死了具体章节号/rid），文档结构变动时用例会失效</td><td>用例失效时<strong>显式报错</strong>（当前行为），不静默跳过</td><td>不得把失效用例改成宽松匹配以"让它过去"</td></tr>

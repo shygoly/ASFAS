@@ -19,7 +19,20 @@ Level 2 Engineering Specification。用浏览器打开。
 - **Part VII**（§48–§52）沙箱与凭据派生 · 放行闸三判据 · 四类状态存储纪律 · 观测边界 · 成本归集与降本顺序
 - **Part VIII**（§53–§55）扩展规程
 
-220 条规范性陈述 · 12 个 ID 命名空间 · 18 张图 · **83 条一致性检查点** `CP-1`…`CP-83`。
+222 条规范性陈述 · 12 个 ID 命名空间 · 18 张图 · **85 条一致性检查点** `CP-1`…`CP-85`。
+
+## 校验器套件
+
+`factory/verifiers/` — 把项目从 `C0` 带到 `C1`。共享解析层 + 六个检查
+（格式契约先验 · DOMAIN · FLOWS · DECISIONS · DEPLOY · AGENTS）+ 负向验证脚手架。
+
+```bash
+cp factory/verifiers/adapter.example.mjs <项目>/governance.adapter.mjs   # 按本项目技术栈实现
+node factory/verifiers/run-all.mjs <项目>/governance.adapter.mjs
+```
+
+**校验逻辑在工厂，适配器在项目**：修一次缺陷对所有项目生效，而"这个项目的 schema
+长什么样"只有项目知道。详见 [factory/verifiers/README.md](factory/verifiers/README.md)。
 
 ## 元语模板
 
@@ -27,7 +40,7 @@ Level 2 Engineering Specification。用浏览器打开。
 用 `{{…}}` 标占位，**不含任何示例业务内容**（填了示例的模板会被直接提交上去）。
 用法见 ASFAS 附录 C；由校验器维度 `I` 守护。
 
-待做：附录 D.2 项目侧校验器 · E Prompt 规范 · F 命名与风格（见附录 I 未决 `QA-8`）。
+待做：附录 E Prompt 规范 · F 命名与风格（见附录 I 未决 `QA-8`）。
 
 L1 白皮书与 L3 开发手册**派生自**本文件，不得包含与之冲突的规范性陈述（`FR-0`）。
 
@@ -35,9 +48,9 @@ L1 白皮书与 L3 开发手册**派生自**本文件，不得包含与之冲突
 
 | 项 | 状态 |
 |---|---|
-| ASFAS 版本 | `1.5.0-draft`（2026-07-30） |
-| 自身一致性等级 | **`C1`** — 校验器 8 维度全部通过负向验证，挂进 `npm test` |
-| `factory/` 实现 | 未开始 |
+| ASFAS 版本 | `1.6.0-draft`（2026-07-30） |
+| 自身一致性等级 | **`C1`** — 校验器 9 维度全部通过负向验证，挂进 `npm test` |
+| `factory/` 实现 | **verifiers 已落地**（在真实 C2 项目上验证过）；其余未开始 |
 | 项目注册表 | 未建 |
 
 > 本仓遵守 ASFAS `FP-6`（不预埋）：`factory/` / `runtime/` / `projects/` 目录在有实际实现时才创建。
