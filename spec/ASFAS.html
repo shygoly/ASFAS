@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ASFAS — Agent Native Software Factory Architecture Specification v1.1</title>
+<title>ASFAS — Agent Native Software Factory Architecture Specification v1.2</title>
 <meta name="description" content="Level 2 Engineering Specification. Knowledge Driven Software Factory.">
 <style>
 /* ============================================================
@@ -256,7 +256,7 @@ h3.ch:hover .anchor,h4:hover .anchor{opacity:1}
   <div class="brand">
     <div class="mark">ASFAS</div>
     <div class="sub">Agent Native Software Factory<br>Architecture Specification</div>
-    <span class="ver">v1.1 · Level 2 · Engineering Spec</span>
+    <span class="ver">v1.2 · Level 2 · Engineering Spec</span>
   </div>
   <div class="searchbox">
     <input type="search" id="tocfilter" placeholder="筛选章节…" autocomplete="off" aria-label="筛选章节">
@@ -357,8 +357,8 @@ h3.ch:hover .anchor,h4:hover .anchor{opacity:1}
     <p class="zh">智能体原生软件工厂架构规范 · <strong>Knowledge Driven Software Factory</strong></p>
     <dl>
       <dt>Document</dt><dd>ASFAS — Level 2 Engineering Specification</dd>
-      <dt>Version</dt><dd>1.1.1-draft</dd>
-      <dt>Status</dt><dd>Draft · Part I–III + VI normative · Part IV/V/VII scoped</dd>
+      <dt>Version</dt><dd>1.2.0-draft</dd>
+      <dt>Status</dt><dd>Draft · Part I–IV + VI + VIII normative · Part V/VII scoped</dd>
       <dt>Date</dt><dd>2026-07-30</dd>
       <dt>Repository</dt><dd><code>~/Sync/project/ai-factory/spec/ASFAS.html</code></dd>
       <dt>Supersedes</dt><dd><code>AI_Software_Factory_Claude_Agent_SDK_方案.html</code>（2026-07，总体方案稿）</dd>
@@ -1354,6 +1354,7 @@ dec://&lt;project&gt;/&lt;decision-id&gt;</code></pre>
 <tr><td><code>FINV-8</code></td><td>承载闸门的命令不得长期失败</td><td><a href="#ch25">§25.5</a></td><td>干净基线上执行须全绿</td></tr>
 <tr><td><code>FINV-9</code></td><td>非确定性隔离在活动内；阶段推进条件必须确定性</td><td><a href="#ch41">§41.1</a></td><td>工作流可重放性验证</td></tr>
 <tr><td><code>FINV-10</code></td><td>重构 = 行为不变：验收条件含<strong>断言集合零变更</strong></td><td><a href="#ch46">§46.1</a></td><td>断言差分闸门（<code>WF-22</code>）</td></tr>
+<tr><td><code>FINV-11</code></td><td>Reviewer 独立：不同实例且<strong>不共享产出方会话上下文</strong></td><td><a href="#ch32">§32.2</a></td><td>实例来源与上下文构造检查；禁 Reviewer 作 SubAgent</td></tr>
 </tbody>
 </table></div>
 
@@ -1377,7 +1378,7 @@ dec://&lt;project&gt;/&lt;decision-id&gt;</code></pre>
 <tr><td><code>FINV-1</code> <code>FINV-2</code> <code>FINV-4</code></td><td><code>C0</code></td><td>结构性约束，与是否有校验器无关</td></tr>
 <tr><td><code>FINV-3</code></td><td><code>C0</code></td><td>等级声明本身的规则</td></tr>
 <tr><td><code>FINV-6</code></td><td><code>C1</code></td><td><code>C0</code> 尚无闸门</td></tr>
-<tr><td><code>FINV-5</code> <code>FINV-9</code></td><td><code>C3</code></td><td><code>C2</code> 及以下可能尚无运行时层与编排面</td></tr>
+<tr><td><code>FINV-5</code> <code>FINV-9</code> <code>FINV-11</code></td><td><code>C3</code></td><td><code>C2</code> 及以下可能尚无运行时层与编排面</td></tr>
 <tr><td><code>FINV-7</code></td><td><code>C2</code></td><td>血缘从 <code>C2</code> 起要求</td></tr>
 <tr><td><code>FINV-8</code> <code>FINV-10</code></td><td><code>C1</code></td><td>二者都以闸门存在为前提</td></tr>
 </tbody>
@@ -2499,7 +2500,7 @@ initial: &lt;插入时的初值&gt;
 <div class="part-head" id="partIV">
   <div class="kicker">Part IV</div>
   <h2>Agent Architecture · 智能体架构</h2>
-  <p>智能体的模型、动作分级、血缘要求，以及每个角色的职责契约。<a href="#ch26">§26</a>–<a href="#ch27">§27</a> 为规范性内容（Part III 多处依赖）；<a href="#ch28">§28</a>–<a href="#ch34">§34</a> 已定义范围与角色模板，条款待补。</p>
+  <p><strong>本部分规范性定稿。</strong>智能体模型与生命周期 · 能力注册表与动作分级（含归级算法）· 决策血缘 · 六个角色的完整契约（职责 / 输入 / 输出 / Prompt / 等级上限 / 工具面 / 禁止事项 / Memory / 审查清单）· 禁止智能体化的面。</p>
 </div>
 
 <h3 class="ch" id="ch26"><span class="num">Chapter 26</span>智能体模型与生命周期<a class="anchor" href="#ch26">#</a></h3>
@@ -2660,11 +2661,50 @@ initial: &lt;插入时的初值&gt;
 <p><span class="rid">AG-10</span>护栏阈值<kbd class="k must">MUST</kbd>在编排面上线<strong>之前</strong>确定并在册，即使当时尚无运行时强制点。无强制点的事实<kbd class="k must">MUST</kbd>登记在豁免表（<code>MS-39</code>）。理由：先定阈值可避免上线时临时拍数字，且符合 <code>FG-6</code>（治理与自主性同步交付）。</p>
 </div>
 
-<h4>27.6 待补条款</h4>
+<h4>27.6 归级算法</h4>
+
+<p>动作等级<kbd class="k must">MUST</kbd>可由机器判定（<code>AG-4</code>）。判定过程本身是确定性规则，<kbd class="k must NOT">MUST NOT</kbd>交给模型（<code>FINV-1</code>）。</p>
+
+<pre><code>输入：本次改动触及的路径集合 P
+输出：最高动作等级 L ∈ {L0, L1, L2, L3}
+
+for p in P:
+  M ← 分级表中所有能匹配 p 的路径面
+  if M 含 L3 面        →  返回 L3（<strong>短路</strong>，不再看其余路径）
+  if M 为空            →  level(p) = L2      ← fail-closed（FP-4）
+  else                 →  level(p) = <strong>最具体</strong>那条的等级
+L = max(level(p) for p in P)</code></pre>
+
+<div class="rule">
+<p><span class="rid">AG-14</span>未被任何路径面匹配的路径<kbd class="k must">MUST</kbd>归为 <code>L2</code>（须人工放行），<kbd class="k must NOT">MUST NOT</kbd>归为 <code>L0</code>/<code>L1</code>。理由是 <code>FP-4</code> 的直接应用：<strong>分级表解析不出结论时拒绝，而不是放行</strong>。新增目录若忘了登记，后果是"多要一次放行"而非"未经授权就改了合规代码"。</p>
+</div>
+
+<div class="rule">
+<p><span class="rid">AG-15</span>路径面冲突时<kbd class="k must">MUST</kbd>取<strong>最具体</strong>的匹配（字面段最多者优先；同具体度取<strong>更高</strong>等级）。<code>L3</code> 匹配<kbd class="k must">MUST</kbd>短路——一次改动只要触及任一 <code>L3</code> 面即整体判为 <code>L3</code>，<kbd class="k must NOT">MUST NOT</kbd>因其余路径等级较低而稀释。</p>
+</div>
+
+<div class="tw"><table>
+<thead><tr><th>场景</th><th>匹配</th><th>判定</th><th>依据</th></tr></thead>
+<tbody>
+<tr><td>只改前端页面</td><td><code>L1</code> 面</td><td><code>L1</code></td><td>—</td></tr>
+<tr><td>改前端页面 + 契约层</td><td><code>L1</code> + <code>L2</code></td><td><code>L2</code></td><td>取 max</td></tr>
+<tr><td>改元语的叙述段</td><td><code>L1</code> 面（元语非契约段）</td><td><code>L1</code></td><td><code>MS-7</code> 契约段/叙述段分界</td></tr>
+<tr><td>改元语的契约表格</td><td><code>L2</code> 面</td><td><code>L2</code></td><td>同上</td></tr>
+<tr><td>新建的未登记目录</td><td>无匹配</td><td><strong><code>L2</code></strong></td><td><code>AG-14</code> fail-closed</td></tr>
+<tr><td>改一行前端 + 碰了已应用迁移</td><td><code>L1</code> + <code>L3</code></td><td><strong><code>L3</code></strong>（拦截）</td><td><code>AG-15</code> 短路</td></tr>
+</tbody>
+</table></div>
+
+<div class="note">
+<span class="lbl">为什么"同具体度取更高等级"</span>
+<p>两条同样具体的规则同时命中，说明分级表本身有歧义。此时取更高等级<strong>不是最优解，是安全解</strong>——它会多要一次放行，同时让歧义暴露出来（放行人会问"这为什么要放行"）。取更低等级则会静默地放过一个本该被拦的改动，且没有任何人会注意到。</p>
+</div>
+
+<h4>27.7 待补条款</h4>
 
 <div class="stub">
 <span class="lbl">Scope · 本章待补</span>
-<p><strong>①</strong> 动作等级的<strong>自动归级算法</strong>：给定一组改动路径，判定最高等级的确定性规则（含通配符优先级与冲突处理）。<strong>②</strong> 跨项目的等级映射：同一角色在不同一致性等级项目中的上限差异。<strong>③</strong> 血缘记录的保留期限与归档策略（与项目的留存要求关联，属项目 <code>DECISIONS.md</code>）。</p>
+<p><strong>①</strong> 跨项目的等级映射：同一角色在不同一致性等级项目中的上限差异。<strong>②</strong> 血缘记录的保留期限与归档策略（与项目的留存要求关联，属项目 <code>DECISIONS.md</code>）。<strong>③</strong> 分级表歧义（同具体度多重匹配）的检测——<kbd class="k should">SHOULD</kbd>由校验器报警告而非等到运行时。</p>
 </div>
 
 <h3 class="ch" id="ch28"><span class="num">Chapter 28</span>Supervisor Agent<a class="anchor" href="#ch28">#</a></h3>
@@ -2698,39 +2738,401 @@ initial: &lt;插入时的初值&gt;
 <p><span class="rid">AG-12</span>Worker <kbd class="k must NOT">MUST NOT</kbd> import 任何能触达 <code>L2</code>/<code>L3</code> 动作的客户端。<strong>放行权不下放</strong>——这同样由 import 边界测试守护。</p>
 </div>
 
+<h4>28.3 角色契约</h4>
+
+<div class="tw"><table>
+<thead><tr><th>#</th><th>项</th><th>内容</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><strong>职责</strong></td><td>把一个工作流实例推进到终止：拆分任务 · 按工作流定义路由 · 合成结果 · 裁决失败重派 · 触发升级</td></tr>
+<tr><td>2</td><td><strong>输入</strong></td><td>工作流定义（确定性）· 事件序列 · 各 Worker 的 typed 输出 · 闸门结果</td></tr>
+<tr><td>3</td><td><strong>输出</strong></td><td>派工指令（typed：目标角色 · 任务卡 · 知识切片引用 · 等级上限）· 升级请求 · 终止事件</td></tr>
+<tr><td>4</td><td><strong>Prompt 契约</strong></td><td>只含工作流当前状态与可选动作集；<kbd class="k must NOT">MUST NOT</kbd>内联项目事实（<code>FR-17</code>）</td></tr>
+<tr><td>5</td><td><strong>等级上限</strong></td><td><code>L0</code>　—— Supervisor <strong>不写代码</strong></td></tr>
+<tr><td>6</td><td><strong>工具面</strong></td><td>读事件序列 · 读元语切片索引 · 派工 · 读闸门结果 · 写事件。<strong>无文件写入能力</strong></td></tr>
+<tr><td>7</td><td><strong>禁止事项</strong></td><td>见 §28.4</td></tr>
+<tr><td>8</td><td><strong>Memory</strong></td><td>仅当前工作流的任务状态与语义引用（<code>AG-3</code>）</td></tr>
+<tr><td>9</td><td><strong>Review Checklist</strong></td><td>派工的等级上限是否与目标角色注册表一致 · 失败重派是否改动了验收条件 · 升级是否及时</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">AG-16</span>Supervisor 的等级上限<kbd class="k must">MUST</kbd>是 <code>L0</code>。它<kbd class="k must NOT">MUST NOT</kbd>具备文件写入能力——<strong>调度者同时是执行者会让"唯一决策者"退化为"唯一的人"</strong>：它可以绕过自己派出的闸门直接改代码，而没有任何角色在其上游审查它。</p>
+</div>
+
+<h4>28.4 确定性与非确定性的分界</h4>
+
+<p>Supervisor 是本规范中最容易越界的角色，因为"协调"听起来天然包含判断。分界如下：</p>
+
+<div class="tw"><table>
+<thead><tr><th>决策</th><th>性质</th><th>由谁定</th></tr></thead>
+<tbody>
+<tr><td>下一个阶段是什么</td><td><strong>确定性</strong></td><td>工作流定义（<code>WF-2</code>）—— Supervisor 查表，不发明</td></tr>
+<tr><td>推进条件是否满足</td><td><strong>确定性</strong></td><td>闸门结果（<code>FINV-9</code>）</td></tr>
+<tr><td>失败该回退到哪个阶段</td><td><strong>确定性</strong></td><td>失败路由表（<code>WF-11</code>）</td></tr>
+<tr><td>是否超护栏</td><td><strong>确定性</strong></td><td>计数（<code>AG-10</code>）</td></tr>
+<tr><td>本次动作等级</td><td><strong>确定性</strong></td><td>归级算法（§27.6）</td></tr>
+<tr><td><strong>任务如何拆分</strong></td><td>非确定</td><td>Supervisor 判断，受 <code>AG-17</code> 约束</td></tr>
+<tr><td><strong>并行还是串行</strong></td><td>非确定</td><td>Supervisor 判断，受隔离要求约束</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">AG-17</span>Supervisor <kbd class="k must NOT">MUST NOT</kbd>发明工作流阶段、跳过已定义阶段、或自行决定推进条件。它对流程的作用<kbd class="k must">MUST</kbd>限于<strong>查表执行</strong>。上表中标为"确定性"的六项若由模型判断，即违反 <code>FINV-1</code> 与 <code>FINV-9</code>。</p>
+</div>
+
+<p>这条把 Supervisor 的自主性压得很低，是有意的。<strong>它的价值不在于"聪明地编排"，而在于成为唯一的收敛点</strong>——所有状态经它一处流转，因此所有状态都可被一处观测与审计。一个会自己发明流程的 Supervisor 会让工作流的事件序列不再等于工作流定义，从而丧失可重放性。</p>
+
+<h4>28.5 任务拆分的粒度判据</h4>
+
+<div class="rule">
+<p><span class="rid">AG-18</span>一个任务是<strong>原子的</strong>，当且仅当它满足三条：<strong>①</strong> 能<strong>独立通过全部闸门</strong>（不依赖尚未完成的兄弟任务）；<strong>②</strong> 触及的路径面归级后是<strong>单一等级</strong>；<strong>③</strong> 声明的不变量集合<strong>自洽</strong>（不需要另一任务同时改动才成立）。不满足任一条<kbd class="k must">MUST</kbd>继续拆分或合并。</p>
+</div>
+
+<div class="tw"><table>
+<thead><tr><th>违反</th><th>后果</th></tr></thead>
+<tbody>
+<tr><td>违反 ①</td><td>产生"暂时红"的中间提交，违反 <code>FINV-8</code>；后续智能体读到自相矛盾的仓库</td></tr>
+<tr><td>违反 ②</td><td>整个任务被归为最高等级，低风险部分被迫等待放行；或诱导拆出"不含 <code>L2</code> 的那部分"先提交，制造半成品</td></tr>
+<tr><td>违反 ③</td><td>血缘的 <code>declares</code> 无法真实——声明的不变量在本任务范围内根本无法被满足，直接产生幻觉率</td></tr>
+</tbody>
+</table></div>
+
+<p>判据 ① 同时给出了拆分的<strong>下界</strong>：不能拆到"改一个函数签名"这种无法独立过闸门的粒度。本规范不给拆分的上界——上界由护栏（<code>AG-10</code>）间接施加：拆得太粗会反复超迭代上限。</p>
+
+<h4>28.6 失败重派</h4>
+
+<div class="rule">
+<p><span class="rid">AG-19</span>失败重派<kbd class="k must NOT">MUST NOT</kbd>改动任务的<strong>验收条件</strong>：不得放宽断言、不得缩小声明的不变量集合、不得下调等级上限。允许改动的只有<strong>给 Worker 的提示信息</strong>（如附上失败位置、指出该读哪个知识切片）。</p>
+</div>
+
+<div class="rule">
+<p><span class="rid">AG-20</span>同一任务连续重派<kbd class="k must NOT">MUST NOT</kbd>切换到更宽松的角色或更高等级的执行者以求通过。达到重试上限<kbd class="k must">MUST</kbd>升级给人（<code>WF-11</code>），<kbd class="k must NOT">MUST NOT</kbd>自行"换个更强的模型再试"——<strong>反复失败通常是任务定义或知识缺口的信号，不是执行能力的信号</strong>。</p>
+</div>
+
+<div class="note warn">
+<span class="lbl">这两条封堵的是同一个滑坡</span>
+<p><code>AG-19</code> 与 <code>AG-20</code> 合起来，堵死了 Supervisor 让任务"看起来成功"的全部途径：不能改验收条件，不能换执行者，不能静默重试。剩下的唯一出路是升级给人。</p>
+<p>这与 <code>FINV-10</code>（重构 = 断言零变更）、<code>WF-11</code>（禁静默重试）指向同一件事：<strong>在一个以成功率为指标的系统里，必须提前堵死所有伪造成功的路径</strong>，否则指标会先于能力被优化。</p>
+</div>
+
 <div class="stub">
-<span class="lbl">Scope · 本章待补</span>
-<p>Supervisor 的完整契约（模板九项）· 任务拆分的粒度判据 · 路由决策的确定性部分与非确定性部分的分界 · 失败重派的次数与降级策略 · 与护栏（<code>AG-10</code>）的交互。<strong>依赖</strong>：<a href="#ch41">§41</a> 工作流模型定稿。</p>
+<span class="lbl">Scope · 待补</span>
+<p>派工指令的完整 typed schema · 并行拆分时的隔离要求（依赖未决 <code>QA-4</code>）· 合成多个 Worker 输出的规则 · Supervisor 自身失败（崩溃 / 上下文耗尽）时的恢复。</p>
 </div>
 
 <h3 class="ch" id="ch29"><span class="num">Chapter 29</span>Spec Agent<a class="anchor" href="#ch29">#</a></h3>
-<div class="stub">
-<span class="lbl">Scope</span>
-<p><strong>职责</strong>：读元语与需求，产出 typed 任务卡（含该触及哪条不变量）。<strong>关键约束</strong>：任务卡中的项目事实<kbd class="k must">MUST</kbd>用语义引用（<code>FR-17</code>），<kbd class="k must NOT">MUST NOT</kbd>内联摘要。<strong>动作等级</strong>：<code>L0</code>。<strong>待补</strong>：任务卡 schema · 不变量声明的推导规则 · 需求歧义时的升级路径。</p>
+<h4>29.1 角色契约</h4>
+
+<div class="tw"><table>
+<thead><tr><th>#</th><th>项</th><th>内容</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><strong>职责</strong></td><td>把需求翻译成 typed 任务卡：目标 · 触及路径面 · <strong>声明的不变量</strong> · 知识切片引用 · 验收条件</td></tr>
+<tr><td>2</td><td><strong>输入</strong></td><td>需求描述 · 元语切片索引（<strong>不是全文</strong>，<code>MS-9</code>）· 登记册的 ID 命名空间表</td></tr>
+<tr><td>3</td><td><strong>输出</strong></td><td>任务卡（typed，schema 见 §29.2）；或<strong>歧义升级请求</strong>（<code>WF-13</code>）</td></tr>
+<tr><td>4</td><td><strong>Prompt 契约</strong></td><td>需求原文 + 切片引用；项目事实一律语义引用，<kbd class="k must NOT">MUST NOT</kbd>内联摘要（<code>FR-17</code>）</td></tr>
+<tr><td>5</td><td><strong>等级上限</strong></td><td><code>L0</code></td></tr>
+<tr><td>6</td><td><strong>工具面</strong></td><td>读元语切片 · 查登记册 · 查路径面归级 · 全仓只读检索。<strong>无写入</strong></td></tr>
+<tr><td>7</td><td><strong>禁止事项</strong></td><td>内联事实摘要 · 声明未在册的 ID · 自行选定一种歧义解释（<code>WF-13</code>）· 在任务卡里写实现方案</td></tr>
+<tr><td>8</td><td><strong>Memory</strong></td><td>无跨会话记忆（<code>AG-3</code>）</td></tr>
+<tr><td>9</td><td><strong>Review Checklist</strong></td><td><code>declares</code> 是否可由触及路径推导 · 语义引用是否可解析 · 验收条件是否可机器判定 · 是否混入实现方案</td></tr>
+</tbody>
+</table></div>
+
+<h4>29.2 任务卡 schema</h4>
+
+<pre><code>{
+  "task_id":   "&lt;唯一标识&gt;",
+  "workflow":  "feature | bugfix | hotfix | release | refactor | research",
+  "goal":      "&lt;一句话目标&gt;",
+  "target": {
+    "paths":       ["&lt;路径面 glob&gt;", ...],
+    "action_level": "L0 | L1 | L2"        // 由 §27.6 归级算法算出，非人填
+  },
+  "semantic_refs": [                       // FR-17：只放引用，不放内容
+    "sot://&lt;project&gt;/&lt;META&gt;#&lt;anchor&gt;@&lt;commit&gt;", ...
+  ],
+  "declares":   ["&lt;INV-n&gt;", "&lt;D-x&gt;", ...],   // 须在册；推导规则见 §29.3
+  "acceptance": [                          // 须可机器判定
+    { "kind": "test",  "ref": "&lt;测试标识&gt;", "expect": "red→green" },
+    { "kind": "gate",  "ref": "&lt;闸门 id&gt;",  "expect": "pass" }
+  ],
+  "out_of_scope": ["&lt;明确不做什么&gt;", ...]    // 见 §29.4
+}</code></pre>
+
+<div class="rule">
+<p><span class="rid">AG-21</span>任务卡的 <code>acceptance</code> 每一项<kbd class="k must">MUST</kbd>可机器判定。"实现正确"、"代码整洁"、"符合预期"一类<kbd class="k must NOT">MUST NOT</kbd>作为验收条件——不可判定的验收条件等于没有验收条件，最终由执行者自评是否完成。</p>
 </div>
+
+<div class="rule">
+<p><span class="rid">AG-22</span>任务卡<kbd class="k must NOT">MUST NOT</kbd>包含实现方案（具体函数、类结构、算法选择）。Spec 定义<strong>做什么与怎样算做完</strong>，Impl 定义<strong>怎么做</strong>。混入实现方案会让 Impl 跳过"读邻近文件仿照"（<code>AG-25</code>）而照抄一个未经验证的设计。</p>
+</div>
+
+<h4>29.3 不变量声明的推导规则</h4>
+
+<p><code>declares</code> 是幻觉率的源头（<a href="#ch25">§25.7</a>），因此它的产生<kbd class="k must">MUST</kbd>尽可能确定性：</p>
+
+<div class="tw"><table>
+<thead><tr><th>步</th><th>动作</th><th>性质</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>取 <code>target.paths</code>，查 <code>DOMAIN</code> 对应聚合切片中标注的不变量落点</td><td><strong>确定性</strong>（查表）</td></tr>
+<tr><td>2</td><td>取任务涉及的状态转移，查 <code>FLOWS</code> 对应 <code>flow</code> 块的 <code>inv:</code> 段</td><td><strong>确定性</strong>（查表）</td></tr>
+<tr><td>3</td><td>并集去重，得<strong>候选集</strong></td><td>确定性</td></tr>
+<tr><td>4</td><td>从候选集中<strong>剔除</strong>本任务确实不触及的项，逐条给理由</td><td>非确定（Spec 判断）</td></tr>
+<tr><td>5</td><td>校验：<code>declares</code> ⊆ 候选集，且全部在册</td><td><strong>确定性</strong>（闸门）</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">AG-23</span><code>declares</code> <kbd class="k must">MUST</kbd>是步骤 1–3 所得候选集的<strong>子集</strong>。Spec <kbd class="k must NOT">MUST NOT</kbd>凭判断<strong>添加</strong>候选集之外的不变量——若确有遗漏，说明 <code>DOMAIN</code>/<code>FLOWS</code> 的不变量落点标注不全，<kbd class="k must">MUST</kbd>先修元语（<code>L2</code>，须放行）而非在任务卡里绕过。</p>
+</div>
+
+<p>这条把"声明不变量"从自由判断收窄成<strong>只减不加</strong>的过滤，理由有二：候选集来自元语查表，可复现；而"这个改动还会影响某条不变量"的判断若允许凭空添加，就无法与幻觉区分。同时它制造了一条<strong>反向压力</strong>——元语标注不全会立刻在任务卡阶段暴露，而不是等到审计时。</p>
+
+<h4>29.4 out_of_scope 的作用</h4>
+
+<div class="rule">
+<p><span class="rid">AG-24</span>任务卡<kbd class="k should">SHOULD</kbd>包含 <code>out_of_scope</code>，显式列出<strong>相邻但不做</strong>的事项。判据：Spec 在阅读元语时注意到、但不属本任务的问题（松弛点、已知偏离、相邻模块的缺陷），<kbd class="k must">MUST</kbd>登记于此而非顺手交给 Impl 处理。</p>
+</div>
+
+<p>这与 <code>WF-15</code>（先于存在的失败须另立）是同一原则在不同阶段的应用：<strong>改动范围的边界必须在执行前显式化</strong>，否则 Reviewer 与放行人无法判断"这些额外改动是该有的吗"。</p>
 
 <h3 class="ch" id="ch30"><span class="num">Chapter 30</span>Impl Agent<a class="anchor" href="#ch30">#</a></h3>
-<div class="stub">
-<span class="lbl">Scope</span>
-<p><strong>职责</strong>：按"黄金纵切"（项目中已验证的参照实现目录）完成实现。<strong>关键约束</strong>：<kbd class="k must">MUST</kbd>先读邻近文件仿照，<kbd class="k must NOT">MUST NOT</kbd>凭记忆写；触及 <code>L2</code> 面时<kbd class="k must">MUST</kbd>显式声明触及的不变量。<strong>动作等级</strong>：<code>L2</code>（须放行）。<strong>待补</strong>：黄金纵切的选取与登记规则 · 邻近文件的判定 · 与 Test Agent 的交接契约。</p>
+
+<h4>30.1 角色契约</h4>
+
+<div class="tw"><table>
+<thead><tr><th>#</th><th>项</th><th>内容</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><strong>职责</strong></td><td>在任务卡与失败测试给定的边界内完成实现，使验收条件成立</td></tr>
+<tr><td>2</td><td><strong>输入</strong></td><td>任务卡 · Test 产出的失败测试 · 知识切片（按 <code>semantic_refs</code> 解析）· <strong>黄金纵切</strong>参照</td></tr>
+<tr><td>3</td><td><strong>输出</strong></td><td>改动集 + 触及不变量的显式声明（写入血缘 <code>declares</code>）</td></tr>
+<tr><td>4</td><td><strong>Prompt 契约</strong></td><td>任务卡 + 切片引用 + 参照目录路径；<kbd class="k must NOT">MUST NOT</kbd>内联"该项目的编码风格是…"一类摘要（应指向 <code>AGENTS.md</code> 与邻近文件）</td></tr>
+<tr><td>5</td><td><strong>等级上限</strong></td><td><code>L2</code>（触及 <code>L2</code> 面须人工放行）</td></tr>
+<tr><td>6</td><td><strong>工具面</strong></td><td>读写授权路径面内的文件 · 跑闸门命令 · 只读检索。<strong>无放行能力</strong>（<code>AG-12</code>）</td></tr>
+<tr><td>7</td><td><strong>禁止事项</strong></td><td>见 §30.4</td></tr>
+<tr><td>8</td><td><strong>Memory</strong></td><td>仅本任务中间状态（<code>AG-3</code>）</td></tr>
+<tr><td>9</td><td><strong>Review Checklist</strong></td><td>改动是否超出 <code>target.paths</code> · 断言是否被改动 · 合规路径的守卫否定分支 · 血缘 <code>declares</code> 是否与实际 diff 相符</td></tr>
+</tbody>
+</table></div>
+
+<h4>30.2 黄金纵切</h4>
+
+<div class="rule">
+<p><span class="rid">AG-25</span>Impl <kbd class="k must">MUST</kbd>先读<strong>邻近文件</strong>仿照，<kbd class="k must NOT">MUST NOT</kbd>凭模型先验写。项目<kbd class="k should">SHOULD</kbd>在 <code>AGENTS.md</code> 登记一个或多个<strong>黄金纵切</strong>——已通过完整闸门、结构完整的参照实现目录，并列出其构成文件清单。</p>
 </div>
 
+<div class="tw"><table>
+<thead><tr><th>黄金纵切的选取判据</th><th>为什么</th></tr></thead>
+<tbody>
+<tr><td>已通过完整闸门</td><td>参照物必须是可信的（<code>WF-25</code> 同理：原型不得作参照）</td></tr>
+<tr><td>结构完整（含测试与边界处理）</td><td>只有主路径的参照会教出只有主路径的实现</td></tr>
+<tr><td>触及本项目的典型约束（至少一条不变量）</td><td>不触及约束的模块教不会合规写法</td></tr>
+<tr><td>近期维护过</td><td>陈旧模块会传播已废弃的写法</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">AG-26</span>"邻近文件"的判定顺序<kbd class="k must">MUST</kbd>是：<strong>①</strong> 同目录的同类文件；<strong>②</strong> 登记的黄金纵切；<strong>③</strong> 同层其他模块。三级都不存在时（新建的第一个模块）<kbd class="k must">MUST</kbd>升级给人确认结构，<kbd class="k must NOT">MUST NOT</kbd>自行发明结构——<strong>第一个模块会成为后续所有模块的参照</strong>，它的结构错误会被系统性放大。</p>
+</div>
+
+<h4>30.3 合规路径的实现要求</h4>
+
+<div class="rule">
+<p><span class="rid">AG-27</span>触及合规敏感路径面（<code>L2</code>）时，Impl <kbd class="k must">MUST</kbd>逐条阅读守卫判据的<strong>否定分支</strong>并在输出中显式陈述其行为。理由见 <code>FP-4</code> 的 Evidence：<strong>顺序看着对不等于判据是对的</strong>，一个 <code>!</code> 到 <code>&amp;&amp;</code> 的改动可把 fail-closed 翻成 fail-open 而顺序毫无变化。</p>
+</div>
+
+<h4>30.4 禁止事项</h4>
+
+<div class="tw"><table>
+<thead><tr><th>禁止</th><th>依据</th><th>后果</th></tr></thead>
+<tbody>
+<tr><td>改动测试断言使其通过</td><td><code>FINV-10</code> <code>AG-19</code></td><td>伪造成功</td></tr>
+<tr><td>改动超出 <code>target.paths</code></td><td><code>AG-24</code></td><td>Reviewer 无法判断范围；血缘失真</td></tr>
+<tr><td>"顺手修"松弛点或已知偏离</td><td><code>MS-10</code> <code>MS-30</code></td><td>破坏已定决策（<code>MA-8</code>）</td></tr>
+<tr><td>元语与代码冲突时单方面改任一侧</td><td><code>FR-4</code></td><td>掩盖冲突信号</td></tr>
+<tr><td>凭记忆写而不读邻近文件</td><td><code>AG-25</code></td><td>用通用先验填补项目特有约束（<a href="#ch1">§1.2</a>）</td></tr>
+<tr><td>自行 push / 合并 / 放行</td><td><code>AG-12</code></td><td>取消放行闸</td></tr>
+<tr><td>新增未登记的依赖</td><td>项目技术栈锁定</td><td>绕过选型决策</td></tr>
+</tbody>
+</table></div>
+
 <h3 class="ch" id="ch31"><span class="num">Chapter 31</span>Test Agent<a class="anchor" href="#ch31">#</a></h3>
+
+<h4>31.1 角色契约</h4>
+
+<div class="tw"><table>
+<thead><tr><th>#</th><th>项</th><th>内容</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><strong>职责</strong></td><td>把任务卡的 <code>acceptance</code> 变成<strong>确实为红</strong>的可执行测试，作为 Impl 的验收条件</td></tr>
+<tr><td>2</td><td><strong>输入</strong></td><td>任务卡 · 知识切片 · 既有测试结构 · <strong>已知失败清单</strong></td></tr>
+<tr><td>3</td><td><strong>输出</strong></td><td>失败测试 + 覆盖的不变量清单 + 归属结论（本次新增的红 vs 先于存在的红）</td></tr>
+<tr><td>4</td><td><strong>Prompt 契约</strong></td><td>任务卡 + 邻近测试文件引用</td></tr>
+<tr><td>5</td><td><strong>等级上限</strong></td><td><code>L1</code>（测试面）</td></tr>
+<tr><td>6</td><td><strong>工具面</strong></td><td>读写测试面 · 跑测试 · <strong>在干净基线复跑</strong> · 只读检索</td></tr>
+<tr><td>7</td><td><strong>禁止事项</strong></td><td>放宽/删除既有断言 · 加跳过标记（<code>L3</code>，§27.3）· 提交未运行过的测试</td></tr>
+<tr><td>8</td><td><strong>Memory</strong></td><td>仅本任务中间状态</td></tr>
+<tr><td>9</td><td><strong>Review Checklist</strong></td><td>红是否为断言失败而非导入错误（<code>WF-12</code> ②）· 是否覆盖全部 <code>declares</code> · 是否误认领了先于存在的失败</td></tr>
+</tbody>
+</table></div>
+
+<h4>31.2 交接判据与归属</h4>
+
+<p>交接三判据已定于 <code>WF-12</code>（<a href="#ch42">§42.3</a>），此处补角色侧的归属要求：</p>
+
+<div class="rule">
+<p><span class="rid">AG-28</span>Test <kbd class="k must">MUST</kbd>在交接前区分<strong>本次新增的红</strong>与<strong>先于当前工作存在的红</strong>，方法是在干净基线复跑（<code>WF-4</code>）。误把既有失败当作本任务的验收条件，会让 Impl 去修一个它没有造成的问题（<a href="#ch23">§23.3</a>"先判归属"）。</p>
+</div>
+
+<h4>31.3 负向验证在角色层的落点</h4>
+
+<div class="rule">
+<p><span class="rid">AG-29</span>Test 为<strong>守护类改动</strong>（校验器、不变量守卫、闸门）编写测试时，<kbd class="k must">MUST</kbd>做负向验证（<code>VC-7</code>）：构造应失败的输入确认失败，再回滚确认通过。只验证"正常输入通过"的守护测试<kbd class="k must NOT">MUST NOT</kbd>视为完成——<strong>它无法区分守护生效与守护根本没跑</strong>。</p>
+</div>
+
+<div class="note evidence">
+<span class="lbl">Evidence · 本规范自身的一次应用</span>
+<p><a href="#apxD">附录 D</a> 记录了 <code>check-asfas-doc.mjs</code> 维度 <code>D</code> 的正则跨越 <code>&lt;tr&gt;</code> 边界的缺陷。它不是被正向测试发现的（正向测试当时是绿的），而是被负向验证脚本的<strong>前置步骤</strong>——"基线必须绿"——当场抓住。</p>
+<p>这说明 <code>AG-29</code> 的要求还不够：守护类改动的负向验证<kbd class="k should">SHOULD</kbd>同时包含<strong>基线断言</strong>，否则一个恒红的校验器也会"通过"每一条负向用例。</p>
+</div>
+
 <div class="stub">
-<span class="lbl">Scope</span>
-<p><strong>职责</strong>：先写不变量与契约测试，再交给 Impl。<strong>关键约束</strong>：<kbd class="k must NOT">MUST NOT</kbd>为使测试通过而放宽断言；给不变量测试加跳过标记属 <code>L3</code> 禁令（§27.3）。<strong>动作等级</strong>：<code>L1</code>。<strong>待补</strong>：测试先行的交接时序 · 负向验证（<code>VC-7</code>）在角色层的落点 · 与既有失败的归属判断（<a href="#ch23">§23.3</a> "先判归属"）。</p>
+<span class="lbl">Scope · 待补</span>
+<p>测试与元语契约段的对应（契约测试从哪本元语的哪张表派生）· 间歇性失败的判定 · 测试面的等级边界（何时测试改动会触及 <code>L2</code>）。</p>
 </div>
 
 <h3 class="ch" id="ch32"><span class="num">Chapter 32</span>Reviewer Agent<a class="anchor" href="#ch32">#</a></h3>
-<div class="stub">
-<span class="lbl">Scope</span>
-<p><strong>职责</strong>：独立审查改动，作为进入人工放行前的质量闸门。<strong>关键约束</strong>：<kbd class="k must">MUST</kbd>与产出方是不同实例；<kbd class="k must NOT">MUST NOT</kbd>持有产出方的会话上下文（否则退化为自我审查）；合规路径的审查<kbd class="k must">MUST</kbd>逐条读守卫判据的<strong>否定分支</strong>（<code>FP-4</code>）。<strong>动作等级</strong>：<code>L0</code>。<strong>待补</strong>：审查清单的生成规则（按触及的路径面与不变量派生）· 打回与放行的判据 · 与确定性闸门的顺序（校验器<kbd class="k must">MUST</kbd>先于 Reviewer，理由见 <code>FINV-1</code>）。</p>
+<h4>32.1 角色契约</h4>
+
+<div class="tw"><table>
+<thead><tr><th>#</th><th>项</th><th>内容</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><strong>职责</strong></td><td>独立审查改动集，产出<strong>阻断项</strong>与<strong>非阻断意见</strong>，作为人工放行前的质量闸门</td></tr>
+<tr><td>2</td><td><strong>输入</strong></td><td>diff · 任务卡 · 确定性闸门结果 · <strong>派生的审查清单</strong>（§32.3）· 知识切片</td></tr>
+<tr><td>3</td><td><strong>输出</strong></td><td>typed：<code>{ decision: pass｜block, blocking: [...], advisory: [...] }</code></td></tr>
+<tr><td>4</td><td><strong>Prompt 契约</strong></td><td>diff + 任务卡 + 审查清单；<kbd class="k must NOT">MUST NOT</kbd>包含 Impl 的推理过程或会话历史</td></tr>
+<tr><td>5</td><td><strong>等级上限</strong></td><td><code>L0</code></td></tr>
+<tr><td>6</td><td><strong>工具面</strong></td><td>读 diff · 读元语切片 · 只读检索 · 读闸门结果。<strong>无写入、无放行</strong></td></tr>
+<tr><td>7</td><td><strong>禁止事项</strong></td><td>直接修改代码 · 复核确定性闸门已判定的事项 · 以"整体看起来不错"结论放行</td></tr>
+<tr><td>8</td><td><strong>Memory</strong></td><td>无（每次审查独立实例）</td></tr>
+<tr><td>9</td><td><strong>Review Checklist</strong></td><td>（对 Reviewer 自身）阻断项是否引用了具体位置与规则 ID · 是否遗漏清单必查项</td></tr>
+</tbody>
+</table></div>
+
+<h4>32.2 独立性要求</h4>
+
+<div class="rule inv">
+<p><span class="rid">FINV-11</span>Reviewer <kbd class="k must">MUST</kbd>是与产出方<strong>不同的实例</strong>，且<kbd class="k must NOT">MUST NOT</kbd>持有产出方的会话上下文、推理过程或中间产物。<strong>共享上下文的审查是自我审查</strong>——它会继承产出方的全部误解，从而系统性地漏掉正是由那些误解导致的缺陷。</p>
 </div>
 
+<div class="note warn">
+<span class="lbl">对 SubAgent 机制的直接约束</span>
+<p>多数运行时的 SubAgent 会<strong>继承父会话上下文</strong>。因此 Reviewer <kbd class="k must NOT">MUST NOT</kbd>实现为 Impl 的 SubAgent——那会直接违反 <code>FINV-11</code>，且违反是<strong>静默的</strong>：审查照常进行、照常产出意见，只是永远发现不了源自共享误解的问题。</p>
+<p>这条是 <a href="#ch37">§37</a>（Session / Handoff / SubAgent）中"SubAgent 与独立实例的选用判据"的第一条硬约束。</p>
+</div>
+
+<h4>32.3 审查清单的派生</h4>
+
+<div class="rule">
+<p><span class="rid">AG-30</span>审查清单<kbd class="k must">MUST</kbd>由改动<strong>确定性派生</strong>，<kbd class="k must NOT">MUST NOT</kbd>由模型自行拟定。派生规则：<strong>①</strong> 按 <code>target.paths</code> 归级，取该等级的必查项；<strong>②</strong> 按 <code>declares</code> 取每条不变量的守护判据；<strong>③</strong> 按触及的元语契约段取对应格式契约；<strong>④</strong> 按工作流类型取特有项。</p>
+</div>
+
+<div class="tw"><table>
+<thead><tr><th>触发条件</th><th>清单必查项</th><th>依据</th></tr></thead>
+<tbody>
+<tr><td>触及 <code>L2</code> 合规路径面</td><td>逐条读守卫判据的<strong>否定分支</strong>，陈述其行为</td><td><code>FP-4</code> <code>AG-27</code></td></tr>
+<tr><td>改动含测试文件</td><td>断言是否被修改/删除/放宽；有无跳过标记</td><td><code>FINV-10</code> <code>L3</code> 禁令</td></tr>
+<tr><td>触及元语契约段</td><td>是否与代码侧同提交（<code>MS-12</code> ①）</td><td><code>MS-7</code></td></tr>
+<tr><td>工作流 = 重构</td><td>断言集合零差异</td><td><code>FINV-10</code> <code>WF-22</code></td></tr>
+<tr><td>工作流 = 缺陷修复</td><td>根因三判据是否成立；是否只消了症状</td><td><code>WF-14</code></td></tr>
+<tr><td>改动超出 <code>target.paths</code></td><td>逐项确认是否应移入 <code>out_of_scope</code> 另立</td><td><code>AG-24</code> <code>WF-15</code></td></tr>
+<tr><td>血缘 <code>declares</code> 与 diff 不符</td><td><strong>直接阻断</strong>——这是幻觉，属合规风险</td><td><a href="#ch25">§25.7</a></td></tr>
+</tbody>
+</table></div>
+
+<p>把清单做成派生而非自拟，有两个理由。其一是可复现：同样的改动两次审查得到同样的必查项。其二更重要——<strong>自拟清单的 Reviewer 会倾向于检查它擅长发现的问题</strong>，而非该项目实际会出事的地方。派生清单强制它面对后者。</p>
+
+<h4>32.4 打回与放行的判据</h4>
+
+<div class="rule">
+<p><span class="rid">AG-31</span>Reviewer 的阻断项<kbd class="k must">MUST</kbd>引用<strong>具体位置</strong>（文件与行）与<strong>被违反的规则 ID</strong>。无法定位到规则的意见<kbd class="k must">MUST</kbd>归入 <code>advisory</code>（非阻断），<kbd class="k must NOT">MUST NOT</kbd>用于阻断——<strong>否则打回变成不可争辩的主观判断，Impl 只能靠猜测反复试探</strong>。</p>
+</div>
+
+<div class="rule">
+<p><span class="rid">AG-32</span>Reviewer <kbd class="k must NOT">MUST NOT</kbd>复核确定性闸门已判定的事项（类型、格式、枚举一致性、路径面归级）。它<kbd class="k must">MUST</kbd>只审查确定性规则<strong>无法表达</strong>的部分：判据的语义正确性、根因是否成立、改动范围是否恰当。</p>
+</div>
+
+<p><code>AG-32</code> 是 <code>FINV-1</code> 在角色边界上的应用，也解释了 <code>WF-3</code> 的闸门顺序：确定性闸门先跑，Reviewer 拿到的必然是已经过结构与行为检查的改动，因此它的注意力可以全部放在机器判不了的地方。反过来（Reviewer 在前）不仅浪费，还会让它产出关于"本来就不该存在的代码"的意见。</p>
+
 <h3 class="ch" id="ch33"><span class="num">Chapter 33</span>Guard Agent<a class="anchor" href="#ch33">#</a></h3>
+
+<h4>33.1 角色契约</h4>
+
+<div class="tw"><table>
+<thead><tr><th>#</th><th>项</th><th>内容</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><strong>职责</strong></td><td>监控越权、漂移与成本，在阈值触发时<strong>升级给人</strong>并可请求中止</td></tr>
+<tr><td>2</td><td><strong>输入</strong></td><td>血缘记录流 · 事件序列 · 闸门结果 · 计量数据 · 分级表 · 豁免表</td></tr>
+<tr><td>3</td><td><strong>输出</strong></td><td>typed 升级请求：<code>{ trigger, evidence[], severity, suggested_action }</code></td></tr>
+<tr><td>4</td><td><strong>Prompt 契约</strong></td><td>仅在<strong>汇总与措辞</strong>环节使用模型；触发判定本身不经模型（<code>AG-33</code>）</td></tr>
+<tr><td>5</td><td><strong>等级上限</strong></td><td><code>L0</code></td></tr>
+<tr><td>6</td><td><strong>工具面</strong></td><td>只读全部治理数据 · 发升级事件 · 请求中止（<strong>不直接中止</strong>）</td></tr>
+<tr><td>7</td><td><strong>禁止事项</strong></td><td>修改被监控对象 · 修改豁免表 · 自行放宽阈值 · 用模型判定越权</td></tr>
+<tr><td>8</td><td><strong>Memory</strong></td><td>跨会话的<strong>度量时间序列</strong>（这是唯一允许持久化的 Memory，见 §33.3）</td></tr>
+<tr><td>9</td><td><strong>Review Checklist</strong></td><td>每条升级是否附确定性证据 · 是否存在长期零触发的监控项（形同虚设）</td></tr>
+</tbody>
+</table></div>
+
+<h4>33.2 触发判定必须确定性</h4>
+
+<div class="rule">
+<p><span class="rid">AG-33</span>Guard 的<strong>触发判定</strong><kbd class="k must">MUST</kbd>全部来自确定性信号，<kbd class="k must NOT">MUST NOT</kbd>由模型判断"这个改动看起来是否越权"。模型<kbd class="k may">MAY</kbd>用于把已触发的多条信号<strong>汇总为一条可读的升级说明</strong>，<kbd class="k must NOT">MUST NOT</kbd>参与是否触发的判断。</p>
+</div>
+
+<div class="tw"><table>
+<thead><tr><th>触发项</th><th>确定性信号</th><th>严重度</th></tr></thead>
+<tbody>
+<tr><td>越权</td><td>改动路径归级 &gt; 角色注册的等级上限（§27.6）</td><td><strong>阻断</strong></td></tr>
+<tr><td><code>L3</code> 触碰</td><td>归级算法短路命中（<code>AG-15</code>）</td><td><strong>阻断</strong></td></tr>
+<tr><td>放行缺失</td><td><code>files</code> 含 <code>L2</code> 面而 <code>human_release</code> 为空（<code>AG-9</code>）</td><td><strong>阻断</strong></td></tr>
+<tr><td>幻觉</td><td>血缘 <code>declares</code> 与实际 diff 的不变量落点不符</td><td>阻断</td></tr>
+<tr><td>护栏超限</td><td><code>iterations</code> &gt; 上限；token / 分钟 &gt; 预算</td><td>阻断</td></tr>
+<tr><td>血缘缺口</td><td>存在无 run 记录的提交（<code>WF-21</code>）</td><td>阻断（发布前）</td></tr>
+<tr><td>裁剪透支</td><td>未完成补做数 &gt; 阈值（<code>WF-17</code>）</td><td>告警</td></tr>
+<tr><td><strong>闸门形同虚设</strong></td><td>某级闸门在滚动窗口内<strong>零拦截</strong>（<code>WF-7</code> 的数据）</td><td>告警</td></tr>
+<tr><td><strong>漂移拦截率归零</strong></td><td>长期为 0 且校验器覆盖面无扩张</td><td>告警</td></tr>
+</tbody>
+</table></div>
+
+<p>最后两项是本表中唯一<strong>指向治理体系自身</strong>的监控。它们回答 <code>VC-10</code> 提出的问题：指标变好可能意味着质量提升，也可能意味着闸门退化。<strong>零拦截不是好消息，是需要解释的现象。</strong></p>
+
+<h4>33.3 Guard 的 Memory 例外</h4>
+
+<div class="rule">
+<p><span class="rid">AG-34</span>Guard <kbd class="k may">MAY</kbd>持久化<strong>度量时间序列</strong>，这是 <code>AG-3</code>（智能体不跨会话持有知识）的唯一例外。允许的理由：趋势判断在定义上需要历史，而度量是<strong>派生数据</strong>——它可从血缘与事件序列完整重建，因此不构成第二事实来源（<code>FP-1</code>）。Guard <kbd class="k must NOT">MUST NOT</kbd>持久化任何<strong>项目事实</strong>。</p>
+</div>
+
+<h4>33.4 升级路径</h4>
+
+<div class="rule">
+<p><span class="rid">AG-35</span>Guard <kbd class="k must NOT">MUST NOT</kbd>直接中止其他智能体或修改其产物。它只能<strong>发升级事件</strong>并<strong>请求</strong>中止；实际中止由 Supervisor 执行，放行与豁免的裁决由人执行。理由：赋予监控者执行权会使它同时成为被监控盲区——<strong>没有任何角色在其上游</strong>。</p>
+</div>
+
+<div class="tw"><table>
+<thead><tr><th>严重度</th><th>动作</th><th>谁执行</th></tr></thead>
+<tbody>
+<tr><td>阻断</td><td>发升级事件 + 请求中止 → 工作流暂停待人裁决</td><td>Supervisor 中止；人裁决</td></tr>
+<tr><td>告警</td><td>发升级事件，工作流继续</td><td>人异步查看</td></tr>
+<tr><td>豁免在册</td><td><strong>不触发</strong>，但计入豁免使用次数</td><td>—</td></tr>
+</tbody>
+</table></div>
+
+<div class="rule">
+<p><span class="rid">AG-36</span>Guard <kbd class="k must">MUST</kbd>统计豁免的<strong>使用次数</strong>。豁免（<code>MS-39</code>）是"已知挡不住"的登记，不是"永远不用管"——高频命中的豁免<kbd class="k should">SHOULD</kbd>触发复审：它可能已经具备机器化条件（<a href="#ch25">§25.6</a> 第 1 步：多数"无法机器化"其实是扫描面不够）。</p>
+</div>
+
 <div class="stub">
-<span class="lbl">Scope</span>
-<p><strong>职责</strong>：监控其他智能体的越权、漂移与成本，触发升级。<strong>关键约束</strong>：Guard 本身<kbd class="k must">MUST</kbd>为 <code>L0</code>；它的判断依据<kbd class="k must">MUST</kbd>尽可能来自确定性信号（血缘字段、闸门结果、计量数据），<kbd class="k must NOT">MUST NOT</kbd>用模型判断"这个改动看起来是否越权"——越权判定是路径面匹配，属确定性规则（<code>FINV-1</code>）。<strong>待补</strong>：升级路径与通知契约 · 护栏运行时强制点的实现（<code>C4</code> 要求）· 与豁免表的交互。</p>
+<span class="lbl">Scope · 待补</span>
+<p>升级通知的传达渠道与契约 · 护栏运行时强制点的实现细节（<code>C4</code>）· 滚动窗口的长度选取 · Guard 自身失效的检测（<strong>谁监控监控者</strong>——倾向用确定性心跳而非再加一层 agent）。</p>
 </div>
 
 <h3 class="ch" id="ch34"><span class="num">Chapter 34</span>禁止智能体化的面<a class="anchor" href="#ch34">#</a></h3>
@@ -3684,6 +4086,13 @@ initial: &lt;插入时的初值&gt;
 <tr><td><code>CP-50</code></td><td><code>C3</code></td><td>每条失败路由有回退目标与重试上限；超限升级而非静默重试</td><td><code>WF-11</code></td></tr>
 <tr><td><code>CP-51</code></td><td><code>C3</code></td><td>活动输出 parse 失败计为失败迭代，无容错解析</td><td><code>WF-9</code></td></tr>
 <tr><td><code>CP-52</code></td><td><code>C3</code></td><td>原型代码未进主干，未被引作实现参照</td><td><code>WF-25</code></td></tr>
+<tr><td><code>CP-55</code></td><td><code>C3</code></td><td><strong>Reviewer 是独立实例且不共享产出方会话上下文</strong>（未实现为 Impl 的 SubAgent）</td><td><code>FINV-11</code></td></tr>
+<tr><td><code>CP-56</code></td><td><code>C3</code></td><td>未匹配任何路径面的路径归为 <code>L2</code>；<code>L3</code> 命中短路</td><td><code>AG-14</code> <code>AG-15</code></td></tr>
+<tr><td><code>CP-57</code></td><td><code>C3</code></td><td>Supervisor 等级上限为 <code>L0</code>，无文件写入能力</td><td><code>AG-16</code></td></tr>
+<tr><td><code>CP-58</code></td><td><code>C3</code></td><td><code>declares</code> ⊆ 元语查表所得候选集（不得凭判断添加）</td><td><code>AG-23</code></td></tr>
+<tr><td><code>CP-59</code></td><td><code>C3</code></td><td>失败重派未改动验收条件，未切换更宽松执行者</td><td><code>AG-19</code> <code>AG-20</code></td></tr>
+<tr><td><code>CP-60</code></td><td><code>C3</code></td><td>审查清单由改动确定性派生，非模型自拟；阻断项均引用位置与规则 ID</td><td><code>AG-30</code> <code>AG-31</code></td></tr>
+<tr><td><code>CP-61</code></td><td><code>C3</code></td><td>Guard 触发判定全部来自确定性信号；Guard 无直接中止权</td><td><code>AG-33</code> <code>AG-35</code></td></tr>
 <tr><td><code>CP-46</code></td><td><code>C4</code></td><td>度量闭环，且未被设为优化目标</td><td><code>VC-10</code></td></tr>
 <tr><td><code>CP-53</code></td><td><code>C4</code></td><td>变更清单由血缘派生，覆盖全部 run（含失败）；血缘缺口阻断发布</td><td><code>WF-19</code> <code>WF-21</code></td></tr>
 <tr><td><code>CP-54</code></td><td><code>C4</code></td><td>热修复裁剪产生补做工单；未完成补做数量被暴露为度量</td><td><code>WF-17</code></td></tr>
@@ -3698,19 +4107,19 @@ initial: &lt;插入时的初值&gt;
 <tbody>
 <tr><td><code>FG-n</code></td><td>Factory Goal　设计目标</td><td><a href="#ch3">§3</a></td><td>6</td></tr>
 <tr><td><code>FP-n</code></td><td>Factory Principle　设计原则</td><td><a href="#ch4">§4</a></td><td>7</td></tr>
-<tr><td><code>FINV-n</code></td><td>Factory Invariant　不变量（无偏离路径）</td><td><a href="#ch14">§14</a> · <a href="#ch41">§41</a> · <a href="#ch46">§46</a></td><td>10</td></tr>
+<tr><td><code>FINV-n</code></td><td>Factory Invariant　不变量（无偏离路径）</td><td><a href="#ch14">§14</a> · <a href="#ch41">§41</a> · <a href="#ch46">§46</a> · <a href="#ch32">§32</a></td><td>11</td></tr>
 <tr><td><code>FR-n</code></td><td>Factory Requirement　规范性要求</td><td>Part I–II</td><td>18（<code>FR-0</code> 起）</td></tr>
 <tr><td><code>FADR-n</code></td><td>Factory ADR　工厂级架构决策</td><td><a href="#ch10">§10.2</a></td><td>1</td></tr>
 <tr><td><code>MS-n</code></td><td>Meta-Schema Rule　元语规范</td><td>Part III · <a href="#apxB">附录 B</a></td><td>42</td></tr>
 <tr><td><code>MA-n</code></td><td>Meta-Language Anti-pattern　元语反模式</td><td><a href="#ch16">§16.8</a></td><td>8</td></tr>
 <tr><td><code>VC-n</code></td><td>Verifier Contract　校验器契约</td><td><a href="#ch25">§25</a></td><td>10</td></tr>
-<tr><td><code>AG-n</code></td><td>Agent Rule　智能体规范</td><td>Part IV</td><td>13</td></tr>
+<tr><td><code>AG-n</code></td><td>Agent Rule　智能体规范</td><td>Part IV</td><td>36</td></tr>
 <tr><td><code>RT-n</code></td><td>Runtime Rule　运行时规范</td><td>Part V</td><td>4</td></tr>
 <tr><td><code>WF-n</code></td><td>Workflow Rule　工作流规范</td><td>Part VI</td><td>26</td></tr>
 <tr><td><code>IN-n</code></td><td>Infrastructure Rule　基础设施规范</td><td>Part VII</td><td>1</td></tr>
 <tr><td><code>EX-n</code></td><td>Extension Rule　扩展规范</td><td>Part VIII</td><td>3</td></tr>
 <tr><td><code>PS-n</code></td><td>Problem Statement　故障模式</td><td><a href="#ch2">§2</a></td><td>6</td></tr>
-<tr><td><code>CP-n</code></td><td>Conformance Point　一致性检查点</td><td><a href="#apxA">附录 A</a></td><td>54</td></tr>
+<tr><td><code>CP-n</code></td><td>Conformance Point　一致性检查点</td><td><a href="#apxA">附录 A</a></td><td>61</td></tr>
 </tbody>
 </table></div>
 
@@ -3862,6 +4271,7 @@ initial: &lt;插入时的初值&gt;
 <tr><td><code>1.0.0-draft</code></td><td>2026-07-30</td><td>首版。Part I–III 规范性定稿（<a href="#ch1">§1</a>–<a href="#ch25">§25</a>）；Part IV 的 <a href="#ch26">§26</a>–<a href="#ch27">§27</a>、<a href="#ch34">§34</a>，Part V 的 <a href="#ch35">§35</a>、<a href="#ch39">§39</a>–<a href="#ch40">§40</a>，Part VIII 定稿；其余章节定范围。取代 2026-07 的总体方案稿</td></tr>
 <tr><td><code>1.1.0-draft</code></td><td>2026-07-30</td><td><strong>Part VI 全部定稿</strong>（<a href="#ch41">§41</a>–<a href="#ch47">§47</a>）：事件模型 <code>WF-6</code>–<code>WF-7</code> · 活动契约 <code>WF-8</code>–<code>WF-9</code> · 闸门分类学与不可裁剪子集 <code>WF-10</code> · 失败路由 <code>WF-11</code> · 六类工作流各含时序图与失败路由表（<code>WF-12</code>–<code>WF-26</code>）· 新增 <code>FINV-10</code>（重构 = 断言零变更）· 新增 <code>CP-47</code>–<code>CP-54</code>。销 <code>QA-2</code> 原议题</td></tr>
 <tr><td><code>1.1.1-draft</code></td><td>2026-07-30</td><td><strong><code>FR-1</code> 落地</strong>：<code>spec/check-asfas-doc.mjs</code> 8 维度 + <code>spec/negative-verify.mjs</code> 逐维度负向验证，挂进 <code>npm test</code>。本规范自身由 <code>C0</code> 升至 <code>C1</code>。修复 12 张时序图中 9 处 SVG 内 <code>&lt;strong&gt;</code> 导致的解析中断（见 <a href="#status">§0.3</a>）。销 <code>QA-1</code> <code>QA-5</code>；新增 <code>QA-7</code></td></tr>
+<tr><td><code>1.2.0-draft</code></td><td>2026-07-30</td><td><strong>Part IV 全部定稿</strong>（<a href="#ch26">§26</a>–<a href="#ch34">§34</a>）：<strong>归级算法</strong>（§27.6，未匹配路径 fail-closed 归 <code>L2</code>，<code>L3</code> 命中短路）· 六个角色的完整九项契约 · Supervisor 确定性/非确定性分界与拆分粒度判据（<code>AG-16</code>–<code>AG-20</code>）· 任务卡 schema 与 <strong><code>declares</code> 只减不加</strong>推导规则（<code>AG-21</code>–<code>AG-24</code>）· 黄金纵切与邻近文件三级判定（<code>AG-25</code>–<code>AG-27</code>）· 新增 <code>FINV-11</code>（<strong>Reviewer 独立性</strong>，直接约束 SubAgent 用法）· 审查清单确定性派生（<code>AG-30</code>–<code>AG-32</code>）· Guard 触发判定确定性 + Memory 例外 + 无中止权（<code>AG-33</code>–<code>AG-36</code>）· 新增 <code>CP-55</code>–<code>CP-61</code>。销 <code>QA-2</code> 本轮议题</td></tr>
 </tbody>
 </table></div>
 
@@ -3883,7 +4293,7 @@ initial: &lt;插入时的初值&gt;
 <div class="tw"><table>
 <thead><tr><th>#</th><th>事项</th><th>倾向</th><th>决出前禁止</th></tr></thead>
 <tbody>
-<tr><td><code>QA-2</code></td><td>剩余待补章节顺序（Part IV 角色契约 · Part V 运行时绑定 · Part VII 基础设施）<br><em>v1.1 已销原议题：Part VI 优先，已定稿</em></td><td><strong>Part IV 角色契约</strong>（<a href="#ch28">§28</a>–<a href="#ch33">§33</a>）——工作流已定稿，角色的输入输出契约现在有了可依据的边界</td><td>不得在 Part IV 角色契约定稿前写 Part V 的 SDK 逐项映射（映射目标未定）</td></tr>
+<tr><td><code>QA-2</code></td><td>剩余待补章节顺序（Part V 运行时绑定 · Part VII 基础设施）<br><em>v1.1 销：Part VI 优先 · v1.2 销：Part IV 角色契约</em></td><td><strong>Part V</strong>（<a href="#ch36">§36</a>–<a href="#ch38">§38</a>）——六个角色的工具面与上下文要求已定，SDK 逐项映射现在有了明确的映射目标；<code>FINV-11</code> 也已给出 SubAgent 选用的第一条硬约束</td><td>不得在 Part V 定稿前写 Part VII 的沙箱凭据注入细则（依赖工具面授权矩阵）</td></tr>
 <tr><td><code>QA-3</code></td><td>L2 人工放行的载体：代码评审 vs 仓内放行台</td><td>评审（审阅人是自然人、时间戳由平台背书）</td><td>不得两套并行</td></tr>
 <tr><td><code>QA-4</code></td><td>多智能体并行的隔离方式：每 agent 独立工作副本 vs 串行</td><td>—</td><td>不得在未定前实现并行编排（会引入"两个 agent 基于不同基线判断"的新型上下文不一致）</td></tr>
 <tr><td><code>QA-7</code></td><td>负向验证用例与文档锚点耦合（注入点写死了具体章节号/rid），文档结构变动时用例会失效</td><td>用例失效时<strong>显式报错</strong>（当前行为），不静默跳过</td><td>不得把失效用例改成宽松匹配以"让它过去"</td></tr>
