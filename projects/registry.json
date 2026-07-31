@@ -1,0 +1,23 @@
+[
+  {
+    "id": "GMPGCPWork",
+    "path": "https://github.com/shygoly/gmpgcpwork.git",
+    "conformance": "C2",
+    "meta_languages": [
+      "ARCHITECTURE",
+      "DESIGN",
+      "DOMAIN",
+      "FLOWS",
+      "DECISIONS",
+      "DEPLOY",
+      "AGENT-OPS"
+    ],
+    "verify_cmd": [
+      "node",
+      "factory/verifiers/run-all.mjs",
+      "governance.adapter.mjs"
+    ],
+    "action_levels": "AGENT-OPS.md（§2 动作分级 L0–L3，6 条 L3 禁令；§3 路径面；§4 护栏）",
+    "lineage_dir": ".agent-runs/（append-only，FINV-7；由 check-agent-ops.mjs 守护）"
+  }
+]
