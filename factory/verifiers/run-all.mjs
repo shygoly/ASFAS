@@ -53,6 +53,12 @@ let formatFailed = false;
 
 for (const [label, fn] of CHECKS) {
   if (only && !label.includes(only)) continue;
+  // VC-12 延伸：项目可在 adapter 声明 skipChecks，让不适用于本项目格式的检查可见跳过
+  // （如项目用自有校验器守护该面）。格式契约先验不允许跳过（VC-3：它是先验）。
+  if (fn !== checkFormatContract && adapter.skipChecks?.some((s) => label.includes(s))) {
+    console.log(`\n▸ ${label}\n  ⊘ 已跳过（项目 adapter.skipChecks 声明不适用 —— 该面由项目自有校验器守护）`);
+    continue;
+  }
   // 格式契约失败时，后续内容检查的解析结果不可信 —— 停下，避免报出误导性的下游错误
   if (formatFailed) { console.log(`\n▸ ${label}\n  ⊘ 已跳过（格式契约先验失败，解析结果不可信）`); continue; }
   console.log(`\n▸ ${label}`);
