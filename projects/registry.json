@@ -30,8 +30,9 @@
   },
   {
     "id": "PubMedClaw",
-    "path": "/Users/mac/Sync/project/PubMedClaw",
-    "conformance": "C0",
+    "path": "git@codeup.aliyun.com:619371654d2b371c479a94e5/pubmedclaw.git",
+    "local_path": "../PubMedClaw",
+    "conformance": "C1",
     "meta_languages": [
       "ARCHITECTURE",
       "DESIGN",
@@ -44,8 +45,15 @@
     ],
     "verify_cmd": [
       "node",
-      "/Users/mac/projects/ai-factory/factory/verifiers/run-all.mjs",
-      "/Users/mac/Sync/project/PubMedClaw/governance.adapter.mjs"
+      "vendor/ai-factory/factory/verifiers/run-all.mjs",
+      "governance.adapter.mjs"
+    ],
+    "business_terms": [
+      "ContentCrawlRun",
+      "ContentPushLog",
+      "AuditEvent",
+      "ContactTagMapping",
+      "ResidentServiceEnrollment"
     ]
   }
 ]
