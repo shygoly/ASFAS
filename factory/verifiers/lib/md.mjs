@@ -121,7 +121,9 @@ export function parseFlowBlock(body) {
 export function relativeLinks(text) {
   return [...text.matchAll(/\[[^\]]*\]\(([^)]+)\)/g)]
     .map((m) => m[1].split('#')[0].trim())
-    .filter((p) => p && !/^https?:/.test(p) && !p.startsWith('mailto:'));
+    .filter((p) => p && !/^https?:/.test(p) && !p.startsWith('mailto:'))
+    .filter((p) => !/['"]/.test(p))              // 排除含引号的（代码示例如 [.get]('KEY') 假阳性）
+    .filter((p) => !(p.includes('(') && !p.endsWith(')'))); // 排除括号被截断的（Next.js (console) 路径）
 }
 
 /**
