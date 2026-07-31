@@ -51,7 +51,7 @@ L1 白皮书与 L3 开发手册**派生自**本文件，不得包含与之冲突
 | ASFAS 版本 | `1.6.0-draft`（2026-07-30） |
 | 自身一致性等级 | **`C1`** — 校验器 9 维度全部通过负向验证，挂进 `npm test` |
 | `factory/` 实现 | **verifiers 已落地**（在真实 C2 项目上验证过）；其余未开始 |
-| 项目注册表 | 未建 |
+| 项目注册表 | 已建 `projects/registry.json`（GMPGCPWork=`C2` · PubMedClaw=`C0`） |
 
 > 本仓遵守 ASFAS `FP-6`（不预埋）：`factory/` / `runtime/` / `projects/` 目录在有实际实现时才创建。
 

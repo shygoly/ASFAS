@@ -42,7 +42,10 @@ export default function checkDomain(a) {
     for (const row of tb.rows) {
       const name = backticked(row[0]);
       if (!name || docEnums[name]) continue;
-      if (!/^[a-z][a-z0-9_]*$/.test(name)) continue;      // 对象名形态；排除 ID、路径等
+      // 对象名形态：snake_case（Drizzle 表名）或 PascalCase（Prisma model）
+      // 排除纯大写短码 / 带连字符的决策 ID（INV-1、D-HE7…）
+      if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(name)) continue;
+      if (/^[A-Z]{1,3}-\w/.test(name)) continue;
       docObjects.add(name);
       invNoted.set(name, row[row.length - 1] ?? '');
     }

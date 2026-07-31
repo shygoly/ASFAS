@@ -17,7 +17,7 @@ import { join, relative, sep } from 'node:path';
 //     按 basename 无差别忽略会静默跳过源码 —— 本模块在真实项目上首次运行时
 //     即因此漏掉一整个模块，进而误报"某 env 键缺于代码"。
 //     这正是 §22.2 那类扫描面缺陷：检查器一直在跑，只是照不到。
-const ALWAYS_IGNORE = ['node_modules', '.git', '.hg', 'coverage', '.next', '.turbo', '.venv', '__pycache__'];
+const ALWAYS_IGNORE = ['node_modules', '.git', '.hg', 'coverage', '.next', '.nx', '.turbo', '.venv', '__pycache__'];
 const ROOT_ONLY_IGNORE = ['dist', 'build', 'out', 'target', 'vendor'];
 
 /** 递归列出目录下的文件（相对 root 的 posix 风格路径） */
@@ -34,6 +34,8 @@ export function walk(root, { dirs = ['.'], exts = null, ignore = ALWAYS_IGNORE }
       return;
     }
     if (exts && !exts.some((x) => abs.endsWith(x))) return;
+    // 生成的声明文件不是 ID 对拍面（`.d.ts` 也 endsWith `.ts`）
+    if (abs.endsWith('.d.ts')) return;
     out.push(relative(root, abs).split(sep).join('/'));
   };
   for (const d of dirs) visit(join(root, d), d === '.' ? 0 : 1);
