@@ -2,6 +2,7 @@
   {
     "id": "GMPGCPWork",
     "path": "https://github.com/shygoly/gmpgcpwork.git",
+    "local_path": "../../../projects/GMPGCPWork",
     "conformance": "C2",
     "meta_languages": [
       "ARCHITECTURE",
@@ -14,10 +15,37 @@
     ],
     "verify_cmd": [
       "node",
-      "factory/verifiers/run-all.mjs",
+      "vendor/ai-factory/factory/verifiers/run-all.mjs",
       "governance.adapter.mjs"
     ],
     "action_levels": "AGENT-OPS.md（§2 动作分级 L0–L3，6 条 L3 禁令；§3 路径面；§4 护栏）",
-    "lineage_dir": ".agent-runs/（append-only，FINV-7；由 check-agent-ops.mjs 守护）"
+    "lineage_dir": ".agent-runs/（append-only，FINV-7；由 check-agent-ops.mjs 守护）",
+    "business_terms": [
+      "audit_reviews",
+      "archive_tasks",
+      "review_rounds",
+      "signatures",
+      "role_assignments"
+    ]
+  },
+  {
+    "id": "PubMedClaw",
+    "path": "/Users/mac/Sync/project/PubMedClaw",
+    "conformance": "C0",
+    "meta_languages": [
+      "ARCHITECTURE",
+      "DESIGN",
+      "DOMAIN",
+      "FLOWS",
+      "DECISIONS",
+      "DEPLOY",
+      "AI",
+      "AGENT-OPS"
+    ],
+    "verify_cmd": [
+      "node",
+      "/Users/mac/projects/ai-factory/factory/verifiers/run-all.mjs",
+      "/Users/mac/Sync/project/PubMedClaw/governance.adapter.mjs"
+    ]
   }
 ]

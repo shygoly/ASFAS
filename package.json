@@ -6,7 +6,10 @@
   "scripts": {
     "verify": "node spec/check-asfas-doc.mjs",
     "verify:negative": "node spec/negative-verify.mjs",
-    "test": "node spec/check-asfas-doc.mjs && node spec/negative-verify.mjs"
+    "verify:registry": "node spec/check-registry.mjs",
+    "verify:terms": "node spec/check-no-business-terms.mjs",
+    "verify:negative:registry": "node spec/negative-verify-registry.mjs",
+    "test": "node spec/check-asfas-doc.mjs && node spec/check-registry.mjs && node spec/check-no-business-terms.mjs && node spec/negative-verify.mjs && node spec/negative-verify-registry.mjs"
   },
   "engines": { "node": ">=20" }
 }
