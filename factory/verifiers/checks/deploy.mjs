@@ -64,7 +64,7 @@ export default function checkDeploy(a) {
     const v = raw.trim();
     if (!v) return true;                                   // 空值（含仅尾随空格）
     if (/^(\{\}|\[\]|""|''|-|—)$/.test(v)) return true;    // 空结构占位
-    if (/^(<|\{\{|#|CHANGE|PLACEHOLDER|xxx+|your|TODO|example|_+)/i.test(v)) return true;
+    if (/^(<|\{\{|#|CHANGE|PLACEHOLDER|xxx+|your|TODO|example|replace|_+)/i.test(v)) return true;
     if (/(localhost|127\.0\.0\.1|::1)/.test(v)) return true; // 本地连接串不可能是生产凭据
     return false;
   };
