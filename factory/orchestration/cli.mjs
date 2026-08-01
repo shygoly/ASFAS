@@ -16,17 +16,19 @@
 
 import { existsSync, readdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
+import { tmpdir } from 'node:os';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { EventLog } from './events.mjs';
 import { lineageDir } from './lineage.mjs';
 import { resolveProject, lineageRootFor, eventRootFor } from './projects.mjs';
 import { assertWorkflowDefinition, deriveState } from './workflow.mjs';
-import { advance, grantRelease, grantPathRelease, abandon } from './engine.mjs';
+import { advance, grantRelease, grantPathRelease, mergeReleasedChanges, abandon } from './engine.mjs';
 import { researchWorkflow } from './workflows/research.mjs';
 import { orchestrateWorkflow } from './workflows/orchestrate.mjs';
+import { implWorkflow } from './workflows/impl.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const WORKFLOWS = { research: researchWorkflow, orchestrate: orchestrateWorkflow };
+const WORKFLOWS = { research: researchWorkflow, orchestrate: orchestrateWorkflow, impl: implWorkflow };
 const DEFAULT_BINDING = 'runtime/claude-agent-sdk/adapter.mjs';
 
 /** 事件流落点：**工厂侧**，按 project_id 分目录（`D-PROJ-1` 落地限定）。 */
@@ -108,11 +110,16 @@ if (cmd === 'start') {
   const tag = project ? `  project=${project.id}（${project.conformance}）` : '';
   console.log(`\n▶ ${wf.id}  workflow_id=${workflowId}${tag}\n`);
 
+  // 输入 = 全部 --flags（question/criterion/task/gap/acceptance 等由工作流定义约定字段）。
+  // 工作流的前置闸门（intake-complete）检查这些值非空——不同工作流要的字段不同，
+  // 逐工作流硬编码会让输入契约与工作流定义分叉（FP-1）。
+  const input = { ...flags };
+  delete input.project;
   const state = await advance({
     wf, log, adapter: await loadAdapter(), onEvent: render,
     lineageRoot: project ? lineageRootFor(project) : lineageDir(ROOT),   // §50.2：血缘 MUST 与代码同版本可追溯 → 项目侧
     project,
-    input: { question: flags.question, criterion: flags.criterion },
+    input,
   });
 
   console.log(`\n  状态：${state.status}${state.terminal_reason ? `（${state.terminal_reason}）` : ''}`);
@@ -139,13 +146,45 @@ if (cmd === 'start') {
   console.log(`\n✋ 已放行  by=${flags.by}  状态：${s.status}（${s.terminal_reason}）\n`);
   } else if (cmd === 'path-release') {
     // D-RELEASE-1：路径级放行（非终态）。--run 指定被放行的活动 run_id。
-    const { log } = findLog(arg);
+    // 放行后把隔离副本改动合并回项目工作区（先干后放：放行才生效）。
+    const { log, projectId } = findLog(arg);
     const wfId = log.all()[0]?.workflow_id;
     if (!wfId) { console.error(`✗ 无此工作流实例：${arg}`); process.exit(1); }
     if (!flags.by) { console.error('✗ --by 必填：放行须可归属到自然人（IN-1）'); process.exit(2); }
     if (!flags.run) { console.error('✗ --run 必填：须指定被放行的活动 run_id（IN-8 ③：放行绑定到具体改动集）'); process.exit(2); }
     const s = grantPathRelease(log, wfId, { by: flags.by, run_id: flags.run });
     console.log(`\n✋ 已路径级放行  by=${flags.by}  run=${flags.run}  状态：${s.status}（${s.terminal_reason ?? '-'}）\n`);
+
+    // 合并：从事件流取该 run 的改动集，应用回项目工作区。
+    try {
+      const req = log.all().find((e) => e.type === 'path-release.requested' && e.run_id === flags.run);
+      if (!req) { console.error(`  ⊘ 未找到 run=${flags.run} 的 path-release.requested 事件（无可合并改动集）`); process.exit(0); }
+      const changed = req.payload.changed_paths ?? [];
+      const project = projectId ? resolveProject(ROOT, projectId) : null;
+      if (!project) { console.error('  ⊘ 无项目上下文，跳过合并'); process.exit(0); }
+      const isolationCwd = join(process.env.AI_FACTORY_WORKSPACE_ROOT ?? join(tmpdir(), 'ai-factory-runs'), flags.run, 'work');
+      const r = mergeReleasedChanges(project, changed, isolationCwd, new Set(changed));
+      console.log(`  ✓ 已合并 ${r.merged.length} 个文件到 ${project.id} 工作区：`);
+      for (const f of r.merged) console.log(`      ${f}`);
+      console.log(`  → 继续推进：node factory/orchestration/cli.mjs resume ${arg}`);
+    } catch (e) {
+      console.error(`  ✗ 合并失败：${e.message}`);
+      process.exit(1);
+    }
+  } else if (cmd === 'resume') {
+    // D-RELEASE-1：路径级放行后继续推进工作流（engine 从放行后阶段恢复）。
+    const { log, projectId } = findLog(arg);
+    const wfId = log.all()[0]?.workflow_id;
+    const wf = WORKFLOWS[wfId];
+    if (!wf) { console.error(`✗ 无此工作流实例或类型未知：${arg}`); process.exit(1); }
+    const project = projectId ? resolveProject(ROOT, projectId) : null;
+    const state = await advance({
+      wf, log, adapter: await loadAdapter(), onEvent: render,
+      lineageRoot: project ? lineageRootFor(project) : lineageDir(ROOT),
+      project,
+      input: { question: flags.question ?? '', criterion: flags.criterion ?? '' },
+    });
+    console.log(`\n  状态：${state.status}${state.terminal_reason ? `（${state.terminal_reason}）` : ''}`);
   } else if (cmd === 'abandon') {
     const { log } = findLog(arg);
     const wfId = log.all()[0]?.workflow_id;

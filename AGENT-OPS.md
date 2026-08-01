@@ -36,6 +36,8 @@
 | `claude-code-session` | 单 agent 串行 | 读写工作区文件 · 跑 shell 命令 · 网络检索 · MCP（serena / playwright） | `L2` | 可选 |
 | `research` | 单 agent 串行 | **空集**（`tool_grants: []`，只做模型推理，不授予任何工具） | `L0` | 必须 |
 | `supervisor` | 单 agent 串行 | **空集**（`tool_grants: []`，L0 只读；分析产出任务清单，不写文件） | `L0` | 必须 |
+| `test` | 单 agent 串行 | 读写工作区文件 · 跑 shell 命令（TDD Test 阶段，在项目 L1 面写测试） | `L1` | 必须 |
+| `impl` | 单 agent 串行 | 读写工作区文件 · 跑 shell 命令（TDD Impl 阶段，改动集经路径级放行合并，D-RELEASE-1） | `L2` | 必须 |
 
 > 最高动作等级**不得为 `L3`**——`L3` 不设放行路径。
 >

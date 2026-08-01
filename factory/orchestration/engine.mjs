@@ -9,11 +9,13 @@
 //   `FINV-5` 的可测判据是"换绑定后 factory/ 零改动"。绑定的选择属组合根（cli.mjs）。
 //   `RB-1` 机器守护 factory/ 零厂商 SDK 提及。
 
+import { copyFileSync, rmSync, existsSync, mkdirSync } from 'node:fs';
+import { join, dirname } from 'node:path';
 import { assertActivity, assertActivityResult, countsAsIteration } from '../runtime/interface.mjs';
 import { deriveState, nextStage } from './workflow.mjs';
 import { GUARDRAILS } from './guardrails.mjs';
 import { recordFromActivity, writeRecord } from './lineage.mjs';
-import { assertDispatchAllowed, levelForPath } from './projects.mjs';
+import { assertDispatchAllowed, assertMergeAllowed, levelForPath } from './projects.mjs';
 
 /**
  * 推进工作流直到：终止、或停在需要人的地方。
@@ -41,8 +43,22 @@ export async function advance({ wf, log, adapter, input, lineageRoot = null, pro
   }
   if (state.status === 'terminated') return deriveState(log.all());
 
-  // 从当前阶段的下一个开始；没有当前阶段就从头
-  let stage = state.stage ? nextStage(wf, state.stage) : wf.stages[0];
+  // 重入语义（resume）：advance 可能在中途被打断（进程 kill）。
+  // 判定当前阶段活动是否已产生结果：最后一次 stage.entered 之后**没有** activity.completed
+  // （活动被中断，如进程 kill）→ 须**重新进入该阶段派发活动**；否则（活动已完成并落结果，
+  // 或 path-release 挂起等放行后 resume）→ nextStage 到下一阶段。
+  // 旧实现一律 nextStage —— 被中断的活动（无 activity.completed）会被静默跳过，
+  // 等于白跑一次活动且不落结果（试点即踩中：Impl 活动被 kill 后 resume 直接跳到 decide）。
+  const events = log.all();
+  const lastStageEntered = [...events].reverse().find((e) => e.type === 'stage.entered');
+  const activityDoneAfterEnter = lastStageEntered
+    && events.some((e) => e.seq > lastStageEntered.seq && e.type === 'activity.completed');
+  let stage;
+  if (lastStageEntered && !activityDoneAfterEnter) {
+    stage = wf.stages.find((s) => s.id === lastStageEntered.payload.stage_id);  // 活动未完成 → 重入
+  } else {
+    stage = state.stage ? nextStage(wf, state.stage) : wf.stages[0];
+  }
 
   while (stage) {
     emit('stage.entered', { stage_id: stage.id, role: stage.role, action_level: stage.action_level });
@@ -110,8 +126,13 @@ export async function advance({ wf, log, adapter, input, lineageRoot = null, pro
         task: input,
         contract: stage.prompt_contract ?? null,
         output_schema: stage.output_schema ?? null,
+        // D-RELEASE-1：写类活动需在隔离副本 seed 项目源码（先干后放的"干"）。
+        // 注入 project.localPath（FINV-4：engine 不硬编码项目；adapter 也不认识具体项目）。
+        seed: stage.action_level !== 'L0' && project?.localPath ? { source: project.localPath } : null,
       },
-      budget: { iterations: GUARDRAILS.max_iterations },
+      // 迭代上限：默认 GUARDRAILS.max_iterations（25，参考实现的 L0 研究值）；
+      // 工作流阶段可声明 stage.budget.iterations 覆盖（写类任务如 Test/Impl 需要更多轮次）。
+      budget: { iterations: stage.budget?.iterations ?? GUARDRAILS.max_iterations },
     };
     assertActivity(activity);
 
@@ -196,6 +217,10 @@ async function evaluateBehavioral(wf, gate, output) {
     const { evaluateTasks } = await import('./workflows/orchestrate.mjs');
     return evaluateTasks(output);
   }
+  if (gate.id === 'test-red-evidence') {
+    const { evaluateTestRed } = await import('./workflows/impl.mjs');
+    return evaluateTestRed(output);
+  }
   // FP-4 fail-closed：判据没有实现就不能算通过，否则闸门是摆设。
   return { ok: false, reason: `闸门 ${gate.id} 的判据未实现（fail-closed：未实现的闸门 MUST NOT 视为通过）` };
 }
@@ -240,6 +265,57 @@ export function grantRelease(log, wf, { by, decision }) {
 export function grantPathRelease(log, wfId, { by, run_id }) {
   log.append(wfId, 'path-release.granted', { by, run_id, granted_at: new Date().toISOString() });
   return deriveState(log.all());
+}
+
+/**
+ * **合并已放行的改动**（D-RELEASE-1：先干后放，合并须原子）。
+ *
+ * 把隔离副本里被放行活动的改动集应用回项目工作区：
+ *   ① 从事件流取该 run_id 的 path-release.requested（改动集 = changed_paths）
+ *   ② 过 `assertMergeAllowed`（改动集含未放行 L2 路径 → 拒；L3 短路）
+ *   ③ 逐文件把隔离副本的改动版本复制回 project.localPath（git 可见：工作区出现改动，
+ *      由项目自己的校验/提交流程处理）
+ *
+ * 应用方式：改动的文件（含新增）从隔离副本复制回工作区；删除文件同步删除。
+ * 隔离副本路径 = `<WORKSPACE_ROOT>/<run_id>/work`（与 adapter 一致）。
+ *
+ * @param {object} project `resolveProject()` 的返回
+ * @param {string[]} changedPaths 被放行活动的改动集
+ * @param {string} isolationCwd 隔离副本工作目录
+ * @param {Set<string>} releasedPaths 已放行路径集（本次放行的）
+ * @returns {{merged:string[]}} 合并的文件列表
+ */
+export function mergeReleasedChanges(project, changedPaths, isolationCwd, releasedPaths) {
+  // 合并门：未放行的 L2 路径不得并入（fail-closed，D-RELEASE-1）。
+  assertMergeAllowed(project, changedPaths, releasedPaths);
+
+  if (!project.localPath) throw denied2('项目无 local_path，无法合并改动');
+  const merged = [];
+  // 生成目录防御：与 collectChangedPaths 同一判据（GENERATED_DIRS）——
+  // 双保险，防止隔离副本的活动产物（node_modules/dist）被并入项目工作区。
+  const generated = /(^|\/)(node_modules|dist|build|\.next|\.nx|coverage|\.turbo)(\/|$)/;
+  for (const rel of changedPaths) {
+    if (generated.test(rel)) continue;                    // 跳过生成目录，不并入
+    const src = join(isolationCwd, rel);
+    const dst = join(project.localPath, rel);
+    if (existsSync(src)) {
+      mkdirSync(dirname(dst), { recursive: true });
+      copyFileSync(src, dst);
+      merged.push(rel);
+    } else {
+      // 源不存在 = 活动删除了该文件 → 同步删除工作区对应文件
+      rmSync(dst, { force: true });
+      merged.push(`${rel}（删除）`);
+    }
+  }
+  return { merged };
+}
+
+/** 合并门拒绝的报错（D-RELEASE-1）。 */
+function denied2(msg) {
+  const e = new Error(msg);
+  e.class = 'permission_denied';
+  return e;
 }
 
 /**

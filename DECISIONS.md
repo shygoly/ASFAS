@@ -32,6 +32,7 @@
 | `D-GRADE-1` | 项目侧分级表的解析契约（工厂怎么读项目的 `AGENT-OPS.md` §2 做归级） | **严格 Schema：精确列头 + 强类型校验**，六条见 §2.3 | 三条见 §2.3 |
 | `D-PROJ-1` | 编排面的项目维度与跨项目状态落点 | **ProjectSideStateRegistryGate** + 一条落地限定，见 §2.2 | **FactoryNamespacedState**（四类状态收归工厂仓 `projects/<id>/`）：违反 `FINV-4`——要么无视 `lineage_dir`（项目差异被编排面硬编码位置覆盖），要么为 C2/非 C2 维护两套血缘写路径；且可变项目状态留在工厂侧，隔离只靠路径命名纪律，路径推导 bug 即形成跨项目写路径。**ProjectHookStateDelegation**（落盘路径委托项目侧 hook）：违反 `IN-14`——含 bug 或不受信的项目可把状态写到自身子树之外；C0/C1 未必提供 hook，缺省 **fail-open**，隔离不闭合；且触碰"不得新增对项目侧强制要求" |
 | `D-RELEASE-1` | `L2` 活动的路径级人工放行载体（原 `Q-6`） | **先干后放（改动集对拍）**：`L2` 活动在隔离副本执行 → 产出实际改动集 → 归级判 `L2` 面 → 对该**具体改动集**人工放行 → 放行后合并生效 + 血缘回填 `human_release`，见 §2.4 | **阶段级 release 闸复用**：现行 `grantRelease` 是终态（放行即 `workflow.terminated`），没有"放行后继续推进"路径，构成不了 L2 放行载体。**开放路径白名单**（预授权"已放行的路径集"）：违反 `IN-8` ③——放行 MUST 绑定到具体改动集标识，开放白名单无法满足。**先放后干**（派发前按声明的路径放行）：声明可能撒谎，且归级门在派发前无法拿到实际改动集 |
+| `D-RELEASE-2` | Test 阶段动作等级（§42 契约 Test=L1 的偏离） | **Test 提为 L2**——MedTrust 分级表 L1 面仅 `apps/api/src/**/*.spec.ts`，connector 测试文件在 `apps/connector/src/domain/**`（L2 面），8 个 RWS 任务目标代码全在 L2 面；Test 阶段写测试文件同样走路径级放行（`D-RELEASE-1` 机制）。偏离 §42 Test=L1 契约，登记为**项目粒度驱动的已知偏离** | **维持 Test=L1**：MedTrust 无任何 L1 面测试目标，Test 阶段将无法产出红测试（写不进 L1 面文件）。**扩 L1 面含测试文件**：改 MedTrust 项目侧分级表，属业务决策且 8 任务全在 connector 域，扩面收益有限 |
 
 > **`D-EVT-1` 的已知代价**（`WF-26` ③）：跨 workflow 的全局查询需扫描所有分片，无内置索引；
 > workflow 数量大时产生大量小文件，需管理目录布局与文件句柄。

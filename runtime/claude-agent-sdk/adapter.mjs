@@ -16,6 +16,7 @@
 //      收窄会话面需要四件事一起做：settingSources / DISABLE_AUTO_MEMORY / 独立 cwd / 独立 CLAUDE_CONFIG_DIR。
 
 import { mkdirSync } from 'node:fs';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import {
@@ -138,6 +139,10 @@ export function classify(err) {
     return 'transient';                                   // RT-7：不计入迭代护栏
   }
   if (/\b(401|403)\b|unauthor|forbidden|permission|invalid.*api.?key/i.test(m)) return 'permission_denied';
+  // 迭代/预算超限：AG-10 预算超限 → 升级给人，不重试。SDK 有时用 error_max_turns subtype，
+  // 有时用普通 error result 带 "maximum number of turns" 文本——两条路径都必须归 budget_exceeded，
+  // 否则 runtime_fault（不计入迭代护栏）会让引擎无限重试一个永远不会完成的活动（RT-7 的镜像缺陷）。
+  if (/maximum number of turns|max turns|iteration limit|迭代上限|超护栏/i.test(m)) return 'budget_exceeded';
   if (new RegExp(`Cannot find (module|package).*${SDK_PACKAGE}`).test(m)) return 'capability_missing';
   return 'runtime_fault';                                 // 兜底归适配器缺陷，不诬赖活动
 }
@@ -183,6 +188,14 @@ async function run(activity) {
     const q = buildQuery(activity, resolved);
     mkdirSync(q.options.cwd, { recursive: true });
     mkdirSync(q.options.env.CLAUDE_CONFIG_DIR, { recursive: true });
+
+    // D-RELEASE-1：写类活动（≥L1）先 seed 隔离副本——把项目工作区复制进隔离 cwd，
+    // 否则活动没有源码可改（先干后放的"干"的前提）。L0 只读活动不需要。
+    // seed 来源经 activity.input.seed.source 注入（engine 填 project.localPath，FINV-4：
+    // 适配器不硬编码任何项目）。
+    if (activity.action_level_ceiling !== 'L0') {
+      seedWorkspace(q.options.cwd, activity.input?.seed?.source);
+    }
 
     const response = query(q);
 
@@ -239,16 +252,54 @@ async function run(activity) {
  * @param {string} ceiling 动作等级上限
  * @returns {string[]|null}
  */
+// 生成目录/文件，不属于"活动的实际改动"：活动在隔离副本跑 pnpm install / build
+// 会生成 node_modules / dist，git status 会把它们显示为未跟踪目录——必须过滤，
+// 否则改动集被污染（合并时会尝试复制整个 node_modules，EISDIR 且毫无意义）。
+const GENERATED_DIRS = /(^|\/)(node_modules|dist|build|\.next|\.nx|coverage|\.turbo)(\/|$)/;
+
 function collectChangedPaths(cwd, ceiling) {
   if (!ceiling || ceiling === 'L0') return null;
   try {
-    const { execFileSync } = require('node:child_process');
     const out = execFileSync('git', ['-C', cwd, 'status', '--porcelain'], { encoding: 'utf8', stdio: 'pipe' });
     return out.split('\n').filter((l) => l.trim())
       .map((l) => l.slice(3).trim())                     // "?? path" / " M path" → path
+      .filter((p) => p && !GENERATED_DIRS.test(p))       // 排除生成目录
       .filter(Boolean);
   } catch {
     return null;                                         // 非 git 工作副本 → 无法判定
+  }
+}
+
+/**
+ * 把项目 seed 进隔离工作副本（D-RELEASE-1：先干后放的"干"）。
+ *
+ * **必须从干净基线 seed，不能复制脏工作区**——否则项目侧既有未提交改动会被当成
+ * 活动的改动集（试点即踩中：全仓 150+ 路径被误报为 Test 阶段改动）。
+ *
+ * 实现：`git -C <source> archive HEAD | tar -x -C <target>`——只导出 git HEAD 的
+ * **已跟踪文件**（干净树，不含未提交改动、不含未跟踪噪声如 pptx/screenshots）。
+ * 未跟踪但必要的资产（元语等）不在干净树内——活动需要时经 input 显式声明，
+ * 不在 seed 层硬编码（FINV-4：seed 不认具体项目内容）。
+ *
+ * seed 失败不阻塞：活动仍可在（空）隔离副本跑，diff 为空由上层 fail-closed 处理。
+ * @param {string} target 隔离 cwd
+ * @param {string|null} source 项目 local_path（engine 注入）
+ */
+function seedWorkspace(target, source) {
+  if (!source || !target) return;
+  try {
+    mkdirSync(target, { recursive: true });
+    // git archive 只导出已跟踪文件（干净 HEAD）→ shell 管道给 tar 解包到隔离 cwd。
+    // 用 shell 管道而非 Node buffer：archive 输出可 >1MB，spawnSync buffer 会 ENOBUFS。
+    execFileSync('sh', ['-c', `git -C "$1" archive HEAD | tar -x -C "$2"`, 'sh', source, target],
+      { stdio: 'pipe' });
+    // 建立干净基线：git init + 初始 commit。隔离副本必须有 .git，
+    // collectChangedPaths 的 `git status` 才能把"活动改动"与"seed 内容"区分开。
+    execFileSync('git', ['-C', target, 'init', '-q']);
+    execFileSync('git', ['-C', target, 'add', '-A']);
+    execFileSync('git', ['-C', target, '-c', 'user.email=seed@ai-factory', '-c', 'user.name=seed', 'commit', '-q', '-m', 'seed baseline']);
+  } catch {
+    // seed 失败不阻塞（见函数头注释）。
   }
 }
 
