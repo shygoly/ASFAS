@@ -72,7 +72,8 @@
     ],
     "verify_cmd": [
       "node",
-      "scripts/check-meta-docs.mjs"
+      "vendor/ai-factory/factory/verifiers/run-all.mjs",
+      "governance.adapter.mjs"
     ],
     "action_levels": "AGENT-OPS.md（§2 动作分级 L0-L3，L3 禁令 F-1..F-5；§1 能力注册表）",
     "lineage_dir": ".agent-runs/（append-only，FINV-7；schema 含全部 AG-7 必填字段）",
