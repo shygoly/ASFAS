@@ -60,7 +60,7 @@
     "id": "MedTrust",
     "path": "git@codeup.aliyun.com:619371654d2b371c479a94e5/medtrust.git",
     "local_path": "../MedTrust",
-    "conformance": "C1",
+    "conformance": "C2",
     "meta_languages": [
       "ARCHITECTURE",
       "DESIGN",
