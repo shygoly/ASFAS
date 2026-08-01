@@ -215,7 +215,11 @@ async function run(activity) {
         metering,
       }, binding);
     }
-    return finish({ ok: true, output, metering }, binding);
+    // D-RELEASE-1：写类活动（action_level_ceiling ≥ L1）收集实际改动集（diff 来源）。
+    // 隔离副本 cwd 是 git 仓库时用 git diff 取已修改/未跟踪文件；非 git 或收集失败时省略
+    // changed_paths（VC-12：无法判定则可见处理，不假阳性）。
+    const changedPaths = collectChangedPaths(q.options.cwd, activity.action_level_ceiling);
+    return finish({ ok: true, output, metering, ...(changedPaths ? { changed_paths: changedPaths } : {}) }, binding);
   } catch (err) {
     // RT-5 的落点：任何异常都转成返回值，且带上已知的计量。
     return finish({
@@ -223,6 +227,28 @@ async function run(activity) {
       error: { class: classify(err), message: String(err?.message ?? err), location: `role=${activity?.role ?? '?'}` },
       metering,
     }, binding);
+  }
+}
+
+/**
+ * 从活动工作副本收集实际改动集。
+ * 隔离 cwd 是 git 仓库时：`git status --porcelain` 提取已修改/未跟踪路径。
+ * 写类活动（≥L1）才有意义；L0 只读恒返回 null（无改动可言）。
+ * 收集失败（非 git / git 不可用）返回 null → 上层按 VC-12 可见处理。
+ * @param {string} cwd 活动隔离工作副本
+ * @param {string} ceiling 动作等级上限
+ * @returns {string[]|null}
+ */
+function collectChangedPaths(cwd, ceiling) {
+  if (!ceiling || ceiling === 'L0') return null;
+  try {
+    const { execFileSync } = require('node:child_process');
+    const out = execFileSync('git', ['-C', cwd, 'status', '--porcelain'], { encoding: 'utf8', stdio: 'pipe' });
+    return out.split('\n').filter((l) => l.trim())
+      .map((l) => l.slice(3).trim())                     // "?? path" / " M path" → path
+      .filter(Boolean);
+  } catch {
+    return null;                                         // 非 git 工作副本 → 无法判定
   }
 }
 

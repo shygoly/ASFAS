@@ -13,7 +13,7 @@ import { assertActivity, assertActivityResult, countsAsIteration } from '../runt
 import { deriveState, nextStage } from './workflow.mjs';
 import { GUARDRAILS } from './guardrails.mjs';
 import { recordFromActivity, writeRecord } from './lineage.mjs';
-import { assertDispatchAllowed } from './projects.mjs';
+import { assertDispatchAllowed, levelForPath } from './projects.mjs';
 
 /**
  * 推进工作流直到：终止、或停在需要人的地方。
@@ -89,12 +89,22 @@ export async function advance({ wf, log, adapter, input, lineageRoot = null, pro
 
     // ── 派活动给运行时 ──────────────────────────────────────
     const runId = `${wf.id}-${stage.id}-${Date.now().toString(36)}`;
+    // tool_grants 由分级表按路径面推导（D-PROJ-1 已知代价③ / D-RELEASE-1 落地限定）：
+    // L0 只读空集；写类活动授权 Write/Edit/Bash 等文件操作（RT-6 闭集）。
+    // 未给 project 时（工厂自身工作流）保持空集——工厂侧编排不派写类活动。
+    const grantsFromGrading = () => {
+      if (!project?.grading || stage.action_level === 'L0') return [];
+      const face = project.grading[stage.action_level];
+      if (!face || face.paths.length === 0) return [];
+      // 写类面 → 授权文件写与命令执行。工具名单是 SDKL 内置工具的子集（RT-13 纵深防御的另一侧）。
+      return ['Read', 'Write', 'Edit', 'Bash', 'Glob', 'Grep', 'BashOutput', 'KillShell'];
+    };
     const activity = {
       run_id: runId,
       role: stage.role,
       action_level_ceiling: stage.action_level,
       semantic_refs: [],                       // FR-17：引用而非内容。研究工作流暂无切片索引，登记为空。
-      tool_grants: [],                         // RT-6 闭集；研究活动 L0 只需模型推理，不授予任何工具
+      tool_grants: grantsFromGrading(),        // RT-6 闭集；L0 只读空集，写类由分级表路径面推导
       // WF-8 ①③：输入与输出的 typed schema 都由工作流定义携带，运行时 MUST NOT 在执行期扩展。
       input: {
         task: input,
@@ -130,6 +140,29 @@ export async function advance({ wf, log, adapter, input, lineageRoot = null, pro
       if (await routeFailure({ wf, log, emit, stage, reason: result.error.message, countsAsRetry: counts })) return deriveState(log.all());
       stage = wf.stages.find((s) => s.id === wf.failure_routes[stage.id].to);
       continue;
+    }
+
+    // ── L2 路径级放行（D-RELEASE-1：先干后放）────────────────
+    // L2 活动在隔离副本已跑完（RT-10），改动集由运行时报告（changed_paths）。
+    // 若改动集含 L2 面（含 AG-14 兜底的未匹配路径），停在 await_human 等人放行，
+    // 不放行不合并生效。L1 及以下直接过（L1 是"自主 + 事后审计"）。
+    if (project && stage.action_level === 'L2') {
+      const changed = result.changed_paths ?? [];
+      // 归级改动集中每个路径：任一路径归 L2 即触发放行请求；L3 命中直接升级（AG-15 短路）。
+      const l3 = changed.find((p) => levelForPath(project.grading, p) === 'L3');
+      if (l3) {
+        emit('gate.evaluated', { stage_id: stage.id, gate_id: 'path-merge-gate', gate_class: 'permission', result: 'fail', criterion: '改动集归级', detail: `改动路径 \`${l3}\` 归 L3（AG-15 短路），L3 无放行路径` });
+        emit('workflow.terminated', { reason: wf.terminal.on_escalate, detail: `L2 活动改动集含 L3 路径：${l3}` });
+        return deriveState(log.all());
+      }
+      const hasL2 = changed.some((p) => levelForPath(project.grading, p) === 'L2');
+      if (hasL2 || changed.length === 0) {
+        // changed.length===0：活动声称成功但无改动集（diff 收集不可用或真的没改）→
+        // 按 AG-14 fail-closed 视为未过放行，挂起等人工确认（不静默通过）。
+        const payload = { run_id: runId, stage_id: stage.id, action_level: 'L2', changed_paths: changed, project: project.id };
+        emit('path-release.requested', payload, runId);
+        return deriveState(log.all());       // 停在 await_human（deriveState 识别 path-release.requested）
+      }
     }
 
     // ── 后置的行为闸门（判据由工作流定义携带，此处按 gate id 分派）──
@@ -189,6 +222,23 @@ export function grantRelease(log, wf, { by, decision }) {
   if (state.status !== 'awaiting_human') throw new Error(`当前状态 ${state.status}，没有待放行的闸门`);
   log.append(wf.id, 'release.granted', { by, decision, granted_at: new Date().toISOString() });
   log.append(wf.id, 'workflow.terminated', { reason: wf.terminal.on_success, decision });
+  return deriveState(log.all());
+}
+
+/**
+ * **路径级人工放行**（`D-RELEASE-1`：先干后放）。
+ * 与 `grantRelease`（阶段级、终态）不同：`path-release.granted` 是**非终态**——
+ * 放行后工作流继续推进（`deriveState` 把它恢复为 running），改动集才合并生效。
+ *
+ * `IN-1`：放行须可归属到自然人（by + granted_at）。
+ * 放行的是**具体改动集**（`IN-8` ③：绑定到改动集标识，不是开放白名单）。
+ *
+ * @param {EventLog} log
+ * @param {string} wfId 工作流 id
+ * @param {{by:string, run_id:string}} opts 放行人 + 被放行的活动 run_id
+ */
+export function grantPathRelease(log, wfId, { by, run_id }) {
+  log.append(wfId, 'path-release.granted', { by, run_id, granted_at: new Date().toISOString() });
   return deriveState(log.all());
 }
 

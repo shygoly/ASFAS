@@ -21,7 +21,7 @@ import { EventLog } from './events.mjs';
 import { lineageDir } from './lineage.mjs';
 import { resolveProject, lineageRootFor, eventRootFor } from './projects.mjs';
 import { assertWorkflowDefinition, deriveState } from './workflow.mjs';
-import { advance, grantRelease, abandon } from './engine.mjs';
+import { advance, grantRelease, grantPathRelease, abandon } from './engine.mjs';
 import { researchWorkflow } from './workflows/research.mjs';
 import { orchestrateWorkflow } from './workflows/orchestrate.mjs';
 
@@ -137,20 +137,30 @@ if (cmd === 'start') {
   if (!flags.by) { console.error('✗ --by 必填：放行须可归属到自然人（IN-1）'); process.exit(2); }
   const s = grantRelease(log, wf, { by: flags.by, decision: flags.decision ?? '' });
   console.log(`\n✋ 已放行  by=${flags.by}  状态：${s.status}（${s.terminal_reason}）\n`);
-} else if (cmd === 'abandon') {
-  const { log } = findLog(arg);
-  const wfId = log.all()[0]?.workflow_id;
-  const wf = WORKFLOWS[wfId];
-  if (!wf) { console.error(`✗ 无此工作流实例或类型未知：${arg}`); process.exit(1); }
-  if (!flags.by) { console.error('✗ --by 必填：放弃同样须可归属到自然人（IN-1）'); process.exit(2); }
-  const s = abandon(log, wf, { by: flags.by, reason: flags.reason ?? '' });
-  console.log(`\n⊘ 已放弃  by=${flags.by}  状态：${s.status}（${s.terminal_reason}）\n`);
-} else {
+  } else if (cmd === 'path-release') {
+    // D-RELEASE-1：路径级放行（非终态）。--run 指定被放行的活动 run_id。
+    const { log } = findLog(arg);
+    const wfId = log.all()[0]?.workflow_id;
+    if (!wfId) { console.error(`✗ 无此工作流实例：${arg}`); process.exit(1); }
+    if (!flags.by) { console.error('✗ --by 必填：放行须可归属到自然人（IN-1）'); process.exit(2); }
+    if (!flags.run) { console.error('✗ --run 必填：须指定被放行的活动 run_id（IN-8 ③：放行绑定到具体改动集）'); process.exit(2); }
+    const s = grantPathRelease(log, wfId, { by: flags.by, run_id: flags.run });
+    console.log(`\n✋ 已路径级放行  by=${flags.by}  run=${flags.run}  状态：${s.status}（${s.terminal_reason ?? '-'}）\n`);
+  } else if (cmd === 'abandon') {
+    const { log } = findLog(arg);
+    const wfId = log.all()[0]?.workflow_id;
+    const wf = WORKFLOWS[wfId];
+    if (!wf) { console.error(`✗ 无此工作流实例或类型未知：${arg}`); process.exit(1); }
+    if (!flags.by) { console.error('✗ --by 必填：放弃同样须可归属到自然人（IN-1）'); process.exit(2); }
+    const s = abandon(log, wf, { by: flags.by, reason: flags.reason ?? '' });
+    console.log(`\n⊘ 已放弃  by=${flags.by}  状态：${s.status}（${s.terminal_reason}）\n`);
+  } else {
   console.log(`用法：
   start <workflow> [--project <id>] --question "…" --criterion "…"
                                                     触发工作流实例
   status <workflow_id>                              重放事件流并推导状态
-  release <workflow_id> --by <人名> --decision "…"  人工放行
+  release <workflow_id> --by <人名> --decision "…"  人工放行（阶段级，终态）
+  path-release <workflow_id> --by <人名> --run <run_id>  路径级放行 L2 改动集（D-RELEASE-1，非终态）
   abandon <workflow_id> --by <人名> --reason "…"    人工放弃（WF-2 ⑥ 的放弃路径）
 
 可用工作流：${Object.keys(WORKFLOWS).join(', ')}
