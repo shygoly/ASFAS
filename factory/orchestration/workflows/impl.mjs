@@ -74,9 +74,10 @@ export const implWorkflow = Object.freeze({
       // `apps/connector/src/domain/**`（L2 面），L1 面只含 `apps/api/src/**/*.spec.ts`，
       // 8 个 RWS 任务的目标代码全在 L2 面 → Test 阶段提为 L2，测试文件同样走路径级放行。
       action_level: 'L2',
-      // 写测试 + 隔离副本跑测确认红（WF-12 ①）需要更多轮次：25 是参考实现的 L0 研究默认值，
-      // 试点连续 3 次撞上限（Reached maximum number of turns (25)）。写类任务按阶段提高。
-      budget: { iterations: 60 },
+      // 写测试 + 隔离副本跑测确认红（WF-12 ①）需要更多轮次：25 是参考实现的 L0 研究默认值。
+      // 试点（L2-missing-data）60 轮通过；cohort-def 写实现 + NestJS 全量 jest 慢，60 仍不够，
+      // 升级到 150（写实现 + 跑测确认绿是重活，seed 大仓也耗轮次）。
+      budget: { iterations: 150 },
       output_schema: TEST_OUTPUT_SCHEMA,
       prompt_contract: [
         '你在执行 TDD 的 Test 阶段：为任务卡的 acceptance 写**失败的测试**。',
@@ -97,7 +98,7 @@ export const implWorkflow = Object.freeze({
       id: 'impl',
       role: 'impl',
       action_level: 'L2',          // 改动在项目 L2 面（connector/agent 域）→ 触发路径级放行
-      budget: { iterations: 60 },  // 写实现 + 隔离副本跑测确认绿，同 Test 阶段理由
+      budget: { iterations: 150 }, // 写实现 + 隔离副本跑测确认绿，同 Test 阶段理由（见上）
       output_schema: IMPL_OUTPUT_SCHEMA,
       prompt_contract: [
         '你在执行 TDD 的 Impl 阶段：让 Test 阶段的红测试变绿。',

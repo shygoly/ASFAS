@@ -260,7 +260,10 @@ const GENERATED_DIRS = /(^|\/)(node_modules|dist|build|\.next|\.nx|coverage|\.tu
 function collectChangedPaths(cwd, ceiling) {
   if (!ceiling || ceiling === 'L0') return null;
   try {
-    const out = execFileSync('git', ['-C', cwd, 'status', '--porcelain'], { encoding: 'utf8', stdio: 'pipe' });
+    // --untracked-files=all：把未跟踪**目录**展开成其中的文件——否则活动新建的
+    // 目录（如 .github/workflows/）只显示为目录名，合并端 copyFileSync 复制不了目录
+    // （L4-repro 试点即踩中：CI 目录合并失败 ENOENT）。
+    const out = execFileSync('git', ['-C', cwd, 'status', '--porcelain', '--untracked-files=all'], { encoding: 'utf8', stdio: 'pipe' });
     return out.split('\n').filter((l) => l.trim())
       .map((l) => l.slice(3).trim())                     // "?? path" / " M path" → path
       .filter((p) => p && !GENERATED_DIRS.test(p))       // 排除生成目录
@@ -273,14 +276,16 @@ function collectChangedPaths(cwd, ceiling) {
 /**
  * 把项目 seed 进隔离工作副本（D-RELEASE-1：先干后放的"干"）。
  *
- * **必须从干净基线 seed，不能复制脏工作区**——否则项目侧既有未提交改动会被当成
- * 活动的改动集（试点即踩中：全仓 150+ 路径被误报为 Test 阶段改动）。
+ * **从项目工作区当前状态复制，但以 commit 时刻为 baseline**——两点权衡：
+ * ① 必须包含**上游阶段已合并的改动**（如 Test 阶段写测试后放行合并到工作区，
+ *    Impl 阶段才能看到要实现的测试）。若从 git HEAD seed，Test 的测试文件
+ *    不在其中，Impl 看不到要实现什么（试点即踩中：Impl 声称实现但无改动）。
+ * ② 不能把"活动自己的改动"误当 baseline——用 rsync 复制后立即 `git add -A`
+ *    + commit，活动改动发生在 baseline 之后，diff 只含活动自己的。
+ *    项目既有并发编辑残留会进 baseline（无害：它们是"seed 时的状态"，
+ *    不是本活动的改动，collectChangedPaths 只报 baseline 之后的）。
  *
- * 实现：`git -C <source> archive HEAD | tar -x -C <target>`——只导出 git HEAD 的
- * **已跟踪文件**（干净树，不含未提交改动、不含未跟踪噪声如 pptx/screenshots）。
- * 未跟踪但必要的资产（元语等）不在干净树内——活动需要时经 input 显式声明，
- * 不在 seed 层硬编码（FINV-4：seed 不认具体项目内容）。
- *
+ * 排除生成目录/大目录（node_modules/dist/.next 等）。
  * seed 失败不阻塞：活动仍可在（空）隔离副本跑，diff 为空由上层 fail-closed 处理。
  * @param {string} target 隔离 cwd
  * @param {string|null} source 项目 local_path（engine 注入）
@@ -289,11 +294,22 @@ function seedWorkspace(target, source) {
   if (!source || !target) return;
   try {
     mkdirSync(target, { recursive: true });
-    // git archive 只导出已跟踪文件（干净 HEAD）→ shell 管道给 tar 解包到隔离 cwd。
-    // 用 shell 管道而非 Node buffer：archive 输出可 >1MB，spawnSync buffer 会 ENOBUFS。
-    execFileSync('sh', ['-c', `git -C "$1" archive HEAD | tar -x -C "$2"`, 'sh', source, target],
-      { stdio: 'pipe' });
-    // 建立干净基线：git init + 初始 commit。隔离副本必须有 .git，
+    // 分三步 seed，每步独立容错（单文件失败不中断整链）：
+    // ① git archive 干净树 → tar 解包（基线 HEAD）
+    // ② 叠加"工作区相对 HEAD 的已跟踪改动"（上游 Test 阶段放行合并的文件）
+    // ③ 叠加未跟踪源文件（missingness.ts 等新增实现），排除生成目录/大文件
+    const overlay = (cmd) => {
+      try { execFileSync('sh', ['-c', cmd, 'sh', source, target], { stdio: 'pipe' }); }
+      catch { /* 单文件复制失败容错：缺失的文件由活动按需处理，不中断 seed */ }
+    };
+    overlay(`git -C "$1" archive HEAD | tar -x -C "$2"`);
+    // 已跟踪的改动（上游 Test 阶段放行合并）：while read 流式，避免 xargs -I 命令行膨胀超长
+    overlay(`git -C "$1" diff HEAD --name-only | while IFS= read -r f; do [ -f "$1/$f" ] && mkdir -p "$2/$(dirname "$f")" && cp "$1/$f" "$2/$f" || true; done`);
+    // 未跟踪源文件（missingness.ts 等新增实现），排除生成目录/大文件
+    overlay(`git -C "$1" ls-files --others --exclude-standard | while IFS= read -r f; do ` +
+      `case "$f" in node_modules/*|*/node_modules/*|dist/*|*/dist/*|.next/*|.nx/*|coverage/*|.agent-runs/*|.workflow-runs/*|*.pptx|*.pdf|screenshots/*|output/*|pitch/*|*.png) ;; *) ` +
+      `  [ -f "$1/$f" ] && mkdir -p "$2/$(dirname "$f")" && cp "$1/$f" "$2/$f" || true ;; esac; done`);
+    // 建立 baseline：git init + 初始 commit。隔离副本必须有 .git，
     // collectChangedPaths 的 `git status` 才能把"活动改动"与"seed 内容"区分开。
     execFileSync('git', ['-C', target, 'init', '-q']);
     execFileSync('git', ['-C', target, 'add', '-A']);
